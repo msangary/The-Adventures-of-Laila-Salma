@@ -1,0 +1,1436 @@
+window.LailaSalma = window.LailaSalma || {};
+
+(function (LS) {
+  function safeRun(name, fn) {
+    try { fn(); } catch (e) { console.error('[Kyoto:' + name + ']', e); }
+  }
+
+  function buildKyotoWorld(worldGroup) {
+    const W = {
+      id: 'kyoto',
+      colliders: [],
+      zones: [],
+      norenPanels: [],
+      hiddenAnimals: [],
+      koiList: [],
+      duckList: [],
+      bambooStalks: [],
+      rippleRings: [],
+      rowboat: null,
+      shinkansenTrain: null,
+      petals: null,
+      skyMesh: null,
+      mochiBall: null,
+      mochiStartPos: new THREE.Vector3(-3.6, 0, -18.5),
+      sushiCounterPos: new THREE.Vector3(-8.2, 0, -29.8)
+    };
+
+    function addCollider(x, z, hw, hd) {
+      W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+    }
+
+    // Smooth walkable elevation across arched bridge (X=-13.5..-30.5, Z=-27.5) and elevated Sakurako Shrine courtyard (Y=0.75)
+    function getGroundHeight(x, z) {
+      // East-West Arched Bridge over Lake Basin
+      if (x <= -13.3 && x >= -30.7 && Math.abs(z + 27.5) <= 2.3) {
+        const t = (-13.5 - x) / 17.0; // 0 at east ramp, 1 at west ramp
+        const tc = Math.max(0, Math.min(1, t));
+        return Math.sin(tc * Math.PI) * 1.15;
+      }
+      // Stone steps ascending to Sakurako Shrine Courtyard (X=-41.6..-43.8, Z=-25.5..-29.5)
+      if (x <= -41.6 && x >= -43.8 && z >= -30.0 && z <= -25.0) {
+        const s = (-41.6 - x) / 2.2;
+        return Math.max(0, Math.min(1, s)) * 0.75;
+      }
+      // Elevated Sakurako Shrine Courtyard (Y=0.75)
+      if (x < -43.8 && x >= -56.0 && z >= -36.5 && z <= -18.5) {
+        return 0.75;
+      }
+      return 0;
+    }
+    W.getGroundHeight = getGroundHeight;
+
+    function buildKyotoTree(x, z, kind, scale, baseY) {
+      const s = scale || 1;
+      const g = new THREE.Group();
+      g.position.set(x, baseY || 0, z);
+      g.scale.setScalar(s);
+
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.36, 3.0, 8),
+        LS.makeToonMat(kind === 'cedar' ? 0x4c3424 : 0x5c3c2e)
+      );
+      trunk.position.y = 1.5;
+      trunk.castShadow = true;
+      g.add(trunk);
+
+      if (kind === 'cedar') {
+        // Tall layered cedar / Goshinboku conifer
+        const pineColors = [0x2d5a3c, 0x356b46, 0x244a31];
+        for (let i = 0; i < 4; i++) {
+          const cone = new THREE.Mesh(
+            new THREE.ConeGeometry(2.1 - i * 0.35, 2.5, 8),
+            LS.makeToonMat(pineColors[i % pineColors.length])
+          );
+          cone.position.y = 3.0 + i * 1.35;
+          cone.castShadow = true;
+          g.add(cone);
+        }
+      } else {
+        const colors = kind === 'maple'
+          ? [0xd9483b, 0xe86f3a, 0xf29f3d]
+          : (kind === 'sakura' ? [0xffc7d9, 0xffaec8, 0xffe0eb] : [0x467d46, 0x599452, 0x366639]);
+        const puffs = [
+          [0, 3.4, 0, 1.55], [-0.95, 2.9, 0.45, 1.15], [0.95, 3.0, -0.35, 1.2],
+          [0.15, 4.0, 0.4, 1.05], [-0.4, 3.6, -0.7, 1.0]
+        ];
+        puffs.forEach((p, idx) => {
+          const m = new THREE.Mesh(new THREE.DodecahedronGeometry(p[3], 1), LS.makeToonMat(colors[idx % colors.length]));
+          m.position.set(p[0], p[1], p[2]);
+          m.castShadow = true;
+          g.add(m);
+        });
+      }
+
+      worldGroup.add(g);
+      if (kind !== 'no_col') addCollider(x, z, 0.55 * s, 0.55 * s);
+      return g;
+    }
+
+    function buildMachiya(x, z, rotY, opts) {
+      const cfg = opts || {};
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY;
+
+      const darkWood = LS.makeToonMat(cfg.woodColor || 0x4b3322);
+      const plaster = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture(cfg.wallHex || '#efe5d1') });
+      const lattice = LS.makeToonMat(0xffffff, { map: LS.createWoodLatticeTexture('#4a3120', cfg.shojiHex || '#f7ecd4') });
+      const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture(cfg.roofHex || '#363b45') });
+      const glowWin = LS.makeEmissiveMat(0xffe9b5, 0xffc870, 0.55);
+
+      const w = cfg.width || 7.0;
+      const d = cfg.depth || 6.0;
+      const h = cfg.height || 5.0;
+
+      // Ground floor timber lattice + upper plaster wall
+      const lower = new THREE.Mesh(new THREE.BoxGeometry(w, h * 0.52, d), lattice);
+      lower.position.y = h * 0.26;
+      lower.castShadow = true;
+      lower.receiveShadow = true;
+      g.add(lower);
+
+      const upper = new THREE.Mesh(new THREE.BoxGeometry(w - 0.15, h * 0.48, d - 0.15), plaster);
+      upper.position.y = h * 0.76;
+      upper.castShadow = true;
+      g.add(upper);
+
+      // Eave band between floors
+      const midEave = new THREE.Mesh(new THREE.BoxGeometry(w + 0.9, 0.22, d + 0.9), roofMat);
+      midEave.position.y = h * 0.52;
+      g.add(midEave);
+
+      // Sloped kawara tile roof
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.84, 2.2, 4), roofMat);
+      roof.position.y = h + 1.05;
+      roof.rotation.y = Math.PI / 4;
+      roof.scale.set(1.12, 1.0, 0.98);
+      roof.castShadow = true;
+      g.add(roof);
+
+      // Warm shoji windows
+      [-1.5, 1.5].forEach(wx => {
+        const wMesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.15, 0.12), glowWin);
+        wMesh.position.set(wx, h * 0.74, d / 2 + 0.02);
+        g.add(wMesh);
+      });
+
+      // Sliding entrance door + lantern
+      const door = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.2, 0.16), darkWood);
+      door.position.set(0, 1.1, d / 2 + 0.06);
+      g.add(door);
+
+      const lantern = new THREE.Mesh(
+        new THREE.SphereGeometry(0.24, 10, 8),
+        new THREE.MeshBasicMaterial({ color: cfg.lanternColor || 0xffd27d })
+      );
+      lantern.scale.set(1, 1.35, 1);
+      lantern.position.set(1.25, 2.35, d / 2 + 0.45);
+      g.add(lantern);
+
+      // Optional shop/building sign
+      if (cfg.signText) {
+        const sign = new THREE.Mesh(
+          new THREE.BoxGeometry(4.0, 0.85, 0.18),
+          new THREE.MeshBasicMaterial({
+            map: LS.createSignTexture(cfg.signText, {
+              bg: cfg.signBg || '#3a2315',
+              border: cfg.signBorder || '#e0a458',
+              color: cfg.signColor || '#fff5dc',
+              font: 'bold 31px sans-serif'
+            })
+          })
+        );
+        sign.position.set(0, h * 0.52 + 0.58, d / 2 + 0.55);
+        g.add(sign);
+      }
+
+      // Optional swaying noren curtains
+      if (cfg.norenColor) {
+        const nMat = LS.makeToonMat(cfg.norenColor, { side: THREE.DoubleSide });
+        for (let i = -1; i <= 1; i++) {
+          const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.78, 0.05), nMat);
+          cloth.position.set(i * 0.72, 2.0, d / 2 + 0.38);
+          g.add(cloth);
+          W.norenPanels.push({ mesh: cloth, phase: i * 0.8 + z });
+        }
+      }
+
+      worldGroup.add(g);
+      // Compute world-space collider bounds taking rotY=±PI/2 into account
+      const rotated = Math.abs(Math.sin(rotY)) > 0.5;
+      addCollider(x, z, (rotated ? d : w) / 2 + 0.4, (rotated ? w : d) / 2 + 0.4);
+      return g;
+    }
+
+    // 1. Sky, Excavated Ground (ZERO snow!), Distant Kyoto Hills & 5-Story Pagoda Silhouette
+    safeRun('environment', () => {
+      const skyGeo = new THREE.SphereGeometry(200, 24, 16);
+      const skyMat = new THREE.MeshBasicMaterial({
+        map: LS.createSkyTexture(LS.state.timeMode, 'kyoto'),
+        side: THREE.BackSide
+      });
+      W.skyMesh = new THREE.Mesh(skyGeo, skyMat);
+      worldGroup.add(W.skyMesh);
+
+      // Dry mossy-green village ground built around the excavated Lake Basin (X=-30.2..-14.8, Z=-37.5..-17.5)
+      // Zero overlapping ground inside the lake cutout -> zero Z-fighting!
+      const grassMat = LS.makeToonMat(0x6b9a58);
+      const mossMat = LS.makeToonMat(0x5b824d);
+      function addGroundPatch(x1, x2, z1, z2, mat, y) {
+        const pw = x2 - x1;
+        const pd = z2 - z1;
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, pd), mat || grassMat);
+        m.rotation.x = -Math.PI / 2;
+        m.position.set((x1 + x2) / 2, y || 0, (z1 + z2) / 2);
+        m.receiveShadow = true;
+        worldGroup.add(m);
+      }
+      // East of lake
+      addGroundPatch(-14.8, 120, -140, 120, grassMat, 0);
+      // West of lake (Sakurako Shrine precinct mossy green)
+      addGroundPatch(-140, -30.2, -140, 120, mossMat, 0);
+      // North of lake (Bamboo grove & foothills)
+      addGroundPatch(-30.2, -14.8, -140, -37.5, mossMat, 0);
+      // South of lake
+      addGroundPatch(-30.2, -14.8, -17.5, 120, grassMat, 0);
+
+      // Main N-S Asphalt Road (X=0, Z=+22..-52)
+      const road = new THREE.Mesh(
+        new THREE.PlaneGeometry(7.2, 76),
+        new THREE.MeshLambertMaterial({ map: LS.createRoadTexture('kyoto') })
+      );
+      road.rotation.x = -Math.PI / 2;
+      road.position.set(0, 0.02, -15);
+      road.receiveShadow = true;
+      worldGroup.add(road);
+
+      // Curbs + white roadside guardrail with blueprint opening at Z = -24.8..-30.2
+      const curbMat = LS.makeToonMat(0xcac3b3);
+      const railMat = LS.makeToonMat(0xebeae4);
+      // East curb continuous
+      const eastCurb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 76), curbMat);
+      eastCurb.position.set(4.4, 0.06, -15);
+      eastCurb.receiveShadow = true;
+      worldGroup.add(eastCurb);
+
+      // West curb split around stone path opening (-24.8 to -30.2)
+      const westCurbSouth = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 47.2), curbMat);
+      westCurbSouth.position.set(-4.4, 0.06, -1.2);
+      westCurbSouth.receiveShadow = true;
+      worldGroup.add(westCurbSouth);
+
+      const westCurbNorth = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 23.0), curbMat);
+      westCurbNorth.position.set(-4.4, 0.06, -41.7);
+      westCurbNorth.receiveShadow = true;
+      worldGroup.add(westCurbNorth);
+
+      // White guardrails flanking the stone path opening
+      [[-3.8, -21.5, 6.2], [-3.8, -34.0, 7.2]].forEach(gr => {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.22, gr[2]), railMat);
+        bar.position.set(gr[0], 0.65, gr[1]);
+        worldGroup.add(bar);
+        [-gr[2] / 2 + 0.4, gr[2] / 2 - 0.4].forEach(oz => {
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.72, 6), railMat);
+          post.position.set(gr[0], 0.36, gr[1] + oz);
+          worldGroup.add(post);
+        });
+      });
+
+      // Iconic Japanese Orange Convex Traffic Mirror opposite the stone path (East curb at Z=-27.5)
+      const mirG = new THREE.Group();
+      mirG.position.set(4.1, 0, -27.5);
+      const mirPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 3.0, 8), LS.makeToonMat(0xf59e0b));
+      mirPole.position.y = 1.5;
+      mirG.add(mirPole);
+      const mirRim = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.1, 16), LS.makeToonMat(0xf97316));
+      mirRim.rotation.z = Math.PI / 2;
+      mirRim.position.set(-0.08, 2.75, 0);
+      mirG.add(mirRim);
+      const mirFace = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10), LS.makeEmissiveMat(0xcbd5e1, 0x94a3b8, 0.35));
+      mirFace.scale.set(0.35, 1, 1);
+      mirFace.position.set(-0.14, 2.75, 0);
+      mirG.add(mirFace);
+      worldGroup.add(mirG);
+
+      // Misty Kyoto Mountains & Iconic 5-Story Pagoda Silhouette on distant eastern hills
+      const hillMat = LS.makeToonMat(0x4b775b);
+      [[-72, -88, 38, 22], [-22, -96, 44, 25], [32, -86, 40, 21], [-96, -24, 34, 18], [62, -26, 36, 20]].forEach(h => {
+        const hill = new THREE.Mesh(new THREE.SphereGeometry(h[2], 16, 12), hillMat);
+        hill.scale.set(1.4, h[3] / h[2], 1.0);
+        hill.position.set(h[0], -2, h[1]);
+        worldGroup.add(hill);
+      });
+
+      // Distant 5-Story Kyoto Pagoda (Yasaka-style silhouette on the northeastern hill)
+      const pag = new THREE.Group();
+      pag.position.set(36, 12, -74);
+      const pWood = LS.makeToonMat(0x523626);
+      const pRoof = LS.makeToonMat(0x2d333b);
+      for (let tier = 0; tier < 5; tier++) {
+        const w = 5.2 - tier * 0.55;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w * 0.65, 2.2, w * 0.65), pWood);
+        body.position.y = tier * 3.1 + 1.1;
+        pag.add(body);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(w * 0.85, 1.35, 4), pRoof);
+        roof.rotation.y = Math.PI / 4;
+        roof.position.y = tier * 3.1 + 2.55;
+        pag.add(roof);
+      }
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 4.2, 8), LS.makeToonMat(0xd4a343));
+      spire.position.y = 17.5;
+      pag.add(spire);
+      worldGroup.add(pag);
+    });
+
+    // 2. 90-Degree Stone Path, Excavated Koi Lake, Arched Cedar Bridge, Koi, Ducks, Rowboat & Feeding Dock
+    safeRun('lake_and_bridge', () => {
+      // 90° Stone Path (Z=-27.5, X=-3.1..-13.5)
+      const stonePath = new THREE.Mesh(
+        new THREE.BoxGeometry(10.6, 0.08, 3.6),
+        new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() })
+      );
+      stonePath.position.set(-8.3, 0.04, -27.5);
+      stonePath.receiveShadow = true;
+      worldGroup.add(stonePath);
+
+      // Excavated Lake Basin (X=-30.2..-14.8, Z=-37.5..-17.5)
+      const bed = new THREE.Mesh(new THREE.PlaneGeometry(16.2, 20.8), LS.makeToonMat(0x1b3c42));
+      bed.rotation.x = -Math.PI / 2;
+      bed.position.set(-22.5, -0.95, -27.5);
+      worldGroup.add(bed);
+
+      // Stone embankment walls lining the 4 edges of the lake
+      const bankMat = LS.makeToonMat(0x524c44);
+      [
+        [-22.5, -17.4, 15.8, 0.45],
+        [-22.5, -37.6, 15.8, 0.45],
+        [-14.7, -27.5, 0.45, 20.4],
+        [-30.3, -27.5, 0.45, 20.4]
+      ].forEach(bk => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(bk[2], 1.15, bk[3]), bankMat);
+        wall.position.set(bk[0], -0.45, bk[1]);
+        worldGroup.add(wall);
+      });
+
+      // Low-glare deep teal-blue lake water at Y = -0.44
+      const water = new THREE.Mesh(
+        new THREE.PlaneGeometry(15.4, 20.0),
+        new THREE.MeshLambertMaterial({ map: LS.createWaterTexture(), transparent: true, opacity: 0.88 })
+      );
+      water.rotation.x = -Math.PI / 2;
+      water.position.set(-22.5, -0.44, -27.5);
+      worldGroup.add(water);
+
+      // Prevent walking into lake water (two colliders north & south of the bridge corridor!)
+      addCollider(-22.5, -21.2, 7.6, 4.1); // South half of lake
+      addCollider(-22.5, -33.8, 7.6, 4.1); // North half of lake
+
+      // East-West Arched Cedar Bridge (X=-13.5..-30.5, Z=-27.5)
+      const bridgeG = new THREE.Group();
+      const plankMat = new THREE.MeshLambertMaterial({ map: LS.createCedarPlankTexture() });
+      const railWood = LS.makeToonMat(0x6e472c);
+      const giboshiMat = LS.makeToonMat(0xc99c43);
+      const lanternMat = new THREE.MeshBasicMaterial({ color: 0xffd685 });
+
+      const segments = 16;
+      const xStart = -13.5, xEnd = -30.5;
+      const segLen = (xStart - xEnd) / segments;
+      for (let i = 0; i < segments; i++) {
+        const t0 = i / segments;
+        const t1 = (i + 1) / segments;
+        const tm = (t0 + t1) / 2;
+        const xm = xStart - tm * (xStart - xEnd);
+        const y0 = Math.sin(t0 * Math.PI) * 1.15;
+        const y1 = Math.sin(t1 * Math.PI) * 1.15;
+        const ym = (y0 + y1) / 2;
+        const slope = Math.atan2(y1 - y0, segLen);
+
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(segLen + 0.08, 0.16, 3.2), plankMat);
+        deck.position.set(xm, ym - 0.04, -27.5);
+        deck.rotation.z = -slope;
+        deck.castShadow = true;
+        deck.receiveShadow = true;
+        bridgeG.add(deck);
+
+        // Top & bottom side rails
+        [-1.52, 1.52].forEach(rz => {
+          const topRail = new THREE.Mesh(new THREE.BoxGeometry(segLen + 0.08, 0.09, 0.1), railWood);
+          topRail.position.set(xm, ym + 0.88, -27.5 + rz);
+          topRail.rotation.z = -slope;
+          bridgeG.add(topRail);
+
+          const midRail = new THREE.Mesh(new THREE.BoxGeometry(segLen + 0.08, 0.07, 0.08), railWood);
+          midRail.position.set(xm, ym + 0.48, -27.5 + rz);
+          midRail.rotation.z = -slope;
+          bridgeG.add(midRail);
+        });
+      }
+
+      // Hashira posts with bronze giboshi finials & 4 emissive bridge lanterns
+      [0, 0.25, 0.5, 0.75, 1.0].forEach((t, idx) => {
+        const px = xStart - t * (xStart - xEnd);
+        const py = Math.sin(t * Math.PI) * 1.15;
+        [-1.52, 1.52].forEach(rz => {
+          const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.16), railWood);
+          post.position.set(px, py + 0.52, -27.5 + rz);
+          bridgeG.add(post);
+
+          if (idx === 1 || idx === 3) {
+            // 4 warm emissive bridge lanterns
+            const lBox = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.24), lanternMat);
+            lBox.position.set(px, py + 1.24, -27.5 + rz);
+            bridgeG.add(lBox);
+            const cap = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.16, 4), railWood);
+            cap.rotation.y = Math.PI / 4;
+            cap.position.set(px, py + 1.48, -27.5 + rz);
+            bridgeG.add(cap);
+          } else {
+            const giboshi = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), giboshiMat);
+            giboshi.scale.set(1, 1.3, 1);
+            giboshi.position.set(px, py + 1.16, -27.5 + rz);
+            bridgeG.add(giboshi);
+          }
+        });
+      });
+
+      // Flush stone ramps at bridgeheads (X=-13.42 and X=-30.58)
+      [-13.42, -30.58].forEach(rx => {
+        const ramp = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.12, 3.4), LS.makeToonMat(0x524c44));
+        ramp.position.set(rx, 0.04, -27.5);
+        bridgeG.add(ramp);
+      });
+      worldGroup.add(bridgeG);
+
+      // Swimming Koi fish in lake
+      const koiColors = [0xff6b35, 0xffd166, 0xffffff, 0xe63946, 0xff9f1c, 0xf77f00, 0xf8f9fa, 0xef476f];
+      for (let i = 0; i < 8; i++) {
+        const kg = new THREE.Group();
+        const kMat = LS.makeToonMat(koiColors[i]);
+        const kBody = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), kMat);
+        kBody.scale.set(0.55, 0.45, 1.85);
+        kg.add(kBody);
+        const kTail = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 5), kMat);
+        kTail.rotation.x = Math.PI / 2;
+        kTail.position.z = -0.32;
+        kg.add(kTail);
+        const cx = -22.5 + (i % 2 === 0 ? 3.2 : -3.2);
+        const cz = i < 4 ? -21.8 : -33.2;
+        kg.position.set(cx, -0.52, cz);
+        worldGroup.add(kg);
+        W.koiList.push({
+          mesh: kg,
+          cx,
+          cz,
+          rx: 2.2 + (i % 3) * 0.7,
+          rz: 1.6 + (i % 2) * 0.8,
+          speed: 0.45 + (i % 4) * 0.14,
+          phase: i * 1.15
+        });
+      }
+
+      // Gliding Ducks on the lake
+      for (let i = 0; i < 3; i++) {
+        const dg = new THREE.Group();
+        const dBody = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), LS.makeToonMat(i === 0 ? 0xfbf8f1 : 0x8d6e63));
+        dBody.scale.set(0.85, 0.72, 1.35);
+        dBody.position.y = 0.08;
+        dg.add(dBody);
+        const dHead = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), LS.makeToonMat(i === 0 ? 0xfbf8f1 : 0x2d6a4f));
+        dHead.position.set(0, 0.28, 0.22);
+        dg.add(dHead);
+        const beak = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.14), LS.makeToonMat(0xf59e0b));
+        beak.position.set(0, 0.26, 0.36);
+        dg.add(beak);
+        worldGroup.add(dg);
+        W.duckList.push({
+          mesh: dg,
+          cx: -20.5 - i * 2.4,
+          cz: i === 2 ? -33.0 : -21.5,
+          r: 1.9 + i * 0.5,
+          speed: 0.36 + i * 0.08,
+          phase: i * 2.1
+        });
+      }
+
+      // Bobbing wooden rowboat moored near south-west shore
+      const boat = new THREE.Group();
+      boat.position.set(-26.8, -0.36, -20.6);
+      boat.rotation.y = 0.45;
+      const bMat = LS.makeToonMat(0x7c5333);
+      const hull = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.32, 2.3), bMat);
+      boat.add(hull);
+      const bench = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.08, 0.36), LS.makeToonMat(0x9a6539));
+      bench.position.y = 0.16;
+      boat.add(bench);
+      worldGroup.add(boat);
+      W.rowboat = boat;
+
+      // Interactive Lakeside Koi & Duck Feeding Dock (X=-14.2, Z=-22.2)
+      const dock = new THREE.Group();
+      dock.position.set(-14.3, 0, -22.2);
+      const dockDeck = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 2.6), plankMat);
+      dockDeck.position.set(-0.4, 0.08, 0);
+      dockDeck.receiveShadow = true;
+      dock.add(dockDeck);
+      const feedSign = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.65, 1.8),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('🐟 FEED KOI & DUCKS', {
+            bg: '#e0f2fe', border: '#0284c7', color: '#0c4a6e', font: 'bold 34px sans-serif'
+          })
+        })
+      );
+      feedSign.position.set(0.55, 1.05, 0);
+      dock.add(feedSign);
+      const feedPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.1, 6), railWood);
+      feedPost.position.set(0.55, 0.55, 0);
+      dock.add(feedPost);
+      worldGroup.add(dock);
+
+      W.zones.push({
+        id: 'koi_dock',
+        label: 'Feed Koi Fish & Ducks (+15c)',
+        pos: new THREE.Vector3(-13.2, 0, -22.2),
+        radius: 2.8
+      });
+
+      // Ripple rings pool for koi feeding visual splash!
+      for (let i = 0; i < 4; i++) {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(0.18, 0.3, 18),
+          new THREE.MeshBasicMaterial({ color: 0xd8f3ff, transparent: true, opacity: 0.0, side: THREE.DoubleSide })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(-17.5 - i * 0.9, -0.41, -21.8 + (i % 2) * 0.9);
+        worldGroup.add(ring);
+        W.rippleRings.push(ring);
+      }
+    });
+
+    // 3. Lakeside Sushi Stand (桜寿司 — X=-8.2, Z=-29.8, north edge of stone path)
+    safeRun('sushi_stand', () => {
+      const g = new THREE.Group();
+      g.position.set(-8.2, 0, -29.8);
+
+      // Flush dark-basalt alcove pad
+      const pad = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.08, 3.0), LS.makeToonMat(0x43413c));
+      pad.position.set(0, 0.04, 0.2);
+      pad.receiveShadow = true;
+      g.add(pad);
+
+      const cedar = LS.makeToonMat(0x9a6b43);
+      const darkWood = LS.makeToonMat(0x523623);
+      const counter = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.96, 1.25), cedar);
+      counter.position.set(0, 0.48, -0.35);
+      counter.castShadow = true;
+      g.add(counter);
+
+      // Chilled netakesu glass display case with colorful sushi pieces inside!
+      const glassCase = new THREE.Mesh(
+        new THREE.BoxGeometry(1.8, 0.34, 0.42),
+        new THREE.MeshLambertMaterial({ color: 0xe0f7fa, transparent: true, opacity: 0.65 })
+      );
+      glassCase.position.set(-0.3, 1.13, -0.15);
+      g.add(glassCase);
+      [0xff7b54, 0xffd166, 0xe63946, 0x95d5b2].forEach((col, i) => {
+        const piece = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.14), LS.makeToonMat(col));
+        piece.position.set(-0.85 + i * 0.36, 1.04, -0.15);
+        g.add(piece);
+      });
+
+      // Pillars & roof
+      [[-1.8, -0.85], [1.8, -0.85], [-1.8, 0.35], [1.8, 0.35]].forEach(p => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.7, 0.16), darkWood);
+        post.position.set(p[0], 1.35, p[1]);
+        g.add(post);
+      });
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(4.6, 0.22, 2.4),
+        LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#313a4a') })
+      );
+      roof.position.set(0, 2.82, -0.2);
+      roof.rotation.x = 0.12;
+      roof.castShadow = true;
+      g.add(roof);
+
+      // Swaying indigo noren
+      const indigo = LS.makeToonMat(0x274060, { side: THREE.DoubleSide });
+      for (let i = -2; i <= 2; i++) {
+        const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.68, 0.05), indigo);
+        cloth.position.set(i * 0.68, 2.35, 0.42);
+        g.add(cloth);
+        W.norenPanels.push({ mesh: cloth, phase: i * 0.6 });
+      }
+
+      // Sign & red/white nobori flag
+      const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, 0.62, 0.14),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('🍣 桜寿司 SAKURA SUSHI', {
+            bg: '#1e293b', border: '#f59e0b', color: '#fff8eb', font: 'bold 34px sans-serif'
+          })
+        })
+      );
+      sign.position.set(0, 3.25, 0.55);
+      g.add(sign);
+
+      const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.7, 6), darkWood);
+      flagPole.position.set(2.35, 1.35, 0.4);
+      g.add(flagPole);
+      const nobori = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.5, 0.04), LS.makeToonMat(0xd62828));
+      nobori.position.set(2.65, 1.85, 0.4);
+      g.add(nobori);
+
+      // 3 wooden stools along south edge of counter
+      [-1.05, 0, 1.05].forEach(sx => {
+        const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.26, 0.08, 12), cedar);
+        seat.position.set(sx, 0.48, 0.85);
+        g.add(seat);
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.15, 0.46, 8), darkWood);
+        leg.position.set(sx, 0.23, 0.85);
+        g.add(leg);
+      });
+
+      // Warm emissive yatai lantern
+      const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffd27d }));
+      lantern.scale.set(1, 1.35, 1);
+      lantern.position.set(-1.95, 2.2, 0.45);
+      g.add(lantern);
+
+      worldGroup.add(g);
+      addCollider(-8.2, -30.2, 2.1, 0.85);
+
+      W.zones.push({
+        id: 'sushi_stand',
+        label: 'Eat at Sakura Sushi (桜寿司)',
+        pos: new THREE.Vector3(-8.2, 0, -28.0),
+        radius: 2.9
+      });
+
+      // Dining config for Sakura Sushi!
+      W.sushiDiningConfig = {
+        lailaSeatPos: new THREE.Vector3(-8.2, 0.14, -28.95),
+        salmaSeatPos: new THREE.Vector3(-7.15, 0.16, -28.95),
+        seatRotY: Math.PI,
+        exitOffset: new THREE.Vector3(0, 0, 1.35),
+        lailaDishPos: new THREE.Vector3(-8.2, 0.98, -29.85),
+        salmaDishPos: new THREE.Vector3(-7.15, 0.98, -29.85),
+        oishiiPos: new THREE.Vector3(-7.7, 2.2, -29.4),
+        camPos: new THREE.Vector3(-10.2, 1.65, -26.4),
+        camLook: new THREE.Vector3(-7.8, 0.95, -29.4),
+        caption: 'Oishii! 😋🍣'
+      };
+    });
+
+    // 4. Sakurako Shrine (桜湖神社) + Vermilion Senbon Torii Tunnel + Chozuya + Ema/Omikuji + Elevated Courtyard
+    safeRun('sakurako_shrine', () => {
+      // Stone sando path from west bridgehead (-30.5) to elevated steps (-41.6)
+      const sando = new THREE.Mesh(
+        new THREE.BoxGeometry(11.6, 0.08, 3.6),
+        new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() })
+      );
+      sando.position.set(-36.2, 0.04, -27.5);
+      sando.receiveShadow = true;
+      worldGroup.add(sando);
+
+      // Vermilion Senbon Torii Tunnel (6 iconic Kyoto torii gates lining the sando!)
+      const vermilion = LS.makeToonMat(0xd63628);
+      const blackCap = LS.makeToonMat(0x1f2429);
+      for (let i = 0; i < 6; i++) {
+        const tx = -33.2 - i * 1.55;
+        const tg = new THREE.Group();
+        tg.position.set(tx, 0, -27.5);
+        tg.rotation.y = Math.PI / 2;
+
+        [-1.65, 1.65].forEach(px => {
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 3.8, 10), vermilion);
+          col.position.set(px, 1.9, 0);
+          col.castShadow = true;
+          tg.add(col);
+          const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.35, 10), blackCap);
+          base.position.set(px, 0.17, 0);
+          tg.add(base);
+        });
+        const nuki = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.22, 0.22), vermilion);
+        nuki.position.y = 3.25;
+        tg.add(nuki);
+        const kasagi = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.28, 0.38), vermilion);
+        kasagi.position.y = 3.85;
+        tg.add(kasagi);
+        const topCap = new THREE.Mesh(new THREE.BoxGeometry(4.85, 0.12, 0.42), blackCap);
+        topCap.position.y = 4.02;
+        tg.add(topCap);
+        if (i === 0) {
+          const plaque = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.65, 0.16), blackCap);
+          plaque.position.set(0, 3.52, 0.06);
+          tg.add(plaque);
+        }
+        worldGroup.add(tg);
+      }
+
+      // Chozuya Purification Basin (X=-37.2, Z=-21.8)
+      const chozuya = new THREE.Group();
+      chozuya.position.set(-37.2, 0, -21.8);
+      const stoneMat = LS.makeToonMat(0x7c7b74);
+      const woodMat = LS.makeToonMat(0x6e472c);
+      const basin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.85, 1.1), stoneMat);
+      basin.position.y = 0.42;
+      basin.castShadow = true;
+      chozuya.add(basin);
+      const basinWater = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.8), LS.makeToonMat(0x38a3a5));
+      basinWater.rotation.x = -Math.PI / 2;
+      basinWater.position.y = 0.86;
+      chozuya.add(basinWater);
+      [[-1.0, -0.7], [1.0, -0.7], [-1.0, 0.7], [1.0, 0.7]].forEach(p => {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8), woodMat);
+        post.position.set(p[0], 1.25, p[1]);
+        chozuya.add(post);
+      });
+      const cRoof = new THREE.Mesh(new THREE.ConeGeometry(2.0, 0.95, 4), LS.makeToonMat(0x373f47));
+      cRoof.rotation.y = Math.PI / 4;
+      cRoof.position.y = 2.9;
+      chozuya.add(cRoof);
+      worldGroup.add(chozuya);
+      addCollider(-37.2, -21.8, 1.2, 0.9);
+
+      // Ema Wish Rack & Omikuji Fortune Box (X=-37.2, Z=-33.2)
+      const emaG = new THREE.Group();
+      emaG.position.set(-37.2, 0, -33.2);
+      [-1.3, 1.3].forEach(px => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.3, 0.14), woodMat);
+        p.position.set(px, 1.15, 0);
+        emaG.add(p);
+      });
+      const eRoof = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.22, 0.95), LS.makeToonMat(0x3a404a));
+      eRoof.position.y = 2.35;
+      emaG.add(eRoof);
+      // Hanging wooden Ema plaques
+      for (let r = 0; r < 2; r++) {
+        for (let c = -3; c <= 3; c++) {
+          const plaque = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.2, 0.04), LS.makeToonMat(0xe9c46a));
+          plaque.position.set(c * 0.34, 1.35 + r * 0.38, 0);
+          emaG.add(plaque);
+        }
+      }
+      // Omikuji red fortune box beside rack
+      const omiBox = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.05, 0.65), vermilion);
+      omiBox.position.set(2.0, 0.52, 0.2);
+      emaG.add(omiBox);
+      const omiSign = new THREE.Mesh(
+        new THREE.BoxGeometry(2.4, 0.55, 0.12),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('🎐 OMIKUJI & EMA WISHES', {
+            bg: '#fff8eb', border: '#c83e37', color: '#7f1d1d', font: 'bold 31px sans-serif'
+          })
+        })
+      );
+      omiSign.position.set(0.3, 2.8, 0.3);
+      emaG.add(omiSign);
+      worldGroup.add(emaG);
+      addCollider(-37.2, -33.2, 1.8, 0.65);
+
+      W.zones.push({
+        id: 'shrine_omikuji',
+        label: 'Draw Omikuji Fortune & Hang Ema Wish 🎐',
+        pos: new THREE.Vector3(-37.2, 0, -31.5),
+        radius: 3.1
+      });
+
+      // Elevated Shrine Courtyard Platform (Y = 0.75, X=-43.8..-55.5, Z=-36..-19)
+      const court = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.75, 17.5), LS.makeToonMat(0xb8b2a2));
+      court.position.set(-49.8, 0.375, -27.5);
+      court.receiveShadow = true;
+      worldGroup.add(court);
+
+      // Walkable Stone Steps (X=-41.6..-43.8, Z=-27.5)
+      for (let st = 0; st < 4; st++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.19 * (st + 1), 4.6), stoneMat);
+        step.position.set(-41.9 - st * 0.55, 0.095 * (st + 1), -27.5);
+        step.receiveShadow = true;
+        worldGroup.add(step);
+      }
+
+      // Pair of Komainu Guardian Lion Statues flanking steps
+      [-24.4, -30.6].forEach(kz => {
+        const kg = new THREE.Group();
+        kg.position.set(-44.6, 0.75, kz);
+        const ped = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.8, 0.95), stoneMat);
+        ped.position.y = 0.4;
+        kg.add(ped);
+        const lion = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 8), LS.makeToonMat(0x94928a));
+        lion.scale.set(1.2, 1.1, 0.85);
+        lion.position.set(0, 1.12, 0);
+        kg.add(lion);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), LS.makeToonMat(0x94928a));
+        head.position.set(0.24, 1.48, 0);
+        kg.add(head);
+        worldGroup.add(kg);
+        addCollider(-44.6, kz, 0.65, 0.65);
+      });
+
+      // Main Shrine Hall (Honden) on Elevated Courtyard
+      const hall = new THREE.Group();
+      hall.position.set(-51.6, 0.75, -27.5);
+      const hBody = new THREE.Mesh(new THREE.BoxGeometry(5.6, 4.4, 8.2), LS.makeToonMat(0xf5ebd6));
+      hBody.position.y = 2.2;
+      hBody.castShadow = true;
+      hBody.receiveShadow = true;
+      hall.add(hBody);
+
+      // Vermilion pillars across front veranda
+      [-3.5, -1.2, 1.2, 3.5].forEach(pz => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 4.2, 10), vermilion);
+        col.position.set(3.2, 2.1, pz);
+        hall.add(col);
+      });
+      const hRoof = new THREE.Mesh(
+        new THREE.ConeGeometry(6.8, 2.8, 4),
+        LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#2d3a3a') })
+      );
+      hRoof.rotation.y = Math.PI / 4;
+      hRoof.scale.set(1.0, 1.0, 1.32);
+      hRoof.position.y = 5.6;
+      hRoof.castShadow = true;
+      hall.add(hRoof);
+
+      // Golden Suzu bell & braided rope
+      const bell = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), LS.makeToonMat(0xe9c46a));
+      bell.position.set(3.45, 3.3, 0);
+      hall.add(bell);
+      const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.9, 8), LS.makeToonMat(0xf4f1ea));
+      rope.position.set(3.45, 2.2, 0);
+      hall.add(rope);
+
+      // Offering box (Saisen-bako)
+      const saisen = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.9, 2.2), woodMat);
+      saisen.position.set(3.55, 0.45, 0);
+      hall.add(saisen);
+
+      // Shrine Sign
+      const hSign = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.9, 3.8),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('⛩️ 桜湖神社 SAKURAKO SHRINE', {
+            bg: '#2b1a12', border: '#e9c46a', color: '#fff8eb', font: 'bold 28px sans-serif'
+          })
+        })
+      );
+      hSign.position.set(3.45, 4.15, 0);
+      hall.add(hSign);
+
+      worldGroup.add(hall);
+      addCollider(-51.6, -27.5, 3.8, 4.3);
+
+      // Giant Sacred Goshinboku Cedar with shimenawa rope + cute mossy Jizo statue with red bib!
+      const goshin = buildKyotoTree(-47.5, -21.0, 'cedar', 1.45, 0.75);
+      const shimenawa = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.11, 8, 16), LS.makeToonMat(0xe5c88e));
+      shimenawa.rotation.x = Math.PI / 2;
+      shimenawa.position.y = 1.6;
+      goshin.add(shimenawa);
+
+      const jizo = new THREE.Group();
+      jizo.position.set(-46.5, 0.75, -34.0);
+      const jBody = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.85, 10), stoneMat);
+      jBody.position.y = 0.42;
+      jizo.add(jBody);
+      const jHead = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), stoneMat);
+      jHead.position.y = 1.02;
+      jizo.add(jHead);
+      const bib = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.34, 8), vermilion);
+      bib.position.set(0.08, 0.72, 0);
+      bib.rotation.z = -0.25;
+      jizo.add(bib);
+      worldGroup.add(jizo);
+
+      // Emissive stone toro lanterns lining the shrine path
+      [[-32.0, -24.5], [-32.0, -30.5], [-43.8, -23.0], [-43.8, -32.0]].forEach(lp => {
+        const y0 = lp[0] < -43 ? 0.75 : 0;
+        const tG = new THREE.Group();
+        tG.position.set(lp[0], y0, lp[1]);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 1.35, 6), stoneMat);
+        post.position.y = 0.68;
+        tG.add(post);
+        const glow = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.34, 0.32), new THREE.MeshBasicMaterial({ color: 0xffd27d }));
+        glow.position.y = 1.5;
+        tG.add(glow);
+        const cap = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.24, 4), stoneMat);
+        cap.rotation.y = Math.PI / 4;
+        cap.position.y = 1.78;
+        tG.add(cap);
+        worldGroup.add(tG);
+      });
+    });
+
+    // 5. Arashiyama Bamboo Grove (Northwest: X=-46..-16, Z=-40..-51)
+    safeRun('bamboo_grove', () => {
+      // Winding stone bamboo trail
+      const trail = new THREE.Mesh(
+        new THREE.BoxGeometry(26, 0.06, 2.8),
+        new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() })
+      );
+      trail.position.set(-28, 0.03, -44.2);
+      trail.receiveShadow = true;
+      worldGroup.add(trail);
+
+      // Connecting spur from main road & shrine into the bamboo grove
+      const spur = new THREE.Mesh(
+        new THREE.BoxGeometry(11.5, 0.06, 2.6),
+        new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() })
+      );
+      spur.position.set(-9.5, 0.03, -44.2);
+      spur.receiveShadow = true;
+      worldGroup.add(spur);
+
+      const bambooMatA = LS.makeToonMat(0x4c9a42);
+      const bambooMatB = LS.makeToonMat(0x66b852);
+      const leafMat = LS.makeToonMat(0x3a7d38);
+
+      // Deterministic grid of swaying bamboo stalks leaving the central trail (Z=-44.2) clear!
+      const positions = [];
+      for (let bx = -44; bx <= -15; bx += 2.6) {
+        positions.push([bx, -40.8], [bx + 0.9, -41.9], [bx, -47.2], [bx + 1.1, -48.8], [bx + 0.4, -50.2]);
+      }
+      positions.forEach((bp, idx) => {
+        const h = 7.5 + (idx % 4) * 1.4;
+        const stalk = new THREE.Group();
+        stalk.position.set(bp[0], 0, bp[1]);
+        const culm = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.11, 0.14, h, 7),
+          idx % 2 === 0 ? bambooMatA : bambooMatB
+        );
+        culm.position.y = h / 2;
+        culm.castShadow = true;
+        stalk.add(culm);
+
+        const canopy = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), leafMat);
+        canopy.position.set(0.25, h - 0.5, 0);
+        canopy.scale.set(1.3, 0.55, 1.3);
+        stalk.add(canopy);
+        worldGroup.add(stalk);
+        W.bambooStalks.push({ mesh: stalk, phase: idx * 0.55 });
+      });
+
+      // Bamboo Grove Entrance Sign
+      const bSign = new THREE.Mesh(
+        new THREE.BoxGeometry(0.16, 0.72, 2.8),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('🎋 ARASHIYAMA BAMBOO', {
+            bg: '#1b4332', border: '#95d5b2', color: '#ecfdf5', font: 'bold 31px sans-serif'
+          })
+        })
+      );
+      bSign.position.set(-14.5, 1.85, -42.5);
+      worldGroup.add(bSign);
+    });
+
+    // 6. West & East Machiya Street: Ryokan, Kimono Boutique, Matcha Tea House, Temple Academy, Residences & East Canal
+    safeRun('machiya_street', () => {
+      // WEST SIDE (facing East, rotY = +PI/2)
+      // Laila & Salma's Kyoto Ryokan Inn
+      buildMachiya(-10.5, -12.5, Math.PI / 2, {
+        wallHex: '#f6ebd4', roofHex: '#4a3a35', norenColor: 0xc94c79,
+        signText: '🏮 LAILA & SALMA RYOKAN', signBg: '#fff0f6', signBorder: '#c94c79', signColor: '#6b2144'
+      });
+      W.zones.push({
+        id: 'kyoto_ryokan',
+        label: "Enter Laila & Salma's Kyoto Ryokan 🏮",
+        pos: new THREE.Vector3(-5.8, 0, -12.5),
+        radius: 3.1
+      });
+
+      // Kyoto Kimono & Yukata Boutique
+      buildMachiya(-10.5, 2.0, Math.PI / 2, {
+        wallHex: '#ffeef2', roofHex: '#6b3a5b', norenColor: 0xd62828,
+        signText: '👘 KYOTO KIMONO SHOP', signBg: '#fff0f5', signBorder: '#d62828', signColor: '#7f1d1d'
+      });
+      W.zones.push({
+        id: 'kimono_shop',
+        label: 'Browse Kyoto Kimonos & Fox Masks 👘',
+        pos: new THREE.Vector3(-5.8, 0, 2.0),
+        radius: 3.2
+      });
+
+      // Satou Residence
+      buildMachiya(-10.5, 12.5, Math.PI / 2, { wallHex: '#ede3ce', roofHex: '#3f4752' });
+
+      // EAST SIDE (facing West, rotY = -PI/2)
+      // Matcha & Wagashi Tea House (宇治茶屋)
+      buildMachiya(10.2, -5.0, -Math.PI / 2, {
+        wallHex: '#edf5e4', roofHex: '#2f4f3e', norenColor: 0x2d6a4f,
+        signText: '🍵 UJI MATCHA TEA HOUSE', signBg: '#1b4332', signBorder: '#95d5b2', signColor: '#ecfdf5'
+      });
+      // Red outdoor wagashi tea umbrella & bench beside tea house
+      const umb = new THREE.Group();
+      umb.position.set(5.8, 0, -2.5);
+      const uPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.5, 8), LS.makeToonMat(0x5c3c24));
+      uPole.position.y = 1.25;
+      umb.add(uPole);
+      const uTop = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.55, 12), LS.makeToonMat(0xd62828));
+      uTop.position.y = 2.55;
+      umb.add(uTop);
+      const uBench = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.42, 1.9), LS.makeToonMat(0xc9302c));
+      uBench.position.set(0.35, 0.21, 0);
+      umb.add(uBench);
+      worldGroup.add(umb);
+
+      W.zones.push({
+        id: 'tea_house',
+        label: 'Order Matcha & Wagashi Treats 🍵',
+        pos: new THREE.Vector3(5.8, 0, -5.0),
+        radius: 3.3
+      });
+
+      // Kyoto Temple Academy (寺子屋 Terakoya Quiz Pavilion — Nakamura slot Z=-21)
+      buildMachiya(10.2, -21.0, -Math.PI / 2, {
+        wallHex: '#f7efe0', roofHex: '#7a3b34', norenColor: 0x3b6ea5,
+        signText: '📚 KYOTO TEMPLE ACADEMY', signBg: '#234232', signBorder: '#e0a458', signColor: '#fff8eb'
+      });
+      W.zones.push({
+        id: 'kyoto_academy',
+        label: 'Enter Kyoto Temple Academy Quiz 📚',
+        pos: new THREE.Vector3(5.8, 0, -21.0),
+        radius: 3.4
+      });
+
+      // Suzuki & Kobayashi Traditional Machiya Residences
+      buildMachiya(10.2, 9.0, -Math.PI / 2, { wallHex: '#f0e6d2', roofHex: '#434c5e' });
+      buildMachiya(10.2, -35.0, -Math.PI / 2, { wallHex: '#eae0cc', roofHex: '#3c4552' });
+
+      // East Yousuiro Canal (X=16.2, Z=+15..-43)
+      const canal = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.1, 58),
+        new THREE.MeshLambertMaterial({ map: LS.createWaterTexture() })
+      );
+      canal.rotation.x = -Math.PI / 2;
+      canal.position.set(16.2, 0.015, -14);
+      worldGroup.add(canal);
+      [15.05, 17.35].forEach(cx => {
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 58), LS.makeToonMat(0x6b6860));
+        edge.position.set(cx, 0.12, -14);
+        worldGroup.add(edge);
+      });
+
+      // Autumn Maples & Sakura trees framing Kyoto
+      buildKyotoTree(-6.8, -19.5, 'maple', 1.15);
+      buildKyotoTree(6.8, -13.0, 'sakura', 1.1);
+      buildKyotoTree(-6.8, -5.0, 'sakura', 1.05);
+      buildKyotoTree(6.8, 2.0, 'maple', 1.15);
+      buildKyotoTree(-14.2, -36.5, 'maple', 1.2);
+      buildKyotoTree(-31.8, -18.5, 'sakura', 1.25);
+      buildKyotoTree(-31.8, -36.5, 'maple', 1.25);
+      buildKyotoTree(6.8, -28.0, 'maple', 1.1);
+    });
+
+    // 7. Kyoto Shinkansen Station (京都駅 — South entrance X=0, Z=24.5)
+    safeRun('kyoto_shinkansen', () => {
+      const g = new THREE.Group();
+      g.position.set(0, 0, 24.5);
+
+      const plat = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.55, 4.2), LS.makeToonMat(0xd6d1c4));
+      plat.position.y = 0.27;
+      plat.receiveShadow = true;
+      g.add(plat);
+
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(14.0, 0.04, 0.28), LS.makeToonMat(0xfacc15));
+      stripe.position.set(0, 0.56, 1.6);
+      g.add(stripe);
+
+      const timber = LS.makeToonMat(0x523623);
+      [-6.0, -3.2, 3.2, 6.0].forEach(px => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 3.8, 8), timber);
+        col.position.set(px, 2.2, 0);
+        col.castShadow = true;
+        g.add(col);
+      });
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(15.2, 0.34, 4.8),
+        LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#2f3540') })
+      );
+      roof.position.y = 4.15;
+      roof.castShadow = true;
+      g.add(roof);
+
+      const sign = new THREE.Mesh(
+        new THREE.BoxGeometry(6.8, 1.05, 0.2),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('🚅 KYOTO STATION → TOKYO', {
+            bg: '#3a1f1b', border: '#f59e0b', color: '#fff8eb', font: 'bold 30px sans-serif', width: 640
+          })
+        })
+      );
+      sign.position.set(0, 3.45, -2.15);
+      g.add(sign);
+
+      // Track & Shinkansen Train
+      const track = new THREE.Mesh(new THREE.BoxGeometry(84, 0.4, 2.8), LS.makeToonMat(0x6c757d));
+      track.position.set(0, 0.3, 3.6);
+      g.add(track);
+
+      const train = new THREE.Group();
+      train.position.set(0, 1.25, 3.6);
+      const tBody = new THREE.Mesh(new THREE.BoxGeometry(14, 1.55, 1.75), LS.makeToonMat(0xf8fafc));
+      tBody.castShadow = true;
+      train.add(tBody);
+      const tStripe = new THREE.Mesh(new THREE.BoxGeometry(14.05, 0.28, 1.78), LS.makeToonMat(0x1d4ed8));
+      tStripe.position.y = -0.15;
+      train.add(tStripe);
+      const tWin = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.38, 1.79), LS.makeEmissiveMat(0x90e0ef, 0x48cae4, 0.35));
+      tWin.position.y = 0.26;
+      train.add(tWin);
+      [-7.8, 7.8].forEach(nx => {
+        const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.5, 12), LS.makeToonMat(0xf8fafc));
+        nose.rotation.z = nx > 0 ? -Math.PI / 2 : Math.PI / 2;
+        nose.scale.set(0.85, 1.0, 0.95);
+        nose.position.set(nx, -0.05, 0);
+        train.add(nose);
+      });
+      g.add(train);
+      W.shinkansenTrain = train;
+
+      worldGroup.add(g);
+      addCollider(0, 25.3, 7.6, 2.2);
+
+      W.zones.push({
+        id: 'shinkansen_station',
+        label: 'Board Shinkansen back to Tokyo 🚅',
+        pos: new THREE.Vector3(0, 0, 21.0),
+        radius: 4.0
+      });
+
+      // Fetch Ball for Mochi in Kyoto
+      const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), LS.makeToonMat(0xffbe0b));
+      ballMesh.position.set(-3.0, 0.14, -18.0);
+      ballMesh.visible = false;
+      worldGroup.add(ballMesh);
+      W.mochiBall = ballMesh;
+    });
+
+    // 8. 5 Hidden Kyoto Kitsune (Cute Little Shrine Foxes!)
+    safeRun('hidden_kitsune', () => {
+      const foxDefs = [
+        { id: 'kitsune_inari', name: 'Inari (Torii Shrine Fox)', pos: new THREE.Vector3(-35.2, 0, -23.8), color: 0xf77f00, tailTip: 0xffffff },
+        { id: 'kitsune_take', name: 'Take (Bamboo Grove Fox)', pos: new THREE.Vector3(-25.5, 0, -44.2), color: 0xfff8f0, tailTip: 0xe63946 },
+        { id: 'kitsune_kawa', name: 'Kawa (Lakeside Fox)', pos: new THREE.Vector3(-11.8, 0, -33.2), color: 0xe76f51, tailTip: 0xfff3d6 },
+        { id: 'kitsune_matcha', name: 'Matcha (Tea Garden Fox)', pos: new THREE.Vector3(6.6, 0, -10.5), color: 0xffb703, tailTip: 0xffffff },
+        { id: 'kitsune_sakura', name: 'Sakura (Sacred Cedar Fox)', pos: new THREE.Vector3(-46.5, 0.75, -23.5), color: 0xfffcf7, tailTip: 0xff8fab }
+      ];
+
+      foxDefs.forEach(fd => {
+        const alreadyFound = LS.state.foundKitsune.includes(fd.id);
+        const g = new THREE.Group();
+        g.position.copy(fd.pos);
+
+        const fur = LS.makeToonMat(fd.color);
+        const tip = LS.makeToonMat(fd.tailTip);
+        const bibMat = LS.makeToonMat(0xd62828);
+
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), fur);
+        body.scale.set(1.25, 0.85, 0.92);
+        body.position.y = 0.26;
+        body.castShadow = true;
+        g.add(body);
+
+        // Cute red shrine scarf/bib
+        const bib = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.2, 8), bibMat);
+        bib.position.set(0.16, 0.32, 0);
+        bib.rotation.z = -0.3;
+        g.add(bib);
+
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), fur);
+        head.position.set(0.24, 0.44, 0);
+        g.add(head);
+
+        const snout = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 6), tip);
+        snout.rotation.z = -Math.PI / 2;
+        snout.position.set(0.42, 0.41, 0);
+        g.add(snout);
+
+        [-0.09, 0.09].forEach(ez => {
+          const ear = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 5), fur);
+          ear.position.set(0.22, 0.65, ez);
+          g.add(ear);
+        });
+
+        // Fluffy curved kitsune tail
+        const tail = new THREE.Group();
+        tail.position.set(-0.28, 0.34, 0);
+        const tMain = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), fur);
+        tMain.scale.set(1.6, 0.85, 0.85);
+        tMain.rotation.z = -0.6;
+        tail.add(tMain);
+        const tTip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), tip);
+        tTip.position.set(-0.18, 0.16, 0);
+        tail.add(tTip);
+        g.add(tail);
+
+        const mc = document.createElement('canvas');
+        mc.width = 128; mc.height = 128;
+        const mctx = mc.getContext('2d');
+        mctx.fillStyle = 'rgba(255, 248, 225, 0.96)';
+        mctx.beginPath(); mctx.arc(64, 64, 52, 0, Math.PI * 2); mctx.fill();
+        mctx.strokeStyle = '#d62828'; mctx.lineWidth = 8; mctx.stroke();
+        mctx.font = 'bold 54px sans-serif'; mctx.textAlign = 'center'; mctx.fillText('🦊', 64, 82);
+        const marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(mc), transparent: true }));
+        marker.scale.set(0.78, 0.78, 1);
+        marker.position.set(0.1, 1.15, 0);
+        marker.visible = !alreadyFound;
+        g.add(marker);
+
+        worldGroup.add(g);
+        W.hiddenAnimals.push({ id: fd.id, kind: 'kitsune', name: fd.name, mesh: g, marker, tail, found: alreadyFound });
+
+        if (!alreadyFound) {
+          W.zones.push({ id: 'animal:' + fd.id, label: 'Befriend ' + fd.name + ' (+35c)', pos: fd.pos.clone(), radius: 2.4 });
+        }
+      });
+    });
+
+    // 9. Kyoto Ambient Maple & Sakura Leaves
+    safeRun('petals', () => {
+      const pCount = 110;
+      const pGeo = new THREE.BufferGeometry();
+      const pPos = new Float32Array(pCount * 3);
+      for (let i = 0; i < pCount; i++) {
+        pPos[i * 3] = -52 + Math.random() * 70;
+        pPos[i * 3 + 1] = 1 + Math.random() * 12;
+        pPos[i * 3 + 2] = -48 + Math.random() * 68;
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      const pMat = new THREE.PointsMaterial({ color: 0xffb38a, size: 0.2, transparent: true, opacity: 0.9 });
+      W.petals = new THREE.Points(pGeo, pMat);
+      worldGroup.add(W.petals);
+    });
+
+    // 10. Kyoto NPCs
+    safeRun('npcs', () => {
+      LS.spawnWorldNPCs(worldGroup, [
+        {
+          name: 'Chef Hiroshi',
+          pos: new THREE.Vector3(-8.2, 0, -30.5),
+          baseRot: 0,
+          waveOnNear: true,
+          line: 'Irasshaimase! Fresh lakeside tamago & salmon sushi ready at Sakura Sushi!',
+          char: { scale: 1.0, hairColor: 0x262626, topColor: 0xffffff, bottomColor: 0x1e293b, pants: true, headband: true, faceOpts: { mustache: true } }
+        },
+        {
+          name: 'Hana',
+          pos: new THREE.Vector3(-6.2, 0, 2.0),
+          baseRot: Math.PI / 2,
+          waveOnNear: true,
+          line: 'Welcome to Kyoto Kimono Shop! Try a crimson kimono or cute kitsune fox mask!',
+          char: { scale: 0.92, hairColor: 0x2c1b18, topColor: 0xd62828, bottomColor: 0x8f1d21, hairBun: true, hatType: 'kanzashi', hatColor: 0xffb3c6 }
+        },
+        {
+          name: 'Auntie Midori',
+          pos: new THREE.Vector3(6.2, 0, -5.0),
+          baseRot: -Math.PI / 2,
+          waveOnNear: true,
+          line: 'Ohayo, Laila & Salma! Care for sweet tri-color dango or Uji matcha parfait?',
+          char: { scale: 0.94, hairColor: 0x4a3b32, topColor: 0x74c69d, bottomColor: 0x2d6a4f, hairBun: true, faceOpts: { glasses: true } }
+        },
+        {
+          name: 'Sensei Kenji',
+          pos: new THREE.Vector3(6.2, 0, -21.0),
+          baseRot: -Math.PI / 2,
+          line: 'Welcome to Kyoto Temple Academy! Test your Kyoto knowledge for XP & coins!',
+          char: { scale: 0.98, hairColor: 0x9ca3af, topColor: 0x3b6ea5, bottomColor: 0x1e293b, pants: true, faceOpts: { elder: true, glasses: true, mustache: true } }
+        },
+        {
+          name: 'Miko Aiko',
+          pos: new THREE.Vector3(-42.5, 0.75, -24.5),
+          baseRot: Math.PI / 2,
+          waveOnNear: true,
+          line: 'Welcome to Sakurako Shrine! Draw a lucky Omikuji fortune or hang an Ema wish!',
+          char: { scale: 0.92, hairColor: 0x1f191a, topColor: 0xffffff, bottomColor: 0xd62828, longHair: true }
+        },
+        {
+          name: 'Ren',
+          pos: new THREE.Vector3(-3.4, 0, -6.0),
+          patrol: { axis: 'z', center: -6.0, range: 6.5, speed: 0.85 },
+          line: 'Psst! 5 adorable kitsune foxes are hiding around Kyoto — even inside the Bamboo Grove!',
+          char: { scale: 0.88, hairColor: 0x382820, topColor: 0x2a9d8f, bottomColor: 0x264653, pants: true, backpackColor: 0xe9c46a }
+        }
+      ]);
+    });
+
+    W.getMochiIdleAnchor = function () {
+      return {
+        pos: new THREE.Vector3(-3.6, 0, -18.5),
+        rotY: Math.PI / 3
+      };
+    };
+
+    W.getZoneLabel = function (px, pz) {
+      if (pz > 16) return 'Kyoto Shinkansen';
+      if (pz < -39 && px < -13) return 'Bamboo Grove';
+      if (px < -30.5) return 'Sakurako Shrine';
+      if (px < -13.5 && Math.abs(pz + 27.5) < 4) return 'Arched Koi Bridge';
+      if (px < -4 && Math.abs(pz + 29.0) < 4) return 'Sakura Sushi';
+      if (px > 4 && Math.abs(pz + 21.0) < 5) return 'Temple Academy';
+      if (px > 4 && Math.abs(pz + 5.0) < 5) return 'Uji Tea House';
+      if (px < -4 && Math.abs(pz + 12.5) < 5) return 'Kyoto Ryokan';
+      if (px < -4 && Math.abs(pz - 2.0) < 5) return 'Kimono Boutique';
+      return 'Kyoto Old Street';
+    };
+
+    W.update = function (dt, elapsed) {
+      W.norenPanels.forEach(n => {
+        n.mesh.rotation.x = Math.sin(elapsed * 2.2 + n.phase) * 0.08;
+      });
+      W.hiddenAnimals.forEach((fox, idx) => {
+        if (fox.tail) fox.tail.rotation.y = Math.sin(elapsed * 4.0 + idx) * 0.35;
+        if (fox.marker && !fox.found) {
+          fox.marker.position.y = 1.15 + Math.sin(elapsed * 3.0 + idx) * 0.12;
+        }
+      });
+      // Swimming Koi
+      const feeding = LS.runtime.koiFeedTimer > 0;
+      if (feeding) LS.runtime.koiFeedTimer -= dt;
+      W.koiList.forEach(k => {
+        const ang = elapsed * (feeding ? k.speed * 1.9 : k.speed) + k.phase;
+        const nx = feeding ? (-16.6 + Math.cos(ang) * 1.6) : (k.cx + Math.cos(ang) * k.rx);
+        const nz = feeding ? (-22.0 + Math.sin(ang * 1.3) * 1.4) : (k.cz + Math.sin(ang * 1.5) * k.rz);
+        const dx = nx - k.mesh.position.x;
+        const dz = nz - k.mesh.position.z;
+        k.mesh.position.x += dx * Math.min(1, dt * 3.2);
+        k.mesh.position.z += dz * Math.min(1, dt * 3.2);
+        k.mesh.rotation.y = Math.atan2(dx, dz);
+      });
+      // Gliding Ducks
+      W.duckList.forEach((d, idx) => {
+        const ang = elapsed * d.speed + d.phase;
+        const nx = d.cx + Math.cos(ang) * d.r;
+        const nz = d.cz + Math.sin(ang) * d.r * 0.7;
+        const dx = nx - d.mesh.position.x;
+        const dz = nz - d.mesh.position.z;
+        d.mesh.position.x = nx;
+        d.mesh.position.z = nz;
+        d.mesh.position.y = -0.44 + Math.sin(elapsed * 3.2 + idx) * 0.03;
+        d.mesh.rotation.y = Math.atan2(dx, dz);
+      });
+      // Splash ripples when feeding koi
+      W.rippleRings.forEach((ring, i) => {
+        if (feeding) {
+          const p = (elapsed * 1.8 + i * 0.4) % 1;
+          ring.scale.setScalar(0.7 + p * 2.8);
+          ring.material.opacity = (1 - p) * 0.75;
+        } else {
+          ring.material.opacity = 0;
+        }
+      });
+      // Bobbing Rowboat
+      if (W.rowboat) {
+        W.rowboat.position.y = -0.36 + Math.sin(elapsed * 1.8) * 0.04;
+        W.rowboat.rotation.z = Math.sin(elapsed * 1.3) * 0.04;
+      }
+      // Gentle Bamboo Sway
+      W.bambooStalks.forEach(b => {
+        b.mesh.rotation.z = Math.sin(elapsed * 1.1 + b.phase) * 0.035;
+      });
+      if (W.shinkansenTrain) {
+        W.shinkansenTrain.position.x = Math.sin(elapsed * 0.24) * 3.2;
+      }
+      // Drifting Maple/Sakura Leaves
+      if (W.petals) {
+        const pos = W.petals.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          let y = pos.getY(i) - dt * 0.58;
+          let x = pos.getX(i) + Math.sin(elapsed + i) * dt * 0.42;
+          if (y < 0.2) {
+            y = 12.0;
+            x = -52 + Math.random() * 70;
+          }
+          pos.setXY(i, x, y);
+        }
+        pos.needsUpdate = true;
+      }
+    };
+
+    W.drawMiniMap = function (ctx, cw, ch, toMapX, toMapY) {
+      ctx.fillStyle = '#7ba868';
+      ctx.fillRect(0, 0, cw, ch);
+
+      // Bamboo Grove (deep green top-left)
+      ctx.fillStyle = '#3d7a47';
+      ctx.fillRect(toMapX(-48), toMapY(-51), toMapX(-14) - toMapX(-48), toMapY(-39) - toMapY(-51));
+
+      // Excavated Koi Lake (teal blue)
+      ctx.fillStyle = '#2b7a8c';
+      ctx.fillRect(toMapX(-30.2), toMapY(-37.5), toMapX(-14.8) - toMapX(-30.2), toMapY(-17.5) - toMapY(-37.5));
+
+      // Main Road & Stone Path & Bridge
+      ctx.fillStyle = '#5a6069';
+      ctx.fillRect(toMapX(-3.6), 0, toMapX(3.6) - toMapX(-3.6), ch);
+      ctx.fillStyle = '#8b6343';
+      ctx.fillRect(toMapX(-43), toMapY(-29.2), toMapX(-3.1) - toMapX(-43), toMapY(-25.8) - toMapY(-29.2));
+
+      // Sakurako Shrine
+      ctx.fillStyle = '#c83e37';
+      ctx.fillRect(toMapX(-54.5), toMapY(-34.5), toMapX(-44.5) - toMapX(-54.5), toMapY(-20.5) - toMapY(-34.5));
+
+      // East Canal
+      ctx.fillStyle = '#348ea3';
+      ctx.fillRect(toMapX(15.2), toMapY(-43), toMapX(17.3) - toMapX(15.2), toMapY(15) - toMapY(-43));
+
+      // Key Buildings
+      ctx.fillStyle = '#d97724'; // Sushi
+      ctx.fillRect(toMapX(-10.5), toMapY(-31.4), toMapX(-5.9) - toMapX(-10.5), toMapY(-28.4) - toMapY(-31.4));
+      ctx.fillStyle = '#2d6a4f'; // Tea House
+      ctx.fillRect(toMapX(7.0), toMapY(-8.5), toMapX(13.5) - toMapX(7.0), toMapY(-1.5) - toMapY(-8.5));
+      ctx.fillStyle = '#8a3e3b'; // Academy
+      ctx.fillRect(toMapX(7.0), toMapY(-24.5), toMapX(13.5) - toMapX(7.0), toMapY(-17.5) - toMapY(-24.5));
+      ctx.fillStyle = '#db5485'; // Kimono
+      ctx.fillRect(toMapX(-13.5), toMapY(-1.5), toMapX(-7.2) - toMapX(-13.5), toMapY(5.5) - toMapY(-1.5));
+      ctx.fillStyle = '#c94c79'; // Ryokan
+      ctx.fillRect(toMapX(-13.5), toMapY(-16.0), toMapX(-7.2) - toMapX(-13.5), toMapY(-9.0) - toMapY(-16.0));
+      ctx.fillStyle = '#1d4ed8'; // Station
+      ctx.fillRect(toMapX(-7.2), toMapY(19.2), toMapX(7.2) - toMapX(-7.2), toMapY(23.5) - toMapY(19.2));
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 7.5px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🎋 BAMBOO', toMapX(-31), toMapY(-44));
+      ctx.fillText('⛩️ SHRINE', toMapX(-49.5), toMapY(-26.8));
+      ctx.fillText('🍣', toMapX(-8.2), toMapY(-29.2));
+      ctx.fillText('🍵', toMapX(10.2), toMapY(-4.3));
+      ctx.fillText('📚', toMapX(10.2), toMapY(-20.2));
+      ctx.fillText('👘', toMapX(-10.4), toMapY(2.8));
+      ctx.fillText('🚅 TOKYO', toMapX(0), toMapY(22.1));
+    };
+
+    return W;
+  }
+
+  LS.registerWorld('kyoto', { build: buildKyotoWorld });
+})(window.LailaSalma);

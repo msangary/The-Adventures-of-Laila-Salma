@@ -1,0 +1,32 @@
+{
+  "worldId": "tokyo",
+  "name": "Tokyo — Sakura-cho",
+  "version": "2.0.0-multiworld",
+  "engine": {
+    "threeVersion": "r128",
+    "maxLights": 4,
+    "shadowMapSize": 1024,
+    "maxPixelRatio": 1.5,
+    "textureSize": 256,
+    "villageFloorSnow": false
+  },
+  "bounds": {
+    "minX": -22.0,
+    "maxX": 22.0,
+    "minZ": -34.0,
+    "maxZ": 26.0
+  },
+  "spawn": { "x": 0.0, "y": 0.0, "z": 15.5, "rotY": 3.14159 },
+  "road": { "centerX": 0.0, "zStart": 24.0, "zEnd": -34.0 },
+  "landmarks": {
+    "sakuraSchool": { "x": 0.0, "z": -32.0 },
+    "ichibanRamen": { "x": 11.2, "z": -5.5 },
+    "tokyoBoutique": { "x": -8.6, "z": -10.8 },
+    "clubhouseRoom": { "x": -11.8, "z": -1.5 },
+    "pocketPark": { "x": 8.2, "z": 13.8 },
+    "gachapon": { "x": -5.8, "z": -15.6 },
+    "drinkVending": { "x": -5.8, "z": -13.6 },
+    "shinkansenStation": { "x": 0.0, "z": 23.0 },
+    "tokyoTowerDistant": { "x": 38.0, "z": -74.0 }
+  }
+}
