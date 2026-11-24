@@ -76,6 +76,9 @@
     <span id="front-view-label">📷 Laila's Front View</span> — Press <strong>C</strong> or tap 📷 to switch
   </div>
 
+  <!-- Live Mochi Fetch / Tag Timer Banner -->
+  <div id="mochi-game-banner" class="hidden parchment-pill">🎾 Mochi Fetch: 30s left • Score: 0</div>
+
   <!-- Eating / Activity Banner -->
   <div id="eating-banner" class="hidden parchment-pill">
     <span id="eating-status">🍜 Laila &amp; Salma are enjoying a meal... Oishii! 😋</span>
@@ -310,19 +313,31 @@
     </div>
   </div>
 
-  <!-- Gachapon Capsule Machine Modal (Tokyo) -->
+  <!-- Gachapon Capsule Machine & Toy Shelf Modal (Tokyo & Kyoto) -->
   <div id="gachapon-modal" class="modal-backdrop hidden">
     <div class="modal-box parchment-modal">
       <div class="modal-top">
-        <h2>🎁 Gachapon Capsule Machine</h2>
+        <h2 id="gachapon-title">🎁 Gachapon Capsule Machine</h2>
         <button class="close-btn" data-close="gachapon-modal">✕</button>
       </div>
-      <p class="ramen-sub">Spin for <strong>15c</strong> to collect surprise capsule toys on Laila &amp; Salma's Toy Shelf!</p>
+      <p class="ramen-sub">Spin for <strong>15c</strong> to collect all 12 Tokyo &amp; Kyoto capsule toys for Laila &amp; Salma's 3D Toy Shelf &amp; Sticker Album!</p>
       <div class="modal-actions" style="margin-bottom:14px;">
         <button id="btn-spin-gachapon" class="btn-primary">🎰 Spin Capsule (15c)</button>
       </div>
       <div id="gachapon-shelf" class="toy-shelf-grid"></div>
       <div id="gachapon-msg" class="ramen-msg"></div>
+    </div>
+  </div>
+
+  <!-- Haneda-Tokyo International Airport Departures Modal -->
+  <div id="airport-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>✈️ Haneda-Tokyo International Airport</h2>
+        <button class="close-btn" data-close="airport-modal">✕</button>
+      </div>
+      <p class="ramen-sub">“Welcome aboard, Laila &amp; Salma! Our international gates are preparing flights to 9 exciting new worlds around Earth — and even Outer Space!”</p>
+      <div id="airport-flights-grid" class="ramen-menu"></div>
     </div>
   </div>
 
@@ -464,6 +479,7 @@
   <script src="engine/gameplay/gameplay.js"></script>
   <script src="worlds/tokyo/world_tokyo.js"></script>
   <script src="worlds/kyoto/world_kyoto.js"></script>
+  <script src="worlds/interior/world_room.js"></script>
   <script src="engine/core/engine.js"></script>
 </body>
 </html>

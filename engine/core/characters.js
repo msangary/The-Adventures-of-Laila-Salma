@@ -462,12 +462,20 @@ window.LailaSalma = window.LailaSalma || {};
   LS.showSalmaAnimalHint = function () {
     const world = LS.activeWorld;
     if (!LS.chars.salma || !world || !world.hiddenAnimals) return;
+    if (world.isInterior) {
+      LS.setSalmaBubbleText('Let us decorate our room or step outside to play! 🎨', 3800);
+      return;
+    }
     const isKyoto = LS.state.currentWorld === 'kyoto';
     const label = isKyoto ? 'kitsune foxes' : 'cats';
     const emoji = isKyoto ? '🦊' : '🐱';
     const unfound = world.hiddenAnimals.filter(a => !a.found);
     if (unfound.length === 0) {
-      LS.showToast('🐾 Salma: We found all 5 ' + label + ' in ' + (isKyoto ? 'Kyoto' : 'Tokyo') + '!');
+      const rem = LS.getAnimalResetRemainingMs(LS.state.currentWorld);
+      const mins = Math.max(1, Math.ceil(rem / 60000));
+      const doneMsg = 'We found all 5 ' + label + '! They will hide in new spots in ' + mins + ' min!';
+      LS.setSalmaBubbleText(doneMsg, 4500);
+      LS.showToast('🐾 Salma: ' + doneMsg);
       return;
     }
     const lp = LS.chars.laila.root.position;
@@ -477,22 +485,11 @@ window.LailaSalma = window.LailaSalma || {};
       const d = a.mesh.position.distanceTo(lp);
       if (d < bestD) { bestD = d; nearest = a; }
     });
-    const dx = nearest.mesh.position.x - lp.x;
-    const dz = nearest.mesh.position.z - lp.z;
-    let dir;
-    if (isKyoto) {
-      dir = (Math.abs(dx) > Math.abs(dz))
-        ? (dx < 0 ? 'west across the bridge toward the shrine' : 'east near the tea house & academy')
-        : (dz < 0 ? 'north toward the bamboo grove & lake' : 'south near the kimono shop & station');
-    } else {
-      dir = (Math.abs(dz) > Math.abs(dx))
-        ? (dz < 0 ? 'north toward school & ramen' : 'south down Main Street')
-        : (dx < 0 ? 'west near the boutique & houses' : 'east near the park & ramen');
-    }
     const soundWord = isKyoto ? 'yipping happily' : 'meowing';
-    const hintText = 'Laila, I hear ' + nearest.name.split(' ')[0] + ' ' + soundWord + ' ' + dir + '!';
-    LS.setSalmaBubbleText(hintText, 4800);
-    LS.showToast(emoji + ' Salma Hint: ' + hintText);
+    const placeText = nearest.hint || (isKyoto ? 'somewhere nearby in Kyoto' : 'somewhere nearby in Tokyo');
+    const hintText = 'Laila, I hear ' + nearest.name.split(' ')[0] + ' ' + soundWord + ' ' + placeText + '!';
+    LS.setSalmaBubbleText(hintText, 5000);
+    LS.showToast(emoji + ' Salma Boost: ' + hintText);
   };
 
   function buildSingleBowl(mealType, bowlScale) {

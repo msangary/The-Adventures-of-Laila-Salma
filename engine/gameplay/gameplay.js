@@ -255,6 +255,11 @@ window.LailaSalma = window.LailaSalma || {};
         const w = LS.WORLDS[wid];
         const isHere = LS.state.currentWorld === wid;
         const foundCount = wid === 'kyoto' ? LS.state.foundKitsune.length : LS.state.foundCats.length;
+        const remMs = LS.getAnimalResetRemainingMs(wid);
+        const resetHtml = foundCount >= 5
+          ? ('<div class="ramen-desc" style="color:#1b7a43;font-weight:700;">✨ All 5 found! New hiding spots in ' +
+             (remMs > 0 ? formatMs(remMs) : 'Ready now!') + '</div>')
+          : '';
         const card = document.createElement('div');
         card.className = 'passport-world-card' + (isHere ? ' current-world' : '');
         card.innerHTML =
@@ -262,7 +267,10 @@ window.LailaSalma = window.LailaSalma || {};
             '<div><strong>' + w.emoji + ' ' + w.title + '</strong> <span class="pw-sub">' + w.subtitle + '</span></div>' +
             '<span class="pw-progress">' + w.collectibleEmoji + ' ' + foundCount + '/5</span>' +
           '</div>' +
-          '<p class="ramen-desc">' + w.description + '</p>';
+          '<p class="ramen-desc">' + w.description + '</p>' + resetHtml;
+
+        const actions = document.createElement('div');
+        actions.className = 'modal-actions';
         const btn = document.createElement('button');
         if (isHere) {
           btn.className = 'btn-secondary';
@@ -273,21 +281,28 @@ window.LailaSalma = window.LailaSalma || {};
           btn.textContent = '🚅 Ride Shinkansen to ' + w.title;
           btn.onclick = () => LS.travelToWorld(wid);
         }
-        card.appendChild(btn);
+        actions.appendChild(btn);
+
+        if (foundCount >= 5) {
+          const resetBtn = document.createElement('button');
+          resetBtn.className = 'btn-small';
+          resetBtn.textContent = '🔄 Hide in New Spots Now';
+          resetBtn.onclick = () => {
+            LS.closeAllModals();
+            LS.startNewAnimalRound(wid);
+          };
+          actions.appendChild(resetBtn);
+        }
+        card.appendChild(actions);
         worldsBox.appendChild(card);
       });
 
-      LS.UPCOMING_WORLDS.forEach(uw => {
-        const card = document.createElement('div');
-        card.className = 'passport-world-card upcoming-world';
-        card.innerHTML =
-          '<div class="pw-head">' +
-            '<div><strong>' + uw.emoji + ' ' + uw.title + '</strong> <span class="pw-sub">' + uw.subtitle + '</span></div>' +
-            '<span class="pw-soon">Coming Soon</span>' +
-          '</div>' +
-          '<p class="ramen-desc">' + uw.description + '</p>';
-        worldsBox.appendChild(card);
-      });
+      const airportNote = document.createElement('div');
+      airportNote.className = 'passport-world-card upcoming-world';
+      airportNote.innerHTML =
+        '<div class="pw-head"><div><strong>✈️ Haneda International Airport (Tokyo)</strong></div><span class="pw-soon">9 Future Cities</span></div>' +
+        '<p class="ramen-desc">Upcoming flights: ' + LS.UPCOMING_WORLDS.map(u => u.emoji + ' ' + u.title).join(' • ') + '</p>';
+      worldsBox.appendChild(airportNote);
     }
 
     if (stampsBox) {
@@ -306,13 +321,35 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('passport-modal').classList.remove('hidden');
   };
 
+  // Haneda-Tokyo International Airport Departures Board
+  LS.openAirportModal = function () {
+    LS.runtime.modalOpen = true;
+    LS.unlockStamp('tokyo_airport');
+    const grid = document.getElementById('airport-flights-grid');
+    if (grid) {
+      grid.innerHTML = '';
+      LS.UPCOMING_WORLDS.forEach(uw => {
+        const row = document.createElement('div');
+        row.className = 'ramen-item';
+        row.innerHTML =
+          '<div>' +
+            '<strong>' + uw.emoji + ' ' + uw.title + '</strong> <span class="pw-soon">' + uw.gate + '</span>' +
+            '<div class="ramen-desc">' + uw.description + '</div>' +
+          '</div>' +
+          '<span class="pw-soon">Coming Soon ✈️</span>';
+        grid.appendChild(row);
+      });
+    }
+    document.getElementById('airport-modal').classList.remove('hidden');
+  };
+
   LS.openShinkansenModal = function () {
     LS.runtime.modalOpen = true;
     const cur = LS.WORLDS[LS.state.currentWorld];
     const dest = LS.WORLDS[cur.destinationId];
     document.getElementById('shinkansen-title').textContent = '🚅 ' + cur.title + ' Shinkansen Station';
     document.getElementById('shinkansen-desc').textContent =
-      'All aboard the N700S Bullet Train! Ride from ' + cur.title + ' to ' + dest.title + ' (' + dest.subtitle + ') with Laila, Salma & Mochi — all your coins, outfits, and Passport stamps come with you!';
+      'All aboard the N700S Bullet Train! Ride from ' + cur.title + ' to ' + dest.title + ' (' + dest.subtitle + ') with Laila, Salma & Mochi — all your coins, outfits, toys, and Passport stamps come with you!';
     const goBtn = document.getElementById('btn-board-shinkansen');
     goBtn.textContent = '🚅 Depart for ' + dest.emoji + ' ' + dest.title + '!';
     goBtn.onclick = () => LS.travelToWorld(dest.id);
@@ -430,6 +467,7 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('shop-modal').classList.remove('hidden');
   };
 
+  let activeGachaponWorld = 'tokyo';
   function renderGachaponShelf() {
     const shelf = document.getElementById('gachapon-shelf');
     if (!shelf) return;
@@ -438,15 +476,28 @@ window.LailaSalma = window.LailaSalma || {};
       const owned = LS.state.unlockedToys.includes(toy.id);
       const card = document.createElement('div');
       card.className = 'toy-slot ' + (owned ? 'owned' : 'locked');
+      const wBadge = toy.world === 'kyoto' ? '⛩️' : '🗼';
       card.innerHTML =
         '<div class="toy-emoji">' + (owned ? toy.emoji : '❓') + '</div>' +
-        '<div class="toy-name">' + (owned ? toy.name : 'Mystery Capsule') + '</div>';
+        '<div class="toy-name">' + (owned ? (toy.name + ' ' + wBadge) : ('Mystery ' + wBadge)) + '</div>';
       shelf.appendChild(card);
     });
   }
 
-  LS.openGachaponModal = function () {
+  LS.openGachaponModal = function (machineWorld) {
     LS.runtime.modalOpen = true;
+    activeGachaponWorld = machineWorld || LS.state.currentWorld;
+    const titleEl = document.getElementById('gachapon-title');
+    const spinBtn = document.getElementById('btn-spin-gachapon');
+    if (titleEl) {
+      titleEl.textContent = activeGachaponWorld === 'all'
+        ? '🎁 Toy Shelf & Sticker Album (' + LS.state.unlockedToys.length + '/' + LS.GACHAPON_TOYS.length + ')'
+        : (activeGachaponWorld === 'kyoto' ? '🎁 Kyoto Gachapon Capsule Machine' : '🎁 Tokyo Gachapon Capsule Machine');
+    }
+    if (spinBtn) {
+      spinBtn.classList.toggle('hidden', activeGachaponWorld === 'all');
+      spinBtn.textContent = activeGachaponWorld === 'kyoto' ? '🎰 Spin Kyoto Capsule (15c)' : '🎰 Spin Tokyo Capsule (15c)';
+    }
     document.getElementById('gachapon-msg').textContent = '';
     renderGachaponShelf();
     document.getElementById('gachapon-modal').classList.remove('hidden');
@@ -488,7 +539,7 @@ window.LailaSalma = window.LailaSalma || {};
     if (catsRow) {
       const catNames = { cat_mikan: '🐱 Mikan', cat_kuro: '🐱 Kuro', cat_yuki: '🐱 Yuki', cat_sakura: '🐱 Sakura', cat_tama: '🐱 Tama' };
       const found = LS.state.foundCats || [];
-      catsRow.innerHTML = '<strong>Tokyo Cats Shelf (' + found.length + '/5):</strong> ' +
+      catsRow.innerHTML = '<strong>Tokyo Cats Cushion (' + found.length + '/5):</strong> ' +
         Object.keys(catNames).map(cid =>
           '<span class="cat-shelf-badge ' + (found.includes(cid) ? 'found' : '') + '">' +
           (found.includes(cid) ? catNames[cid] : '🐾 ???') + '</span>'
@@ -527,8 +578,10 @@ window.LailaSalma = window.LailaSalma || {};
           if (activeRoomTab === 'wallpaper') LS.state.roomWallpaper = item.id;
           else if (activeRoomTab === 'beanbag') LS.state.roomBeanbag = item.id;
           else LS.state.roomPoster = item.id;
-          LS.saveState(); msgEl.textContent = ''; renderClubhousePreview();
-          LS.showToast('🏡 Updated Tokyo Room with ' + item.name + '!');
+          LS.saveState();
+          if (LS.activeWorld && LS.activeWorld.refreshDecor) LS.activeWorld.refreshDecor();
+          msgEl.textContent = ''; renderClubhousePreview();
+          LS.showToast('🏡 Updated 3D Room with ' + item.name + '!');
         };
       } else {
         btn.className = 'btn-primary'; btn.textContent = item.cost + 'c';
@@ -542,8 +595,10 @@ window.LailaSalma = window.LailaSalma || {};
           if (activeRoomTab === 'wallpaper') LS.state.roomWallpaper = item.id;
           else if (activeRoomTab === 'beanbag') LS.state.roomBeanbag = item.id;
           else LS.state.roomPoster = item.id;
-          LS.saveState(); LS.playSFX('correct'); msgEl.textContent = ''; renderClubhousePreview();
-          LS.showToast('🏡 Added ' + item.name + " to Laila & Salma's Room!");
+          LS.saveState();
+          if (LS.activeWorld && LS.activeWorld.refreshDecor) LS.activeWorld.refreshDecor();
+          LS.playSFX('correct'); msgEl.textContent = ''; renderClubhousePreview();
+          LS.showToast('🏡 Added ' + item.name + " to Laila & Salma's 3D Room!");
         };
       }
       row.appendChild(info); row.appendChild(btn); grid.appendChild(row);
@@ -557,7 +612,6 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('clubhouse-modal').classList.remove('hidden');
   };
 
-  // Kyoto Ryokan Suite Customization
   function renderRyokanPreview() {
     const preview = document.getElementById('ryokan-preview');
     const shelf = document.getElementById('ryokan-fox-shelf');
@@ -622,8 +676,10 @@ window.LailaSalma = window.LailaSalma || {};
           if (activeRyokanTab === 'tatami') LS.state.ryokanTatami = item.id;
           else if (activeRyokanTab === 'cushion') LS.state.ryokanCushion = item.id;
           else LS.state.ryokanScroll = item.id;
-          LS.saveState(); msgEl.textContent = ''; renderRyokanPreview();
-          LS.showToast('🏮 Updated Kyoto Ryokan with ' + item.name + '!');
+          LS.saveState();
+          if (LS.activeWorld && LS.activeWorld.refreshDecor) LS.activeWorld.refreshDecor();
+          msgEl.textContent = ''; renderRyokanPreview();
+          LS.showToast('🏮 Updated 3D Kyoto Ryokan with ' + item.name + '!');
         };
       } else {
         btn.className = 'btn-primary'; btn.textContent = item.cost + 'c';
@@ -637,8 +693,10 @@ window.LailaSalma = window.LailaSalma || {};
           if (activeRyokanTab === 'tatami') LS.state.ryokanTatami = item.id;
           else if (activeRyokanTab === 'cushion') LS.state.ryokanCushion = item.id;
           else LS.state.ryokanScroll = item.id;
-          LS.saveState(); LS.playSFX('correct'); msgEl.textContent = ''; renderRyokanPreview();
-          LS.showToast('🏮 Added ' + item.name + ' to your Kyoto Ryokan Suite!');
+          LS.saveState();
+          if (LS.activeWorld && LS.activeWorld.refreshDecor) LS.activeWorld.refreshDecor();
+          LS.playSFX('correct'); msgEl.textContent = ''; renderRyokanPreview();
+          LS.showToast('🏮 Added ' + item.name + ' to your 3D Kyoto Ryokan Suite!');
         };
       }
       row.appendChild(info); row.appendChild(btn); grid.appendChild(row);
@@ -652,7 +710,6 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('ryokan-modal').classList.remove('hidden');
   };
 
-  // Sakurako Shrine: Omikuji Lucky Fortune & Ema Wooden Wishes
   function renderShrineWishes() {
     const listEl = document.getElementById('ema-wishes-list');
     if (!listEl) return;
@@ -707,6 +764,11 @@ window.LailaSalma = window.LailaSalma || {};
 
     const count = arr.length;
     const isAll = count >= 5;
+    if (isAll) {
+      if (isKitsune) LS.state.kitsuneCompletedAt = Date.now();
+      else LS.state.catsCompletedAt = Date.now();
+    }
+
     const coinReward = isAll ? 90 : 35;
     const xpReward = isAll ? 55 : 22;
 
@@ -718,7 +780,8 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (isAll) {
       LS.unlockStamp(isKitsune ? 'kyoto_kitsune' : 'tokyo_cats');
-      LS.showToast((isKitsune ? '🦊🎉 All 5 Kyoto Kitsune Found!' : '🐾🎉 All 5 Tokyo Cats Found!') + ' Bonus +' + coinReward + 'c & +' + xpReward + ' XP!');
+      LS.showToast((isKitsune ? '🦊🎉 All 5 Kyoto Kitsune Found!' : '🐾🎉 All 5 Tokyo Cats Found!') +
+        ' Bonus +' + coinReward + 'c! They will hide in brand-new spots in 2 hours!');
     } else {
       LS.showToast((isKitsune ? '🦊 Befriended ' : '🐱 Found ') + animal.name + ' (' + count + '/5)! +' + coinReward + 'c & +' + xpReward + ' XP!');
     }
@@ -728,7 +791,7 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.modalOpen = false;
     clearInterval(timerInterval);
     [
-      'passport-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
+      'passport-modal', 'airport-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
       'sushi-modal', 'tea-modal', 'shop-modal', 'gachapon-modal',
       'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal'
     ].forEach(id => {
@@ -862,7 +925,7 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('kytab-cushion').addEventListener('click', () => { activeRyokanTab = 'cushion'; renderRyokanPreview(); });
     document.getElementById('kytab-scroll').addEventListener('click', () => { activeRyokanTab = 'scroll'; renderRyokanPreview(); });
 
-    // Gachapon spin
+    // Gachapon spin (rolls Tokyo toys at Tokyo machine, Kyoto toys at Kyoto machine!)
     document.getElementById('btn-spin-gachapon').addEventListener('click', () => {
       const msgEl = document.getElementById('gachapon-msg');
       const cost = 15;
@@ -872,12 +935,14 @@ window.LailaSalma = window.LailaSalma || {};
         return;
       }
       LS.addCoins(-cost);
-      const toy = LS.GACHAPON_TOYS[Math.floor(Math.random() * LS.GACHAPON_TOYS.length)];
+      const pool = LS.GACHAPON_TOYS.filter(t => t.world === activeGachaponWorld);
+      const source = pool.length > 0 ? pool : LS.GACHAPON_TOYS;
+      const toy = source[Math.floor(Math.random() * source.length)];
       if (!LS.state.unlockedToys.includes(toy.id)) {
         LS.state.unlockedToys.push(toy.id);
         LS.addXP(15);
         msgEl.style.color = '#1b7a43';
-        msgEl.textContent = '🎉 New Capsule Toy: ' + toy.emoji + ' ' + toy.name + ' added!';
+        msgEl.textContent = '🎉 New Capsule Toy: ' + toy.emoji + ' ' + toy.name + ' added to your Toy Shelf!';
         LS.showToast('🎁 New Toy: ' + toy.emoji + ' ' + toy.name + '!');
         if (LS.state.unlockedToys.length >= 3) LS.unlockStamp('tokyo_toys');
       } else {

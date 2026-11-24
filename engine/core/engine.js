@@ -5,6 +5,9 @@ window.LailaSalma = window.LailaSalma || {};
   let worldGroup = null;
   let sparkleSystem = null;
   let sparkleIdx = 0;
+  let starBurstGroup = null;
+  let starBurstTimer = 0;
+  let resetCheckAccum = 0;
 
   const clock = new THREE.Clock();
   const keys = {};
@@ -39,7 +42,20 @@ window.LailaSalma = window.LailaSalma || {};
   function applyTimeOfDay() {
     const mode = LS.state.timeMode;
     const wid = LS.state.currentWorld;
+    const meta = LS.WORLDS[wid] || LS.WORLDS.tokyo;
     const btn = document.getElementById('btn-time');
+
+    if (meta.isInterior) {
+      scene.fog.color.setHex(wid === 'kyoto_room' ? 0x3b2c26 : 0xffeef4);
+      dirLight.color.setHex(0xfff1d6);
+      dirLight.intensity = 0.62;
+      hemiLight.color.setHex(0xfff4e2);
+      hemiLight.groundColor.setHex(0x9a7d60);
+      streetLight.intensity = 0.32;
+      accentLight.intensity = 0.28;
+      return;
+    }
+
     if (mode === 1) {
       scene.fog.color.setHex(wid === 'kyoto' ? 0xeb9b6c : 0xf2a772);
       dirLight.color.setHex(0xffa45b);
@@ -75,43 +91,88 @@ window.LailaSalma = window.LailaSalma || {};
   }
   LS.applyTimeOfDay = applyTimeOfDay;
 
-  function initSparkles() {
+  function initSparklesAndStars() {
     const count = 48;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      pos[i * 3 + 1] = -999;
-    }
+    for (let i = 0; i < count; i++) pos[i * 3 + 1] = -999;
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     const mat = new THREE.PointsMaterial({ color: 0xffd6f0, size: 0.24, transparent: true, opacity: 0.92 });
     sparkleSystem = new THREE.Points(geo, mat);
     scene.add(sparkleSystem);
+
+    // 3D Star Particle Burst for Synchronized Sister High-Five!
+    starBurstGroup = new THREE.Group();
+    const starC = document.createElement('canvas');
+    starC.width = 64; starC.height = 64;
+    const sctx = starC.getContext('2d');
+    sctx.font = 'bold 48px sans-serif';
+    sctx.textAlign = 'center';
+    sctx.fillText('⭐', 32, 48);
+    const starTex = new THREE.CanvasTexture(starC);
+    for (let i = 0; i < 12; i++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: starTex, transparent: true }));
+      sp.scale.set(0.42, 0.42, 1);
+      sp.userData = {
+        vx: Math.cos((i / 12) * Math.PI * 2) * (1.2 + (i % 3) * 0.4),
+        vy: 1.8 + (i % 4) * 0.45,
+        vz: Math.sin((i / 12) * Math.PI * 2) * (1.2 + (i % 3) * 0.4)
+      };
+      starBurstGroup.add(sp);
+    }
+    starBurstGroup.visible = false;
+    scene.add(starBurstGroup);
   }
 
-  function updateSparkles(dt) {
-    if (!sparkleSystem || !LS.chars.laila) return;
-    const pos = sparkleSystem.geometry.attributes.position;
-    const active = LS.runtime.sparkleUntil && Date.now() < LS.runtime.sparkleUntil;
-    if (active) {
-      const lp = LS.chars.laila.root.position;
-      const i = sparkleIdx % pos.count;
-      pos.setXYZ(
-        i,
-        lp.x + (Math.random() - 0.5) * 0.9,
-        lp.y + 0.4 + Math.random() * 1.1,
-        lp.z + (Math.random() - 0.5) * 0.9
-      );
-      sparkleIdx++;
-    }
-    for (let i = 0; i < pos.count; i++) {
-      let y = pos.getY(i);
-      if (y > -50) {
-        y += dt * 0.55;
-        if (!active && y > 4.5) y = -999;
-        pos.setY(i, y);
+  function triggerStarBurst(origin) {
+    if (!starBurstGroup) return;
+    starBurstGroup.position.copy(origin).add(new THREE.Vector3(0, 1.4, 0));
+    starBurstGroup.children.forEach(sp => {
+      sp.position.set(0, 0, 0);
+      sp.material.opacity = 1;
+    });
+    starBurstGroup.visible = true;
+    starBurstTimer = 1.3;
+  }
+
+  function updateSparklesAndStars(dt) {
+    if (sparkleSystem && LS.chars.laila) {
+      const pos = sparkleSystem.geometry.attributes.position;
+      const active = (LS.runtime.sparkleUntil && Date.now() < LS.runtime.sparkleUntil) ||
+                     (LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil);
+      if (active) {
+        const lp = LS.chars.laila.root.position;
+        const i = sparkleIdx % pos.count;
+        pos.setXYZ(
+          i,
+          lp.x + (Math.random() - 0.5) * 0.9,
+          lp.y + 0.4 + Math.random() * 1.1,
+          lp.z + (Math.random() - 0.5) * 0.9
+        );
+        sparkleIdx++;
       }
+      for (let i = 0; i < pos.count; i++) {
+        let y = pos.getY(i);
+        if (y > -50) {
+          y += dt * 0.55;
+          if (!active && y > 4.5) y = -999;
+          pos.setY(i, y);
+        }
+      }
+      pos.needsUpdate = true;
     }
-    pos.needsUpdate = true;
+
+    if (starBurstTimer > 0 && starBurstGroup) {
+      starBurstTimer -= dt;
+      starBurstGroup.children.forEach(sp => {
+        sp.position.x += sp.userData.vx * dt;
+        sp.position.y += sp.userData.vy * dt;
+        sp.position.z += sp.userData.vz * dt;
+        sp.userData.vy -= 2.2 * dt;
+        sp.material.opacity = Math.max(0, starBurstTimer / 1.3);
+      });
+      if (starBurstTimer <= 0) starBurstGroup.visible = false;
+    }
   }
 
   function clearWorldGroup() {
@@ -121,52 +182,64 @@ window.LailaSalma = window.LailaSalma || {};
     }
   }
 
-  LS.loadWorld = function (worldId, viaTrain) {
+  LS.loadWorld = function (worldId, viaTrain, customSpawn) {
     const meta = LS.WORLDS[worldId];
     const builder = LS.worldBuilders[worldId];
     if (!meta || !builder) return;
 
-    // Clean up any active runtime animations
+    // Auto-check 2-hour Hide-and-Seek animal reset when entering Tokyo or Kyoto!
+    let didResetAnimals = false;
+    if (worldId === 'tokyo' || worldId === 'kyoto') {
+      didResetAnimals = LS.checkAnimalReset(worldId);
+    }
+
     if (LS.runtime.eating) LS.finishEatingAnimation(scene);
     LS.runtime.mochiGame = null;
     LS.runtime.parkActivity = null;
     LS.runtime.nearZone = null;
+    LS.runtime.piggybackUntil = 0;
     LS.closeAllModals();
 
     LS.state.currentWorld = worldId;
-    LS.saveState();
+    if (!meta.isInterior) LS.saveState();
 
     clearWorldGroup();
 
-    // Update fog & 4-light positions for this world
-    scene.fog.near = meta.fogNear || 44;
-    scene.fog.far = meta.fogFar || 150;
+    scene.fog.near = meta.fogNear || 55;
+    scene.fog.far = meta.fogFar || 185;
 
-    if (worldId === 'kyoto') {
-      // Strict blueprint 4-light placement: Street light + Bridge light at X = -22.0, Z = -27.5
-      dirLight.position.set(10, 32, 12);
-      dirLight.shadow.camera.left = -58;
-      dirLight.shadow.camera.right = 28;
-      dirLight.shadow.camera.top = 36;
-      dirLight.shadow.camera.bottom = -56;
+    if (meta.isInterior) {
+      dirLight.position.set(4, 9, 5);
+      dirLight.shadow.camera.left = -10;
+      dirLight.shadow.camera.right = 10;
+      dirLight.shadow.camera.top = 10;
+      dirLight.shadow.camera.bottom = -10;
+      dirLight.shadow.camera.updateProjectionMatrix();
+      streetLight.position.set(0, 3.8, 0);
+      accentLight.position.set(-3, 2.5, -2);
+    } else if (worldId === 'kyoto') {
+      dirLight.position.set(16, 38, 16);
+      dirLight.shadow.camera.left = -64;
+      dirLight.shadow.camera.right = 46;
+      dirLight.shadow.camera.top = 46;
+      dirLight.shadow.camera.bottom = -58;
       dirLight.shadow.camera.updateProjectionMatrix();
       streetLight.position.set(0, 5.2, -10);
       accentLight.position.set(-22.0, 3.6, -27.5);
     } else {
-      dirLight.position.set(18, 28, 16);
-      dirLight.shadow.camera.left = -35;
-      dirLight.shadow.camera.right = 35;
-      dirLight.shadow.camera.top = 35;
-      dirLight.shadow.camera.bottom = -35;
+      dirLight.position.set(22, 38, 18);
+      dirLight.shadow.camera.left = -54;
+      dirLight.shadow.camera.right = 56;
+      dirLight.shadow.camera.top = 50;
+      dirLight.shadow.camera.bottom = -54;
       dirLight.shadow.camera.updateProjectionMatrix();
       streetLight.position.set(0, 5.2, -6);
-      accentLight.position.set(8.5, 3.8, -5.5);
+      accentLight.position.set(24.0, 4.2, 16.0);
     }
 
     LS.activeWorld = builder.build(worldGroup, scene);
 
-    // Position Laila, Salma, and Mochi at spawn
-    const sp = viaTrain ? meta.arrivalSpawn : meta.spawn;
+    const sp = customSpawn || (viaTrain ? meta.arrivalSpawn : meta.spawn);
     const baseH = LS.activeWorld.getGroundHeight ? LS.activeWorld.getGroundHeight(sp.x, sp.z) : 0;
     LS.chars.laila.root.position.set(sp.x, baseH, sp.z);
     LS.chars.laila.root.rotation.y = sp.rotY;
@@ -181,40 +254,59 @@ window.LailaSalma = window.LailaSalma || {};
       LS.chars.mochi.position.copy(LS.activeWorld.mochiStartPos);
     }
 
-    // Reset camera smoothly behind sisters
     camYaw = sp.rotY;
     targetCamYaw = sp.rotY;
-    camPitch = 0.30;
-    targetCamPitch = 0.30;
-    camDist = 6.6;
-    targetCamDist = 6.6;
-    camera.position.set(sp.x, baseH + 3.4, sp.z + 6.4);
+    camPitch = meta.isInterior ? 0.38 : 0.30;
+    targetCamPitch = camPitch;
+    camDist = meta.isInterior ? 5.2 : 6.8;
+    targetCamDist = camDist;
+    camera.position.set(sp.x, baseH + 3.4, sp.z + camDist);
     camera.lookAt(sp.x, baseH + 1.25, sp.z);
 
-    // Update Salma greeting & minimap legend
     const legendAnimal = document.getElementById('mm-animal-label');
     if (legendAnimal) {
-      legendAnimal.innerHTML = worldId === 'kyoto'
+      legendAnimal.innerHTML = (worldId === 'kyoto' || worldId === 'kyoto_room')
         ? '<i class="mm-dot mm-cat"></i>Foxes'
         : '<i class="mm-dot mm-cat"></i>Cats';
     }
     const mmCard = document.getElementById('minimap-card');
-    if (mmCard) {
-      mmCard.title = meta.title + ' Mini-Map (M to toggle)';
+    if (mmCard) mmCard.title = meta.title + ' Mini-Map (M to toggle)';
+
+    if (meta.isInterior) {
+      LS.setSalmaBubbleText('Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
+      LS.unlockStamp('room_decorator');
+    } else if (worldId === 'kyoto') {
+      LS.setSalmaBubbleText('Whoa, Kyoto! Let us cross the koi bridge, visit the park & find 5 foxes! ⛩️🦊', 0);
+      LS.unlockStamp('kyoto_arrival');
+    } else {
+      LS.setSalmaBubbleText('Yay, Tokyo! Let us explore the airport, park, ramen & 5 hiding cats! 🌸🐱', 0);
     }
-    LS.setSalmaBubbleText(
-      worldId === 'kyoto'
-        ? 'Whoa, Kyoto! Let us cross the koi bridge & find 5 kitsune foxes! ⛩️🦊'
-        : 'Yay, Tokyo! Let us find all 5 cats & visit Ichiban Ramen! 🌸🐱',
-      0
-    );
 
     applyTimeOfDay();
     LS.updateHUD();
 
-    if (worldId === 'kyoto') {
-      LS.unlockStamp('kyoto_arrival');
+    if (didResetAnimals) {
+      setTimeout(() => {
+        LS.showToast(worldId === 'kyoto'
+          ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
+          : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!');
+      }, 600);
     }
+  };
+
+  LS.enterInterior = function (roomId) {
+    LS.playSFX('door');
+    LS.loadWorld(roomId, false);
+    LS.showToast(roomId === 'kyoto_room'
+      ? "🏮 Welcome inside Laila & Salma's Kyoto Ryokan Suite!"
+      : "🏡 Welcome inside Laila & Salma's Tokyo Room!");
+  };
+
+  LS.exitInterior = function () {
+    const meta = LS.WORLDS[LS.state.currentWorld];
+    if (!meta || !meta.isInterior) return;
+    LS.playSFX('door');
+    LS.loadWorld(meta.parentWorld, false, meta.exitPos);
   };
 
   LS.travelToWorld = function (targetWorldId) {
@@ -241,13 +333,13 @@ window.LailaSalma = window.LailaSalma || {};
 
     setTimeout(() => {
       LS.loadWorld(targetWorldId, true);
-    }, 900);
+    }, 850);
 
     setTimeout(() => {
       if (overlay) overlay.classList.add('hidden');
       LS.runtime.traveling = false;
       LS.showToast(toMeta.emoji + ' Welcome to ' + toMeta.title + ' — ' + toMeta.subtitle + '!');
-    }, 1850);
+    }, 1750);
   };
 
   function getGroundH(x, z) {
@@ -258,12 +350,12 @@ window.LailaSalma = window.LailaSalma || {};
   }
 
   function triggerJump() {
-    if (grounded && !LS.runtime.eating && !LS.runtime.modalOpen && !LS.runtime.traveling) {
+    if (grounded && !LS.runtime.eating && !LS.runtime.modalOpen && !LS.runtime.traveling && !LS.runtime.parkActivity) {
       const superJump = LS.runtime.superJumpUntil && Date.now() < LS.runtime.superJumpUntil;
       velY = superJump ? 10.2 : 6.4;
       grounded = false;
       LS.playSFX('jump');
-      if (salmaGrounded) {
+      if (salmaGrounded && !(LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil)) {
         setTimeout(() => {
           if (salmaGrounded && !LS.runtime.eating) {
             salmaVelY = 6.1;
@@ -276,20 +368,24 @@ window.LailaSalma = window.LailaSalma || {};
 
   function triggerSisterPose() {
     if (LS.runtime.eating || LS.runtime.modalOpen || LS.runtime.traveling) return;
-    LS.runtime.poseTimer = 2.6;
+    LS.runtime.poseTimer = 2.4;
     const nearSalma = LS.chars.salma &&
-      LS.chars.laila.root.position.distanceTo(LS.chars.salma.root.position) < 3.8;
+      LS.chars.laila.root.position.distanceTo(LS.chars.salma.root.position) < 4.0;
     if (nearSalma) {
-      LS.runtime.highFiveTimer = 1.6;
+      // Synchronized Jump High-Five + 3D Floating Star Particles + 12s Piggyback Boost + Animal Hint!
+      LS.runtime.highFiveTimer = 1.3;
+      LS.runtime.piggybackUntil = Date.now() + 12000;
       LS.runtime.buff = {
-        name: 'Sister High-Five Boost',
-        short: 'High-5⚡',
-        speedMult: 1.25,
+        name: 'Sister Piggyback Boost',
+        short: 'Piggyback⚡',
+        speedMult: 1.32,
         infiniteStamina: true,
-        expiresAt: Date.now() + 15000
+        expiresAt: Date.now() + 12000
       };
+      if (grounded) { velY = 5.4; grounded = false; }
+      triggerStarBurst(LS.chars.laila.root.position);
       LS.playSFX('correct');
-      LS.showToast('🙌 Sister High-Five & Boost! Salma listens for hidden friends...');
+      LS.showToast('⭐🙌 Jump High-Five & Piggyback Boost! Salma hops on & listens for hidden friends!');
       LS.showSalmaAnimalHint();
     } else {
       LS.playTone(523.25, 0.1);
@@ -346,29 +442,36 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'tea_house') LS.openTeaHouseModal();
     else if (zid === 'shop') LS.openShopModal('tokyo');
     else if (zid === 'kimono_shop') LS.openShopModal('kyoto');
-    else if (zid === 'gachapon') LS.openGachaponModal();
+    else if (zid === 'gachapon') LS.openGachaponModal('tokyo');
+    else if (zid === 'kyoto_gachapon') LS.openGachaponModal('kyoto');
+    else if (zid === 'toy_shelf_view') LS.openGachaponModal('all');
     else if (zid === 'drink_vending') LS.openDrinkVendingModal();
-    else if (zid === 'clubhouse') LS.openClubhouseModal();
-    else if (zid === 'kyoto_ryokan') LS.openRyokanModal();
+    else if (zid === 'clubhouse') LS.enterInterior('tokyo_room');
+    else if (zid === 'kyoto_ryokan') LS.enterInterior('kyoto_room');
+    else if (zid === 'decorate_tokyo_room') LS.openClubhouseModal();
+    else if (zid === 'decorate_ryokan') LS.openRyokanModal();
+    else if (zid === 'exit_interior') LS.exitInterior();
     else if (zid === 'shrine_omikuji') LS.openShrineModal();
     else if (zid === 'koi_dock') LS.feedKoiAndDucks();
     else if (zid === 'shinkansen_station') LS.openShinkansenModal();
+    else if (zid === 'airport_gate') LS.openAirportModal();
     else if (zid === 'mochi') LS.openMochiModal();
     else if (zid === 'park_slide') {
-      LS.runtime.parkActivity = { type: 'slide', timer: 2.2 };
+      LS.runtime.parkActivity = { type: 'slide', timer: 2.4, duration: 2.4 };
       LS.addXP(10);
       LS.playSFX('jump');
-      LS.showToast('🛝 Wheee! Sliding down together! +10 XP');
+      LS.showToast('🛝 Wheee! Laila & Salma slide down together! +10 XP');
     } else if (zid === 'park_swing') {
-      LS.runtime.parkActivity = { type: 'swing', timer: 3.5 };
+      LS.runtime.parkActivity = { type: 'swing', timer: 3.8, duration: 3.8 };
       LS.addXP(10);
       LS.playSFX('jump');
-      LS.showToast('🎠 Swinging high on the park swing! +10 XP');
+      LS.showToast('🎠 Swinging high together on the park swing! +10 XP');
     } else if (zid === 'park_hopscotch') {
+      LS.runtime.parkActivity = { type: 'hopscotch', timer: 2.2, duration: 2.2 };
       LS.addCoins(20);
       LS.addXP(12);
       LS.playSFX('coin');
-      LS.showToast('🎯 Hopscotch cleared! +20c & +12 XP!');
+      LS.showToast('🎯 Hopscotch cleared together! +20c & +12 XP!');
     } else if (zid.startsWith('animal:')) {
       LS.petHiddenAnimal(zid.slice(7));
     }
@@ -413,7 +516,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     dom.addEventListener('wheel', e => {
       if (LS.runtime.modalOpen) return;
-      targetCamDist = Math.max(4.4, Math.min(11.5, targetCamDist + e.deltaY * 0.004));
+      targetCamDist = Math.max(4.4, Math.min(12.5, targetCamDist + e.deltaY * 0.004));
     }, { passive: true });
 
     document.getElementById('btn-passport').addEventListener('click', LS.openPassportModal);
@@ -521,6 +624,19 @@ window.LailaSalma = window.LailaSalma || {};
     const lp = laila.root.position;
     const sp = salma.root.position;
 
+    // Piggyback Ride mode! Salma happily rides behind Laila's shoulders!
+    if (LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil && LS.runtime.highFiveTimer <= 0) {
+      const backX = -Math.sin(laila.root.rotation.y) * 0.34;
+      const backZ = -Math.cos(laila.root.rotation.y) * 0.34;
+      sp.set(lp.x + backX, lp.y + 0.62, lp.z + backZ);
+      salma.root.rotation.y = laila.root.rotation.y;
+      salma.leftLeg.rotation.x = -0.95 + Math.sin(elapsed * 9) * 0.22;
+      salma.rightLeg.rotation.x = -0.95 - Math.sin(elapsed * 9) * 0.22;
+      salma.leftArm.rotation.x = -0.85;
+      salma.rightArm.rotation.x = -0.85;
+      return;
+    }
+
     const sideOffset = LS.runtime.poseTimer > 0 ? 1.05 : 0.65;
     const backOffset = LS.runtime.poseTimer > 0 ? 0.15 : 1.15;
 
@@ -587,6 +703,25 @@ window.LailaSalma = window.LailaSalma || {};
     const salma = LS.chars.salma;
     if (!laila || !LS.activeWorld) return;
 
+    // Periodic 2-hour Hide-and-Seek reset check (every 10s)
+    resetCheckAccum += dt;
+    if (resetCheckAccum > 10) {
+      resetCheckAccum = 0;
+      const wid = LS.state.currentWorld;
+      if ((wid === 'tokyo' || wid === 'kyoto') && LS.checkAnimalReset(wid)) {
+        LS.loadWorld(wid, false, {
+          x: laila.root.position.x,
+          y: laila.root.position.y,
+          z: laila.root.position.z,
+          rotY: laila.root.rotation.y
+        });
+        LS.showToast(wid === 'kyoto'
+          ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
+          : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!');
+        return;
+      }
+    }
+
     if (LS.runtime.eating) {
       const eat = LS.runtime.eating;
       eat.timer += dt;
@@ -609,6 +744,53 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (LS.runtime.modalOpen || LS.runtime.traveling) return;
 
+    // Interactive Pocket Park Activities (Slide, Swing, Hopscotch) — works in BOTH Tokyo & Kyoto!
+    if (LS.runtime.parkActivity) {
+      const pa = LS.runtime.parkActivity;
+      pa.timer -= dt;
+      const t = Math.max(0, Math.min(1, 1 - (pa.timer / pa.duration)));
+      if (pa.type === 'slide' && LS.activeWorld.slideStartPos && LS.activeWorld.slideEndPos) {
+        laila.root.position.lerpVectors(LS.activeWorld.slideStartPos, LS.activeWorld.slideEndPos, t);
+        laila.leftLeg.rotation.x = -1.1;
+        laila.rightLeg.rotation.x = -1.1;
+        if (salma) {
+          const st = Math.max(0, Math.min(1, (t - 0.18) / 0.82));
+          salma.root.position.lerpVectors(LS.activeWorld.slideStartPos, LS.activeWorld.slideEndPos, st);
+          salma.leftLeg.rotation.x = -1.1;
+          salma.rightLeg.rotation.x = -1.1;
+        }
+      } else if (pa.type === 'swing' && LS.activeWorld.swingSeatPos) {
+        const sw = Math.sin(elapsed * 4.5);
+        const base = LS.activeWorld.swingSeatPos;
+        laila.root.position.set(base.x, base.y + Math.abs(sw) * 0.42, base.z + sw * 0.85);
+        laila.leftLeg.rotation.x = -1.15;
+        laila.rightLeg.rotation.x = -1.15;
+        if (salma) {
+          salma.root.position.set(base.x - 0.9, 0 + Math.abs(Math.sin(elapsed * 7)) * 0.25, base.z + 0.6);
+        }
+      } else if (pa.type === 'hopscotch' && LS.activeWorld.hopscotchPos) {
+        const hp = LS.activeWorld.hopscotchPos;
+        const hopZ = hp.z + 1.1 - t * 2.2;
+        const hopY = Math.abs(Math.sin(t * Math.PI * 5)) * 0.55;
+        laila.root.position.set(hp.x, hopY, hopZ);
+        if (salma) {
+          salma.root.position.set(hp.x + 0.65, Math.abs(Math.sin(t * Math.PI * 5 + 0.5)) * 0.48, hopZ + 0.35);
+        }
+      }
+      if (pa.timer <= 0) {
+        laila.root.position.y = getGroundH(laila.root.position.x, laila.root.position.z);
+        laila.leftLeg.rotation.x = 0;
+        laila.rightLeg.rotation.x = 0;
+        if (salma) {
+          salma.root.position.y = getGroundH(salma.root.position.x, salma.root.position.z);
+          salma.leftLeg.rotation.x = 0;
+          salma.rightLeg.rotation.x = 0;
+        }
+        LS.runtime.parkActivity = null;
+      }
+      return;
+    }
+
     let inX = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0);
     let inZ = (keys['s'] || keys['arrowdown'] ? 1 : 0) - (keys['w'] || keys['arrowup'] ? 1 : 0);
     if (joy.active) { inX = joy.x; inZ = joy.y; }
@@ -627,7 +809,7 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     const buffMult = (LS.runtime.buff && Date.now() < LS.runtime.buff.expiresAt) ? LS.runtime.buff.speedMult : 1.0;
-    const speed = (isRunning ? 8.4 : 4.8) * buffMult;
+    const speed = (isRunning ? 8.8 : 5.0) * buffMult;
 
     if (moving) {
       const len = Math.hypot(inX, inZ);
@@ -706,18 +888,7 @@ window.LailaSalma = window.LailaSalma || {};
         salma.rightArm.rotation.x = -0.35;
         salma.rightArm.rotation.z = 2.45;
         const sg = getGroundH(salma.root.position.x, salma.root.position.z);
-        salma.root.position.y = sg + Math.abs(Math.sin(elapsed * 10)) * 0.45;
-      }
-    }
-
-    if (LS.runtime.parkActivity && LS.activeWorld.slideStartPos) {
-      LS.runtime.parkActivity.timer -= dt;
-      if (LS.runtime.parkActivity.type === 'slide') {
-        const t = Math.max(0, Math.min(1, 1 - (LS.runtime.parkActivity.timer / 2.2)));
-        laila.root.position.lerpVectors(LS.activeWorld.slideStartPos, LS.activeWorld.slideEndPos, t);
-      }
-      if (LS.runtime.parkActivity.timer <= 0) {
-        LS.runtime.parkActivity = null;
+        salma.root.position.y = sg + Math.abs(Math.sin(elapsed * 10)) * 0.52;
       }
     }
 
@@ -727,8 +898,8 @@ window.LailaSalma = window.LailaSalma || {};
       const mp = LS.chars.mochi.position;
       const lp = laila.root.position;
       const minX = -3.4, maxX = 3.4;
-      const minZ = LS.state.currentWorld === 'kyoto' ? -36 : -24;
-      const maxZ = 16;
+      const minZ = LS.state.currentWorld === 'kyoto' ? -36 : -28;
+      const maxZ = 22;
 
       if (mg.mode === 'fetch') {
         if (mg.state === 'to_target') {
@@ -736,8 +907,8 @@ window.LailaSalma = window.LailaSalma || {};
           const dz = mg.ballPos.z - mp.z;
           const d = Math.hypot(dx, dz);
           if (d > 0.25) {
-            mp.x += (dx / d) * 6.8 * dt;
-            mp.z += (dz / d) * 6.8 * dt;
+            mp.x += (dx / d) * 7.2 * dt;
+            mp.z += (dz / d) * 7.2 * dt;
             mp.y = getGroundH(mp.x, mp.z);
             mp.rotation.y = Math.atan2(dx, dz);
           } else {
@@ -747,9 +918,9 @@ window.LailaSalma = window.LailaSalma || {};
           const dx = lp.x - mp.x;
           const dz = lp.z - mp.z;
           const d = Math.hypot(dx, dz);
-          if (d > 0.95) {
-            mp.x += (dx / d) * 6.6 * dt;
-            mp.z += (dz / d) * 6.6 * dt;
+          if (d > 1.0) {
+            mp.x += (dx / d) * 6.8 * dt;
+            mp.z += (dz / d) * 6.8 * dt;
             mp.y = getGroundH(mp.x, mp.z);
             mp.rotation.y = Math.atan2(dx, dz);
             if (LS.activeWorld.mochiBall) LS.activeWorld.mochiBall.position.set(mp.x, mp.y + 0.25, mp.z);
@@ -764,7 +935,7 @@ window.LailaSalma = window.LailaSalma || {};
         }
       } else {
         const dPlayer = lp.distanceTo(mp);
-        if (dPlayer < 1.7) {
+        if (dPlayer < 1.8) {
           mg.score += 1;
           LS.runtime.mochiHeartTimer = 1.5;
           LS.playSFX('coin');
@@ -816,7 +987,6 @@ window.LailaSalma = window.LailaSalma || {};
     const salma = LS.chars.salma;
     if (!laila) return;
 
-    // Smooth damped orbit angles & zoom
     const damp = Math.min(1, dt * 10);
     camYaw += (targetCamYaw - camYaw) * damp;
     camPitch += (targetCamPitch - camPitch) * damp;
@@ -864,7 +1034,6 @@ window.LailaSalma = window.LailaSalma || {};
       LS.activeWorld.drawMiniMap(ctx, W, H, toMapX, toMapY);
     }
 
-    // Unfound Hidden Animals (purple dots)
     if (LS.activeWorld.hiddenAnimals) {
       LS.activeWorld.hiddenAnimals.forEach(a => {
         if (a.found) return;
@@ -872,7 +1041,7 @@ window.LailaSalma = window.LailaSalma || {};
         const cy = toMapY(a.mesh.position.z);
         ctx.fillStyle = '#9333ea';
         ctx.beginPath();
-        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.arc(cx, cy, 3.8, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.2;
@@ -880,19 +1049,17 @@ window.LailaSalma = window.LailaSalma || {};
       });
     }
 
-    // Salma (amber dot)
     if (LS.chars.salma) {
       const sp = LS.chars.salma.root.position;
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
-      ctx.arc(toMapX(sp.x), toMapY(sp.z), 4.2, 0, Math.PI * 2);
+      ctx.arc(toMapX(sp.x), toMapY(sp.z), 4.0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = 1.2;
       ctx.stroke();
     }
 
-    // Laila (red directional arrow)
     const lp = LS.chars.laila.root.position;
     const lx = toMapX(lp.x);
     const ly = toMapY(lp.z);
@@ -902,12 +1069,12 @@ window.LailaSalma = window.LailaSalma || {};
     ctx.rotate(-yaw);
     ctx.fillStyle = '#e63946';
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(0, 6.5);
-    ctx.lineTo(-4.8, -4.8);
-    ctx.lineTo(0, -2.5);
-    ctx.lineTo(4.8, -4.8);
+    ctx.moveTo(0, 6.2);
+    ctx.lineTo(-4.5, -4.5);
+    ctx.lineTo(0, -2.3);
+    ctx.lineTo(4.5, -4.5);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -921,50 +1088,45 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xcbe6f7, 42, 145);
+    scene.fog = new THREE.Fog(0xcbe6f7, 58, 185);
 
-    camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 300);
+    camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 340);
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    // Strict mobile-safe DPR cap from Master Blueprint (<= 1.5)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // STRICT 4-LIGHT WEBGL BUDGET:
-    // 1. HemisphereLight (ambient sky/ground fill)
+    // STRICT 4-LIGHT WEBGL BUDGET
     hemiLight = new THREE.HemisphereLight(0xbbe2ff, 0x74855c, 0.78);
     scene.add(hemiLight);
 
-    // 2. DirectionalLight (sun/moon with 1024x1024 shadow map)
     dirLight = new THREE.DirectionalLight(0xfff1d0, 1.12);
-    dirLight.position.set(18, 28, 16);
+    dirLight.position.set(22, 38, 18);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    // 3. Street PointLight (main road warm accent)
-    streetLight = new THREE.PointLight(0xffd79a, 0.3, 28);
+    streetLight = new THREE.PointLight(0xffd79a, 0.3, 30);
     streetLight.position.set(0, 5.2, -6);
     scene.add(streetLight);
 
-    // 4. Bridge / Landmark PointLight (centered at X = -22.0 in Kyoto)
-    accentLight = new THREE.PointLight(0xffcf88, 0.4, 24);
+    accentLight = new THREE.PointLight(0xffcf88, 0.4, 26);
     accentLight.position.set(-22.0, 3.6, -27.5);
     scene.add(accentLight);
 
     worldGroup = new THREE.Group();
     scene.add(worldGroup);
 
-    initSparkles();
+    initSparklesAndStars();
     LS.initCoreCharacters(scene);
     LS.initGameplayUI(scene);
     setupInputs();
 
-    // Load saved world (defaults to Tokyo)
-    const startWorld = LS.WORLDS[LS.state.currentWorld] ? LS.state.currentWorld : 'tokyo';
+    const startWorld = LS.WORLDS[LS.state.currentWorld] && !LS.WORLDS[LS.state.currentWorld].isInterior
+      ? LS.state.currentWorld : 'tokyo';
     LS.loadWorld(startWorld, false);
 
     window.addEventListener('resize', () => {
@@ -985,7 +1147,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (LS.activeWorld && LS.activeWorld.update) {
           LS.activeWorld.update(dt, elapsed);
         }
-        updateSparkles(dt);
+        updateSparklesAndStars(dt);
         updateCamera(dt);
         LS.updateHUD();
         updateMiniMap();

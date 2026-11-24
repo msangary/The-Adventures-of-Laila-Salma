@@ -3,51 +3,60 @@ window.LailaSalma = window.LailaSalma || {};
 (function (LS) {
   const SAVE_KEY = 'laila_salma_adventures_multiworld_v1';
   const QUIZ_WINDOW_MS = 2 * 60 * 60 * 1000;
+  const ANIMAL_RESET_MS = 2 * 60 * 60 * 1000; // 2 hours after completing all 5 animals
 
   LS.GACHAPON_TOYS = [
-    { id: 'mini_daruma', name: 'Lucky Mini Daruma', emoji: '🎎', desc: 'Red wish charm that cheers on Laila & Salma' },
-    { id: 'origami_crane', name: 'Folded Origami Crane', emoji: '🕊️', desc: 'Paper peace crane from Tokyo craft stalls' },
-    { id: 'pixel_cat', name: 'Pixel Kitteh Badge', emoji: '👾', desc: 'Retro arcade kitty pin for the Toy Shelf' },
-    { id: 'ramen_charm', name: 'Mini Ramen Keychain', emoji: '🍥', desc: 'Tiny narutomaki & noodle charm' },
-    { id: 'sakura_fan', name: 'Blossom Folding Fan', emoji: '🪭', desc: 'Springtime sakura fan with gold trim' },
-    { id: 'shiba_plush', name: 'Pocket Shiba Plush', emoji: '🐕', desc: "Mini Mochi plushie for Salma's shelf" }
+    // Tokyo Capsule Toys (6)
+    { id: 'mini_daruma', world: 'tokyo', name: 'Lucky Mini Daruma', emoji: '🎎', desc: 'Red wish charm that cheers on Laila & Salma' },
+    { id: 'origami_crane', world: 'tokyo', name: 'Folded Origami Crane', emoji: '🕊️', desc: 'Paper peace crane from Tokyo craft stalls' },
+    { id: 'pixel_cat', world: 'tokyo', name: 'Pixel Kitteh Badge', emoji: '👾', desc: 'Retro arcade kitty pin for the Toy Shelf' },
+    { id: 'ramen_charm', world: 'tokyo', name: 'Mini Ramen Keychain', emoji: '🍥', desc: 'Tiny narutomaki & noodle charm' },
+    { id: 'sakura_fan', world: 'tokyo', name: 'Blossom Folding Fan', emoji: '🪭', desc: 'Springtime sakura fan with gold trim' },
+    { id: 'shiba_plush', world: 'tokyo', name: 'Pocket Shiba Plush', emoji: '🐕', desc: "Mini Mochi plushie for Salma's shelf" },
+    // Kyoto Capsule Toys (6)
+    { id: 'kitsune_charm', world: 'kyoto', name: 'Golden Kitsune Charm', emoji: '🦊', desc: 'Lucky shrine fox figurine from Sakurako' },
+    { id: 'mini_torii', world: 'kyoto', name: 'Vermilion Mini Torii', emoji: '⛩️', desc: 'Pocket shrine gate keepsake' },
+    { id: 'bamboo_panda', world: 'kyoto', name: 'Bamboo Panda Figure', emoji: '🐼', desc: 'Cute panda peeking from Arashiyama stalks' },
+    { id: 'koi_chime', world: 'kyoto', name: 'Koi Wind Chime', emoji: '🎐', desc: 'Glass furin bell with a tiny koi fish' },
+    { id: 'matcha_whisk', world: 'kyoto', name: 'Uji Matcha Set', emoji: '🍵', desc: 'Miniature tea bowl & bamboo whisk' },
+    { id: 'dango_pin', world: 'kyoto', name: 'Sweet Dango Sticker', emoji: '🍡', desc: 'Sparkly pink-white-green dango badge' }
   ];
 
   LS.ROOM_WALLPAPERS = [
-    { id: 'sakura_cream', name: 'Sakura Cream', cost: 0, color: '#fdf3e3', accent: '#f4a4b8' },
-    { id: 'sky_pastel', name: 'Sky Pastel', cost: 60, color: '#e3f2fd', accent: '#64b5f6' },
-    { id: 'matcha_mint', name: 'Matcha Garden', cost: 85, color: '#e8f5e9', accent: '#66bb6a' },
-    { id: 'starry_lilac', name: 'Starry Lilac', cost: 110, color: '#f3e5f5', accent: '#ab47bc' }
+    { id: 'sakura_cream', name: 'Sakura Cream', cost: 0, color: '#fdf3e3', accent: '#f4a4b8', hex: 0xfdf3e3 },
+    { id: 'sky_pastel', name: 'Sky Pastel', cost: 60, color: '#e3f2fd', accent: '#64b5f6', hex: 0xdbeeff },
+    { id: 'matcha_mint', name: 'Matcha Garden', cost: 85, color: '#e8f5e9', accent: '#66bb6a', hex: 0xdff5e2 },
+    { id: 'starry_lilac', name: 'Starry Lilac', cost: 110, color: '#f3e5f5', accent: '#ab47bc', hex: 0xeddbf5 }
   ];
 
   LS.ROOM_BEANBAGS = [
-    { id: 'strawberry_puff', name: 'Strawberry Beanbag', cost: 0, color: '#ff8fab' },
-    { id: 'lemon_cloud', name: 'Lemon Cloud Puff', cost: 55, color: '#ffd166' },
-    { id: 'berry_pop', name: 'Berry Pop Cushion', cost: 80, color: '#9d4edd' }
+    { id: 'strawberry_puff', name: 'Strawberry Beanbag', cost: 0, color: '#ff8fab', hex: 0xff8fab },
+    { id: 'lemon_cloud', name: 'Lemon Cloud Puff', cost: 55, color: '#ffd166', hex: 0xffd166 },
+    { id: 'berry_pop', name: 'Berry Pop Cushion', cost: 80, color: '#9d4edd', hex: 0x9d4edd }
   ];
 
   LS.ROOM_POSTERS = [
-    { id: 'tokyo_sketches', name: 'Tokyo & Cat Sketches', cost: 0, label: 'TOKYO 🗼 & 🐱' },
-    { id: 'space_cats', name: 'Astronaut Cats Poster', cost: 65, label: 'ASTRO CATS 🚀🐾' },
-    { id: 'ramen_dreams', name: 'Ramen & Stars Art', cost: 90, label: 'RAMEN & STARS 🍜✨' }
+    { id: 'tokyo_sketches', name: 'Tokyo & Cat Sketches', cost: 0, label: 'TOKYO 🗼 & 🐱', bg: '#fff0f5', border: '#e05780' },
+    { id: 'space_cats', name: 'Astronaut Cats Poster', cost: 65, label: 'ASTRO CATS 🚀🐾', bg: '#1d2d50', border: '#ffd166', fg: '#ffffff' },
+    { id: 'ramen_dreams', name: 'Ramen & Stars Art', cost: 90, label: 'RAMEN & STARS 🍜✨', bg: '#fff4e0', border: '#e07a34' }
   ];
 
   LS.RYOKAN_TATAMI = [
-    { id: 'classic_tatami', name: 'Classic Woven Tatami', cost: 0, color: '#e8dfb8', accent: '#8b6e4e' },
-    { id: 'bamboo_breeze', name: 'Bamboo Breeze Mat', cost: 65, color: '#dcebd5', accent: '#4f8a5b' },
-    { id: 'autumn_maple', name: 'Autumn Maple Weave', cost: 90, color: '#f7e1d1', accent: '#c95c38' }
+    { id: 'classic_tatami', name: 'Classic Woven Tatami', cost: 0, color: '#e8dfb8', accent: '#8b6e4e', hex: 0xd9cf9c },
+    { id: 'bamboo_breeze', name: 'Bamboo Breeze Mat', cost: 65, color: '#dcebd5', accent: '#4f8a5b', hex: 0xc2d9b8 },
+    { id: 'autumn_maple', name: 'Autumn Maple Weave', cost: 90, color: '#f7e1d1', accent: '#c95c38', hex: 0xebd0bd }
   ];
 
   LS.RYOKAN_CUSHIONS = [
-    { id: 'sakura_zabuton', name: 'Sakura Silk Zabuton', cost: 0, color: '#ffb3c6' },
-    { id: 'indigo_wave', name: 'Indigo Wave Cushion', cost: 60, color: '#5b82b8' },
-    { id: 'gold_kitsune', name: 'Golden Kitsune Futon', cost: 85, color: '#f5b841' }
+    { id: 'sakura_zabuton', name: 'Sakura Silk Zabuton', cost: 0, color: '#ffb3c6', hex: 0xff8fab },
+    { id: 'indigo_wave', name: 'Indigo Wave Cushion', cost: 60, color: '#5b82b8', hex: 0x4a74ad },
+    { id: 'gold_kitsune', name: 'Golden Kitsune Futon', cost: 85, color: '#f5b841', hex: 0xf5b841 }
   ];
 
   LS.RYOKAN_SCROLLS = [
-    { id: 'kyoto_torii', name: 'Vermilion Torii Scroll', cost: 0, label: '⛩️ KYOTO SHRINE & KOI' },
-    { id: 'bamboo_moon', name: 'Bamboo & Full Moon', cost: 70, label: '🎋 ARASHIYAMA MOON 🌕' },
-    { id: 'kitsune_lantern', name: 'Lanterns & Kitsune Art', cost: 95, label: '🦊 LANTERN FESTIVAL 🏮' }
+    { id: 'kyoto_torii', name: 'Vermilion Torii Scroll', cost: 0, label: '⛩️ KYOTO SHRINE & KOI', bg: '#fff8eb', border: '#c83e37' },
+    { id: 'bamboo_moon', name: 'Bamboo & Full Moon', cost: 70, label: '🎋 ARASHIYAMA MOON 🌕', bg: '#1b4332', border: '#95d5b2', fg: '#ecfdf5' },
+    { id: 'kitsune_lantern', name: 'Lanterns & Kitsune Art', cost: 95, label: '🦊 LANTERN FESTIVAL 🏮', bg: '#3a1f1b', border: '#f59e0b', fg: '#fff5dc' }
   ];
 
   const defaultState = {
@@ -62,7 +71,11 @@ window.LailaSalma = window.LailaSalma || {};
     grainEnabled: true,
     soundEnabled: false,
     foundCats: [],
+    catsCompletedAt: 0,
+    catsRound: 0,
     foundKitsune: [],
+    kitsuneCompletedAt: 0,
+    kitsuneRound: 0,
     unlockedOutfits: ['laila_school', 'salma_kinder'],
     equippedLaila: 'laila_school',
     equippedSalma: 'salma_kinder',
@@ -84,30 +97,12 @@ window.LailaSalma = window.LailaSalma || {};
   function loadState() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) {
-        // Soft-migrate Tokyo standalone progress if present on same origin
-        const legacy = localStorage.getItem('first_adventure_tokyo_sisters_v3');
-        if (legacy) {
-          const p = JSON.parse(legacy);
-          return Object.assign({}, defaultState, {
-            level: p.level || 1,
-            xp: p.xp || 0,
-            coins: typeof p.coins === 'number' ? Math.max(180, p.coins) : 200,
-            foundCats: Array.isArray(p.foundCats) ? p.foundCats : [],
-            unlockedOutfits: Array.isArray(p.unlockedOutfits) ? p.unlockedOutfits : ['laila_school', 'salma_kinder'],
-            equippedLaila: p.equippedLaila || 'laila_school',
-            equippedSalma: p.equippedSalma || 'salma_kinder',
-            unlockedToys: Array.isArray(p.unlockedToys) ? p.unlockedToys : [],
-            roomWallpaper: p.roomWallpaper || 'sakura_cream',
-            roomBeanbag: p.roomBeanbag || 'strawberry_puff',
-            roomPoster: p.roomPoster || 'tokyo_sketches',
-            unlockedRoomItems: Array.isArray(p.unlockedRoomItems) ? p.unlockedRoomItems : ['sakura_cream', 'strawberry_puff', 'tokyo_sketches']
-          });
-        }
-        return Object.assign({}, defaultState);
-      }
+      if (!raw) return Object.assign({}, defaultState);
       const parsed = JSON.parse(raw);
+      // Never resume stranded inside an interior without parent context; default to valid world
+      const startW = (parsed.currentWorld === 'kyoto' || parsed.currentWorld === 'tokyo') ? parsed.currentWorld : 'tokyo';
       return Object.assign({}, defaultState, parsed, {
+        currentWorld: startW,
         foundCats: Array.isArray(parsed.foundCats) ? parsed.foundCats : [],
         foundKitsune: Array.isArray(parsed.foundKitsune) ? parsed.foundKitsune : [],
         unlockedOutfits: Array.isArray(parsed.unlockedOutfits) ? parsed.unlockedOutfits : ['laila_school', 'salma_kinder'],
@@ -130,6 +125,7 @@ window.LailaSalma = window.LailaSalma || {};
     camMode: 0,
     poseTimer: 0,
     highFiveTimer: 0,
+    piggybackUntil: 0,
     modalOpen: false,
     traveling: false,
     eating: null,
@@ -148,6 +144,79 @@ window.LailaSalma = window.LailaSalma || {};
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(LS.state));
     } catch (e) {}
+  };
+
+  // 2-Hour Animal Hide-and-Seek Reset Logic
+  LS.checkAnimalReset = function (worldId) {
+    const wid = worldId || LS.state.currentWorld;
+    const now = Date.now();
+    if (wid === 'tokyo' && LS.state.foundCats.length >= 5 && LS.state.catsCompletedAt > 0) {
+      if (now - LS.state.catsCompletedAt >= ANIMAL_RESET_MS) {
+        LS.state.foundCats = [];
+        LS.state.catsCompletedAt = 0;
+        LS.state.catsRound = (LS.state.catsRound || 0) + 1;
+        LS.saveState();
+        return true;
+      }
+    }
+    if (wid === 'kyoto' && LS.state.foundKitsune.length >= 5 && LS.state.kitsuneCompletedAt > 0) {
+      if (now - LS.state.kitsuneCompletedAt >= ANIMAL_RESET_MS) {
+        LS.state.foundKitsune = [];
+        LS.state.kitsuneCompletedAt = 0;
+        LS.state.kitsuneRound = (LS.state.kitsuneRound || 0) + 1;
+        LS.saveState();
+        return true;
+      }
+    }
+    return false;
+  };
+
+  LS.getAnimalResetRemainingMs = function (worldId) {
+    const wid = worldId || LS.state.currentWorld;
+    const now = Date.now();
+    if (wid === 'tokyo' && LS.state.foundCats.length >= 5 && LS.state.catsCompletedAt > 0) {
+      return Math.max(0, ANIMAL_RESET_MS - (now - LS.state.catsCompletedAt));
+    }
+    if (wid === 'kyoto' && LS.state.foundKitsune.length >= 5 && LS.state.kitsuneCompletedAt > 0) {
+      return Math.max(0, ANIMAL_RESET_MS - (now - LS.state.kitsuneCompletedAt));
+    }
+    return 0;
+  };
+
+  LS.startNewAnimalRound = function (worldId) {
+    const wid = worldId || LS.state.currentWorld;
+    if (wid === 'kyoto') {
+      LS.state.foundKitsune = [];
+      LS.state.kitsuneCompletedAt = 0;
+      LS.state.kitsuneRound = (LS.state.kitsuneRound || 0) + 1;
+    } else {
+      LS.state.foundCats = [];
+      LS.state.catsCompletedAt = 0;
+      LS.state.catsRound = (LS.state.catsRound || 0) + 1;
+    }
+    LS.saveState();
+    if (LS.state.currentWorld === wid && LS.loadWorld) {
+      LS.loadWorld(wid, false);
+    }
+    LS.playSFX('animal');
+    LS.showToast(wid === 'kyoto'
+      ? '🦊 New Hide-and-Seek Round! All 5 Kyoto Kitsune hid in brand-new spots!'
+      : '🐱 New Hide-and-Seek Round! All 5 Tokyo Cats hid in brand-new spots!');
+  };
+
+  // Deterministic seeded pick of 5 hiding spots from a larger curated list based on round number
+  LS.pickRoundSpots = function (spotList, roundNum, count) {
+    const arr = spotList.slice();
+    let s = ((roundNum || 0) + 1) * 7919 + 104729;
+    function rnd() {
+      s = (s * 16807) % 2147483647;
+      return (s - 1) / 2147483646;
+    }
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr.slice(0, count || 5);
   };
 
   LS.xpForLevel = function (lv) {
@@ -222,6 +291,7 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.updateHUD = function () {
     const worldMeta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
+    const isKyotoContext = LS.state.currentWorld === 'kyoto' || LS.state.currentWorld === 'kyoto_room';
     const lvEl = document.getElementById('hud-level');
     const worldBadge = document.getElementById('hud-world-badge');
     const xpBar = document.getElementById('xp-bar');
@@ -233,6 +303,7 @@ window.LailaSalma = window.LailaSalma || {};
     const toyEl = document.getElementById('toy-count');
     const stampEl = document.getElementById('stamp-count');
     const buffPill = document.getElementById('buff-pill');
+    const mochiHud = document.getElementById('mochi-game-banner');
 
     const need = LS.xpForLevel(LS.state.level);
     if (lvEl) lvEl.textContent = 'Lv. ' + LS.state.level + ' • Laila (9) & Salma (5)';
@@ -247,22 +318,36 @@ window.LailaSalma = window.LailaSalma || {};
     if (coinEl) coinEl.textContent = LS.state.coins;
 
     if (animalPill) {
-      if (LS.state.currentWorld === 'kyoto') {
+      if (isKyotoContext) {
         const kCount = LS.state.foundKitsune ? LS.state.foundKitsune.length : 0;
         animalPill.innerHTML = '🦊 <span id="cat-count">' + kCount + '/5</span>';
-        animalPill.title = 'Hidden Kyoto Kitsune Foxes Found';
+        animalPill.title = 'Hidden Kyoto Kitsune Foxes Found (resets 2h after 5/5)';
       } else {
         const cCount = LS.state.foundCats ? LS.state.foundCats.length : 0;
         animalPill.innerHTML = '🐱 <span id="cat-count">' + cCount + '/5</span>';
-        animalPill.title = 'Hidden Tokyo Cats Found';
+        animalPill.title = 'Hidden Tokyo Cats Found (resets 2h after 5/5)';
       }
     }
 
     if (toyEl) toyEl.textContent = (LS.state.unlockedToys ? LS.state.unlockedToys.length : 0) + '/' + LS.GACHAPON_TOYS.length;
     if (stampEl) stampEl.textContent = (LS.state.stamps ? LS.state.stamps.length : 0) + '/' + LS.PASSPORT_STAMPS.length;
 
+    if (mochiHud) {
+      if (LS.runtime.mochiGame) {
+        const mg = LS.runtime.mochiGame;
+        mochiHud.textContent = (mg.mode === 'fetch' ? '🎾 Mochi Fetch: ' : '🐕 Mochi Tag: ') +
+          Math.ceil(mg.timeLeft) + 's left • Score: ' + mg.score;
+        mochiHud.classList.remove('hidden');
+      } else {
+        mochiHud.classList.add('hidden');
+      }
+    }
+
     if (buffPill) {
       const tags = [];
+      if (LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil) {
+        tags.push('👧🧒Piggyback ' + Math.ceil((LS.runtime.piggybackUntil - Date.now()) / 1000) + 's');
+      }
       if (LS.runtime.buff && Date.now() < LS.runtime.buff.expiresAt) {
         tags.push(LS.runtime.buff.short + ' ' + Math.ceil((LS.runtime.buff.expiresAt - Date.now()) / 1000) + 's');
       } else {
@@ -290,7 +375,7 @@ window.LailaSalma = window.LailaSalma || {};
     el.textContent = msg;
     el.classList.remove('hidden');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.add('hidden'), 3600);
+    toastTimer = setTimeout(() => el.classList.add('hidden'), 3800);
   };
 
   let audioCtx = null;
@@ -349,8 +434,10 @@ window.LailaSalma = window.LailaSalma || {};
       LS.playTone(523.25, 0.22, 'triangle', 0, 0.07);
       LS.playTone(659.25, 0.24, 'triangle', 0.14, 0.07);
       LS.playTone(783.99, 0.32, 'sine', 0.28, 0.08);
+    } else if (kind === 'door') {
+      LS.playTone(440, 0.1, 'triangle', 0, 0.07);
+      LS.playTone(659.25, 0.16, 'triangle', 0.09, 0.07);
     } else if (kind === 'train') {
-      // Cheerful Japanese Shinkansen departure chime
       LS.playTone(523.25, 0.14, 'sine', 0, 0.08);
       LS.playTone(659.25, 0.14, 'sine', 0.13, 0.08);
       LS.playTone(783.99, 0.14, 'sine', 0.26, 0.08);
