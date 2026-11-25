@@ -3,18 +3,114 @@ window.LailaSalma = window.LailaSalma || {};
 (function (LS) {
   const texCache = {};
 
+  function finalizeTex(tex) {
+    if (LS.isHD) {
+      tex.anisotropy = LS.maxAnisotropy || 8;
+    }
+    return tex;
+  }
+
   LS.makeToonMat = function (color, opts) {
     const cfg = Object.assign({ color: color }, opts || {});
+    if (LS.isHD) {
+      const std = Object.assign({
+        roughness: cfg.map ? 0.68 : 0.74,
+        metalness: 0.04,
+        envMapIntensity: 0.14
+      }, cfg);
+      if (cfg.map && !std.bumpMap) {
+        std.bumpMap = cfg.map;
+        std.bumpScale = 0.06;
+      }
+      return new THREE.MeshStandardMaterial(std);
+    }
     return new THREE.MeshLambertMaterial(cfg);
   };
 
+  LS.makeSurfaceMat = function (tex, opts) {
+    const cfg = Object.assign({ map: tex }, opts || {});
+    if (LS.isHD) {
+      const std = Object.assign({
+        roughness: 0.80,
+        metalness: 0.03,
+        bumpMap: tex,
+        bumpScale: 0.055,
+        envMapIntensity: 0.12
+      }, cfg);
+      return new THREE.MeshStandardMaterial(std);
+    }
+    return new THREE.MeshLambertMaterial(cfg);
+  };
+
+  LS.makeWaterMat = function (opacity, side) {
+    const tex = LS.createWaterTexture();
+    const op = opacity !== undefined ? opacity : 0.9;
+    if (LS.isHD) {
+      return new THREE.MeshStandardMaterial({
+        map: tex,
+        bumpMap: tex,
+        bumpScale: 0.09,
+        roughness: 0.12,
+        metalness: 0.28,
+        envMapIntensity: 1.35,
+        transparent: true,
+        opacity: op,
+        side: side || THREE.FrontSide
+      });
+    }
+    return new THREE.MeshLambertMaterial({ map: tex, transparent: true, opacity: op, side: side || THREE.FrontSide });
+  };
+
   LS.makeEmissiveMat = function (color, emissiveHex, intensity) {
+    const em = emissiveHex !== undefined ? emissiveHex : color;
+    const emI = intensity !== undefined ? intensity : 0.72;
+    if (LS.isHD) {
+      return new THREE.MeshStandardMaterial({
+        color: color,
+        emissive: em,
+        emissiveIntensity: emI * 1.15,
+        roughness: 0.22,
+        metalness: 0.18,
+        envMapIntensity: 1.05
+      });
+    }
     return new THREE.MeshLambertMaterial({
       color: color,
-      emissive: emissiveHex !== undefined ? emissiveHex : color,
-      emissiveIntensity: intensity !== undefined ? intensity : 0.72
+      emissive: em,
+      emissiveIntensity: emI
     });
   };
+
+  LS.createGlowSprite = function (hexColor, scale) {
+    const key = 'glow_' + (hexColor || '#ffd685');
+    let tex = texCache[key];
+    if (!tex) {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+      g.addColorStop(0, 'rgba(255, 245, 210, 0.85)');
+      g.addColorStop(0.35, 'rgba(255, 210, 120, 0.35)');
+      g.addColorStop(1, 'rgba(255, 190, 90, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 128, 128);
+      tex = new THREE.CanvasTexture(c);
+      texCache[key] = tex;
+    }
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: tex,
+      color: hexColor || 0xffd685,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    }));
+    const s = scale || 1.6;
+    sp.scale.set(s, s, 1);
+    return sp;
+  };
+
+  LS.getWaterTexture = function () { return texCache.water_teal || null; };
 
   LS.createRoadTexture = function (style) {
     const key = 'road_' + (style || 'tokyo');
@@ -104,7 +200,7 @@ window.LailaSalma = window.LailaSalma || {};
         ctx.stroke();
       }
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(3, 2);
@@ -116,17 +212,19 @@ window.LailaSalma = window.LailaSalma || {};
     const key = 'plaster_' + (hex || '#f3ead8');
     if (texCache[key]) return texCache[key];
 
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256;
-    c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     ctx.fillStyle = hex || '#f3ead8';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 1100; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.10)' : 'rgba(120,90,60,0.07)';
-      ctx.fillRect(Math.random() * 256, Math.random() * 256, 4, 3);
+    ctx.fillRect(0, 0, S, S);
+    const cnt = LS.isHD ? 2800 : 1100;
+    for (let i = 0; i < cnt; i++) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.11)' : 'rgba(120,90,60,0.08)';
+      ctx.fillRect(hash01(i * 3.1) * S, hash01(i * 7.3) * S, 4 * sc, 3 * sc);
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     texCache[key] = tex;
@@ -151,7 +249,7 @@ window.LailaSalma = window.LailaSalma || {};
     for (let y = 0; y < 256; y += 64) {
       ctx.fillRect(0, y, 256, 7);
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     texCache[key] = tex;
@@ -160,13 +258,13 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.createStonePathTexture = function () {
     if (texCache.stone_path) return texCache.stone_path;
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256;
-    c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
-    // Blueprint matte dark earthy soil (#463b2d) + basalt/slate flagstones (#43413c..#5a544b)
     ctx.fillStyle = '#463b2d';
-    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillRect(0, 0, S, S);
 
     const stones = [
       [14, 18, 68, 48], [94, 14, 72, 52], [178, 20, 64, 46],
@@ -174,16 +272,20 @@ window.LailaSalma = window.LailaSalma || {};
       [12, 150, 64, 48], [88, 148, 86, 52], [184, 146, 60, 54],
       [22, 208, 92, 38], [126, 208, 114, 38]
     ];
-    const palette = ['#43413c', '#4c4943', '#544f47', '#5a544b'];
+    const palette = ['#48453f', '#524e47', '#5a554c', '#625c52'];
     stones.forEach((s, idx) => {
       ctx.fillStyle = palette[idx % palette.length];
-      ctx.fillRect(s[0], s[1], s[2], s[3]);
+      ctx.fillRect(s[0] * sc, s[1] * sc, s[2] * sc, s[3] * sc);
+      if (LS.isHD) {
+        ctx.fillStyle = 'rgba(255,250,235,0.08)';
+        ctx.fillRect(s[0] * sc, s[1] * sc, s[2] * sc, 5 * sc);
+      }
       ctx.strokeStyle = 'rgba(28, 22, 16, 0.45)';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(s[0], s[1], s[2], s[3]);
+      ctx.lineWidth = 3 * sc;
+      ctx.strokeRect(s[0] * sc, s[1] * sc, s[2] * sc, s[3] * sc);
     });
 
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(3, 1);
@@ -193,19 +295,26 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.createCedarPlankTexture = function () {
     if (texCache.cedar_plank) return texCache.cedar_plank;
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256;
-    c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     ctx.fillStyle = '#8b6343';
-    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillRect(0, 0, S, S);
     for (let x = 0; x < 256; x += 28) {
       ctx.fillStyle = (x % 56 === 0) ? '#80593b' : '#946b49';
-      ctx.fillRect(x, 0, 26, 256);
+      ctx.fillRect(x * sc, 0, 26 * sc, S);
+      if (LS.isHD) {
+        ctx.fillStyle = 'rgba(65,38,20,0.14)';
+        for (let g = 3; g < 24; g += 5) {
+          ctx.fillRect((x + g) * sc, 0, 1.5 * sc, S);
+        }
+      }
       ctx.fillStyle = '#4f3522';
-      ctx.fillRect(x + 26, 0, 2, 256);
+      ctx.fillRect((x + 26) * sc, 0, 2 * sc, S);
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(4, 1);
@@ -221,27 +330,29 @@ window.LailaSalma = window.LailaSalma || {};
   LS.createGrassTexture = function (style) {
     const key = 'grass_' + (style || 'tokyo');
     if (texCache[key]) return texCache[key];
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256; c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     const isKyoto = style === 'kyoto';
     ctx.fillStyle = isKyoto ? '#5d874b' : '#6ca656';
-    ctx.fillRect(0, 0, 256, 256);
+    ctx.fillRect(0, 0, S, S);
 
     // Seamless painterly Ghibli meadow/moss patches using hash scatter (zero linear banding!)
     const tones = isKyoto
       ? ['rgba(74,114,58,0.28)', 'rgba(118,150,82,0.24)', 'rgba(84,102,56,0.2)', 'rgba(136,162,90,0.18)']
       : ['rgba(90,148,70,0.28)', 'rgba(134,182,92,0.24)', 'rgba(80,132,62,0.22)', 'rgba(162,196,104,0.18)'];
-    for (let i = 0; i < 220; i++) {
+    const patchCount = LS.isHD ? 340 : 220;
+    for (let i = 0; i < patchCount; i++) {
       ctx.fillStyle = tones[i % tones.length];
-      const rx = hash01(i * 3.1 + 1.7) * 256;
-      const ry = hash01(i * 5.7 + 9.3) * 256;
-      const r = 10 + hash01(i * 7.3) * 18;
-      // Wrap across tile edges so repeats are 100% seamless
-      for (let ox = -256; ox <= 256; ox += 256) {
-        if (rx + ox < -r || rx + ox > 256 + r) continue;
-        for (let oy = -256; oy <= 256; oy += 256) {
-          if (ry + oy < -r || ry + oy > 256 + r) continue;
+      const rx = hash01(i * 3.1 + 1.7) * S;
+      const ry = hash01(i * 5.7 + 9.3) * S;
+      const r = (10 + hash01(i * 7.3) * 18) * sc;
+      for (let ox = -S; ox <= S; ox += S) {
+        if (rx + ox < -r || rx + ox > S + r) continue;
+        for (let oy = -S; oy <= S; oy += S) {
+          if (ry + oy < -r || ry + oy > S + r) continue;
           ctx.beginPath();
           ctx.arc(rx + ox, ry + oy, r, 0, Math.PI * 2);
           ctx.fill();
@@ -249,13 +360,14 @@ window.LailaSalma = window.LailaSalma || {};
       }
     }
     // Delicate randomly scattered grass blades & tiny clover specks
-    for (let i = 0; i < 420; i++) {
-      ctx.fillStyle = i % 3 === 0 ? 'rgba(222,238,178,0.2)' : 'rgba(46,78,38,0.2)';
-      const gx = hash01(i * 11.3 + 4.1) * 256;
-      const gy = hash01(i * 17.9 + 2.3) * 256;
-      ctx.fillRect(gx, gy, 2, 4);
+    const bladeCount = LS.isHD ? 1400 : 420;
+    for (let i = 0; i < bladeCount; i++) {
+      ctx.fillStyle = i % 4 === 0 ? 'rgba(230,244,184,0.24)' : (i % 4 === 1 ? 'rgba(42,74,34,0.24)' : 'rgba(92,146,66,0.22)');
+      const gx = hash01(i * 11.3 + 4.1) * S;
+      const gy = hash01(i * 17.9 + 2.3) * S;
+      ctx.fillRect(gx, gy, 2 * sc, 5 * sc);
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(22, 22);
@@ -266,33 +378,44 @@ window.LailaSalma = window.LailaSalma || {};
   LS.createVillageLaneTexture = function (style) {
     const key = 'village_lane_' + (style || 'tokyo');
     if (texCache[key]) return texCache[key];
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256; c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     const isKyoto = style === 'kyoto';
     ctx.fillStyle = isKyoto ? '#847a6c' : '#a79e8d';
-    ctx.fillRect(0, 0, 256, 256);
-    // Soft stone/pebble dappling + gentle mossy verge along outer edges
-    for (let i = 0; i < 650; i++) {
-      const px = hash01(i * 4.3 + 1.1) * 256;
-      const py = hash01(i * 6.9 + 7.7) * 256;
-      const sz = 2 + hash01(i * 2.1) * 5;
+    ctx.fillRect(0, 0, S, S);
+    const speckCount = LS.isHD ? 1800 : 650;
+    for (let i = 0; i < speckCount; i++) {
+      const px = hash01(i * 4.3 + 1.1) * S;
+      const py = hash01(i * 6.9 + 7.7) * S;
+      const sz = (2 + hash01(i * 2.1) * 5.5) * sc;
       ctx.fillStyle = i % 3 === 0
-        ? (isKyoto ? 'rgba(104,96,84,0.34)' : 'rgba(130,122,108,0.3)')
-        : (isKyoto ? 'rgba(165,156,140,0.24)' : 'rgba(226,218,200,0.26)');
+        ? (isKyoto ? 'rgba(98,90,78,0.34)' : 'rgba(126,118,104,0.3)')
+        : (isKyoto ? 'rgba(170,160,144,0.26)' : 'rgba(232,224,206,0.28)');
       ctx.fillRect(px, py, sz, sz * 0.8);
     }
-    // Soft organic mossy shoulder fade on left & right sides (no hard painted stripes!)
-    const gL = ctx.createLinearGradient(0, 0, 32, 0);
-    gL.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.68)' : 'rgba(106,154,82,0.58)');
+    if (LS.isHD) {
+      // Subtle rounded river cobbles for crisp HD close-ups
+      for (let i = 0; i < 160; i++) {
+        const cx = (34 + hash01(i * 9.1) * 188) * sc;
+        const cy = hash01(i * 13.7) * S;
+        const rx = (5 + hash01(i * 3.3) * 7) * sc;
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(255,248,232,0.12)' : 'rgba(72,64,54,0.14)';
+        ctx.beginPath(); ctx.ellipse(cx, cy, rx, rx * 0.72, hash01(i) * Math.PI, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    const gL = ctx.createLinearGradient(0, 0, 34 * sc, 0);
+    gL.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.72)' : 'rgba(106,154,82,0.62)');
     gL.addColorStop(1, 'rgba(106,154,82,0)');
-    ctx.fillStyle = gL; ctx.fillRect(0, 0, 32, 256);
-    const gR = ctx.createLinearGradient(256, 0, 224, 0);
-    gR.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.68)' : 'rgba(106,154,82,0.58)');
+    ctx.fillStyle = gL; ctx.fillRect(0, 0, 34 * sc, S);
+    const gR = ctx.createLinearGradient(S, 0, S - 34 * sc, 0);
+    gR.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.72)' : 'rgba(106,154,82,0.62)');
     gR.addColorStop(1, 'rgba(106,154,82,0)');
-    ctx.fillStyle = gR; ctx.fillRect(224, 0, 32, 256);
+    ctx.fillStyle = gR; ctx.fillRect(S - 34 * sc, 0, 34 * sc, S);
 
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(1, 2);
@@ -302,16 +425,19 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.createGravelPathTexture = function () {
     if (texCache.gravel_path) return texCache.gravel_path;
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256; c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     ctx.fillStyle = '#c8b89a';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 900; i++) {
-      ctx.fillStyle = i % 2 === 0 ? 'rgba(145,126,96,0.28)' : 'rgba(240,232,212,0.3)';
-      ctx.fillRect((i * 47) % 256, (i * 83) % 256, 4, 3);
+    ctx.fillRect(0, 0, S, S);
+    const cnt = LS.isHD ? 2200 : 900;
+    for (let i = 0; i < cnt; i++) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(145,126,96,0.28)' : 'rgba(244,236,216,0.3)';
+      ctx.fillRect(hash01(i * 4.7) * S, hash01(i * 8.3) * S, 4 * sc, 3 * sc);
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(4, 4);
@@ -321,23 +447,25 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.createZenGravelTexture = function () {
     if (texCache.zen_gravel) return texCache.zen_gravel;
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256; c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     ctx.fillStyle = '#d4cec0';
-    ctx.fillRect(0, 0, 256, 256);
-    ctx.strokeStyle = 'rgba(130, 124, 112, 0.38)';
-    ctx.lineWidth = 4;
-    for (let y = 10; y < 256; y += 16) {
+    ctx.fillRect(0, 0, S, S);
+    ctx.strokeStyle = 'rgba(126, 120, 108, 0.42)';
+    ctx.lineWidth = 4 * sc;
+    for (let y = 10 * sc; y < S; y += 16 * sc) {
       ctx.beginPath();
-      for (let x = 0; x <= 256; x += 16) {
-        const wy = y + Math.sin((x / 256) * Math.PI * 2) * 4;
+      for (let x = 0; x <= S; x += 16 * sc) {
+        const wy = y + Math.sin((x / S) * Math.PI * 2) * 4 * sc;
         if (x === 0) ctx.moveTo(x, wy);
         else ctx.lineTo(x, wy);
       }
       ctx.stroke();
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(3, 3);
@@ -347,24 +475,25 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.createWaterTexture = function () {
     if (texCache.water_teal) return texCache.water_teal;
+    const S = LS.isHD ? 512 : 256;
+    const sc = S / 256;
     const c = document.createElement('canvas');
-    c.width = 256;
-    c.height = 256;
+    c.width = S; c.height = S;
     const ctx = c.getContext('2d');
-    // Low-glare deep teal-blue lake surface (zero white snow patches)
-    ctx.fillStyle = '#236675';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 42; i++) {
-      ctx.strokeStyle = i % 2 === 0 ? 'rgba(110, 195, 205, 0.18)' : 'rgba(18, 68, 80, 0.28)';
-      ctx.lineWidth = 3;
+    ctx.fillStyle = LS.isHD ? '#1e697d' : '#236675';
+    ctx.fillRect(0, 0, S, S);
+    const waveCount = LS.isHD ? 110 : 42;
+    for (let i = 0; i < waveCount; i++) {
+      ctx.strokeStyle = i % 3 === 0 ? 'rgba(150, 224, 236, 0.28)' : (i % 3 === 1 ? 'rgba(16, 62, 76, 0.30)' : 'rgba(98, 192, 206, 0.22)');
+      ctx.lineWidth = (LS.isHD ? 2.5 : 3) * sc;
       ctx.beginPath();
-      const y = (i * 19) % 256;
-      const x = (i * 53) % 220;
+      const y = hash01(i * 3.7 + 1.2) * S;
+      const x = hash01(i * 7.1 + 5.4) * (S - 44 * sc);
       ctx.moveTo(x, y);
-      ctx.quadraticCurveTo(x + 22, y - 5, x + 44, y);
+      ctx.quadraticCurveTo(x + 22 * sc, y - 5 * sc, x + 44 * sc, y);
       ctx.stroke();
     }
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(3, 3);
@@ -383,34 +512,49 @@ window.LailaSalma = window.LailaSalma || {};
 
     const grad = ctx.createLinearGradient(0, 0, 0, 512);
     if (mode === 1) {
-      grad.addColorStop(0, worldId === 'kyoto' ? '#3d3c6b' : '#3a4f7a');
-      grad.addColorStop(0.45, '#e88b5a');
-      grad.addColorStop(0.85, '#ffd485');
-      grad.addColorStop(1, '#ffefb8');
+      grad.addColorStop(0, worldId === 'kyoto' ? '#363366' : '#324878');
+      grad.addColorStop(0.42, '#e68454');
+      grad.addColorStop(0.82, '#ffd07d');
+      grad.addColorStop(1, '#fff0bc');
     } else if (mode === 2) {
-      grad.addColorStop(0, '#101833');
-      grad.addColorStop(0.55, '#253863');
-      grad.addColorStop(1, '#55658a');
+      grad.addColorStop(0, '#0d152e');
+      grad.addColorStop(0.55, '#223561');
+      grad.addColorStop(1, '#4f6088');
     } else {
-      grad.addColorStop(0, worldId === 'kyoto' ? '#3f8fd4' : '#3a88d4');
-      grad.addColorStop(0.5, worldId === 'kyoto' ? '#88c9eb' : '#7fc2f0');
-      grad.addColorStop(0.85, '#d8eef8');
-      grad.addColorStop(1, '#fff4d9');
+      grad.addColorStop(0, worldId === 'kyoto' ? '#3182cf' : '#2d7cd1');
+      grad.addColorStop(0.48, worldId === 'kyoto' ? '#82c5ea' : '#78beef');
+      grad.addColorStop(0.84, '#d8eef8');
+      grad.addColorStop(1, '#fff5db');
     }
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 1024, 512);
 
-    // Subtle stars at night
+    // Radiant Sun Disc (day & golden hour) or Crescent Moon + Twinkling Stars (night) in HD!
     if (mode === 2) {
-      ctx.fillStyle = 'rgba(255, 250, 220, 0.85)';
-      for (let i = 0; i < 85; i++) {
-        const sx = (i * 97 + 31) % 1024;
-        const sy = (i * 43 + 17) % 210;
-        const sr = (i % 3 === 0) ? 2.1 : 1.2;
-        ctx.beginPath();
-        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-        ctx.fill();
+      ctx.fillStyle = 'rgba(255, 250, 220, 0.88)';
+      const starCnt = LS.isHD ? 180 : 85;
+      for (let i = 0; i < starCnt; i++) {
+        const sx = hash01(i * 9.7 + 3.1) * 1024;
+        const sy = hash01(i * 4.3 + 1.7) * 235;
+        const sr = (i % 4 === 0) ? 2.2 : 1.1;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
       }
+      if (LS.isHD) {
+        const mg = ctx.createRadialGradient(780, 130, 8, 780, 130, 70);
+        mg.addColorStop(0, 'rgba(255,250,224,0.95)');
+        mg.addColorStop(0.35, 'rgba(200,220,255,0.32)');
+        mg.addColorStop(1, 'rgba(180,200,255,0)');
+        ctx.fillStyle = mg; ctx.beginPath(); ctx.arc(780, 130, 70, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff9df'; ctx.beginPath(); ctx.arc(780, 130, 20, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (LS.isHD) {
+      const sx = mode === 1 ? 660 : 720;
+      const sy = mode === 1 ? 265 : 155;
+      const sg = ctx.createRadialGradient(sx, sy, 8, sx, sy, 120);
+      sg.addColorStop(0, mode === 1 ? 'rgba(255,244,200,0.95)' : 'rgba(255,253,235,0.9)');
+      sg.addColorStop(0.32, mode === 1 ? 'rgba(255,190,110,0.45)' : 'rgba(255,246,204,0.28)');
+      sg.addColorStop(1, 'rgba(255,230,170,0)');
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 120, 0, Math.PI * 2); ctx.fill();
     }
 
     function drawCloud(cx, cy, scale, alpha) {
@@ -447,7 +591,7 @@ window.LailaSalma = window.LailaSalma || {};
     drawCloud(900, 240, 1.0, 0.85);
     drawCloud(90, 250, 0.9, 0.82);
 
-    const tex = new THREE.CanvasTexture(c);
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
     texCache[key] = tex;
     return tex;
   };
@@ -753,8 +897,8 @@ window.LailaSalma = window.LailaSalma || {};
       else if (style === 'lane_kyoto') tex = LS.createVillageLaneTexture('kyoto');
       else tex = LS.createGravelPathTexture();
 
-      const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
-      const sampled = sampleCatmullRom(points, 8);
+      const mat = LS.makeSurfaceMat(tex, { side: THREE.DoubleSide, roughness: style === 'stone' ? 0.76 : 0.86 });
+      const sampled = sampleCatmullRom(points, LS.isHD ? 12 : 8);
       const y = (yLevel !== undefined) ? yLevel : (style && style.indexOf('lane_') === 0 ? 0.032 : 0.024);
       const geo = buildRibbonGeometry(sampled, width || 2.5, y, style === 'stone' ? 0.16 : 0.12);
       const mesh = new THREE.Mesh(geo, mat);
@@ -764,7 +908,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
 
     addMeanderingStream: function (parent, points, width, addColliderFn, bridgeZones) {
-      const sampled = sampleCatmullRom(points, 8);
+      const sampled = sampleCatmullRom(points, LS.isHD ? 12 : 8);
       const w = width || 4.8;
       // Soft earthy riverbank border beneath water
       const bankGeo = buildRibbonGeometry(sampled, w + 1.5, 0.015, 0.1);
@@ -772,9 +916,9 @@ window.LailaSalma = window.LailaSalma || {};
       bankMesh.receiveShadow = true;
       parent.add(bankMesh);
 
-      // Flowing water ribbon
+      // Flowing water ribbon (glossy reflective PBR in HD!)
       const waterGeo = buildRibbonGeometry(sampled, w, 0.036, 0.12);
-      const waterMat = new THREE.MeshLambertMaterial({ map: LS.createWaterTexture(), transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+      const waterMat = LS.makeWaterMat(0.92, THREE.DoubleSide);
       const waterMesh = new THREE.Mesh(waterGeo, waterMat);
       parent.add(waterMesh);
 
@@ -927,7 +1071,8 @@ window.LailaSalma = window.LailaSalma || {};
       g.scale.setScalar(s);
       const leafMat = LS.makeToonMat(0x448543);
       [[0, 0.45, 0, 0.58], [-0.42, 0.35, 0.2, 0.42], [0.42, 0.36, -0.18, 0.44]].forEach(p => {
-        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(p[3], 0), leafMat);
+        const geo = LS.isHD ? new THREE.IcosahedronGeometry(p[3], 2) : new THREE.DodecahedronGeometry(p[3], 0);
+        const m = new THREE.Mesh(geo, leafMat);
         m.position.set(p[0], p[1], p[2]);
         m.castShadow = true;
         g.add(m);
@@ -935,7 +1080,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (flowerHex) {
         const fMat = LS.makeToonMat(flowerHex);
         [[-0.25, 0.68, 0.28], [0.22, 0.72, 0.22], [0.0, 0.85, -0.15]].forEach(fp => {
-          const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 5), fMat);
+          const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, LS.isHD ? 10 : 6, LS.isHD ? 8 : 5), fMat);
           b.position.set(fp[0], fp[1], fp[2]);
           g.add(b);
         });
@@ -947,7 +1092,7 @@ window.LailaSalma = window.LailaSalma || {};
       const s = scale || 1;
       const g = new THREE.Group();
       g.position.set(x, 0, z);
-      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.68 * s, 0), LS.makeToonMat(0x7c7b74));
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.68 * s, LS.isHD ? 1 : 0), LS.makeToonMat(0x7c7b74));
       rock.scale.set(1.25, 0.72, 1.0);
       rock.position.y = 0.36 * s;
       rock.rotation.y = (x * 0.7 + z * 0.4);
@@ -955,7 +1100,7 @@ window.LailaSalma = window.LailaSalma || {};
       rock.receiveShadow = true;
       g.add(rock);
       if (mossy) {
-        const moss = new THREE.Mesh(new THREE.SphereGeometry(0.45 * s, 7, 5), LS.makeToonMat(0x528a48));
+        const moss = new THREE.Mesh(new THREE.SphereGeometry(0.45 * s, LS.isHD ? 12 : 7, LS.isHD ? 8 : 5), LS.makeToonMat(0x528a48));
         moss.scale.set(1.2, 0.35, 1.0);
         moss.position.set(0.05, 0.66 * s, 0);
         g.add(moss);
@@ -1026,7 +1171,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     addGrassMound: function (parent, x, z, radius, height, colorHex) {
       const m = new THREE.Mesh(
-        new THREE.SphereGeometry(radius, 14, 10),
+        new THREE.SphereGeometry(radius, LS.isHD ? 24 : 14, LS.isHD ? 16 : 10),
         LS.makeToonMat(colorHex || 0x629950)
       );
       m.scale.set(1.3, height / radius, 1.05);

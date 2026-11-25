@@ -167,14 +167,16 @@ window.LailaSalma = window.LailaSalma || {};
           drape.castShadow = true;
           g.add(drape);
         }
-        const top = new THREE.Mesh(new THREE.DodecahedronGeometry(1.3, 1), LS.makeToonMat(0x5a964b));
+        const topGeo = LS.isHD ? new THREE.IcosahedronGeometry(1.3, 2) : new THREE.DodecahedronGeometry(1.3, 1);
+        const top = new THREE.Mesh(topGeo, LS.makeToonMat(0x5a964b));
         top.position.y = 3.7; g.add(top);
       } else {
         const colors = kind === 'sakura'
           ? [0xffc7d9, 0xffaec8, 0xffe0eb]
           : (kind === 'gold' ? [0xe8b954, 0xf2cb6b, 0xd49a38] : [0x4c9a42, 0x66b852, 0x3b7d36]);
         [[0, 3.3, 0, 1.55], [-0.95, 2.85, 0.45, 1.15], [0.95, 2.95, -0.35, 1.2], [0.15, 3.9, 0.4, 1.05], [-0.4, 3.6, -0.7, 1.0]].forEach((p, idx) => {
-          const m = new THREE.Mesh(new THREE.DodecahedronGeometry(p[3], 1), LS.makeToonMat(colors[idx % colors.length]));
+          const geo = LS.isHD ? new THREE.IcosahedronGeometry(p[3], 2) : new THREE.DodecahedronGeometry(p[3], 1);
+          const m = new THREE.Mesh(geo, LS.makeToonMat(colors[idx % colors.length]));
           m.position.set(p[0], p[1], p[2]); m.castShadow = true; g.add(m);
         });
       }
@@ -221,7 +223,7 @@ window.LailaSalma = window.LailaSalma || {};
       // Soft band-free painterly meadow grass
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(420, 420),
-        new THREE.MeshLambertMaterial({ map: LS.createGrassTexture('tokyo') })
+        LS.makeSurfaceMat(LS.createGrassTexture('tokyo'), { roughness: 0.92, bumpScale: 0.03 })
       );
       ground.rotation.x = -Math.PI / 2;
       ground.receiveShadow = true;
@@ -571,7 +573,11 @@ window.LailaSalma = window.LailaSalma || {};
       const poleMat = LS.makeToonMat(0x5c4f44), lampBulb = new THREE.MeshBasicMaterial({ color: 0xffe4a0 });
       [[-4.8, 23.5], [5.8, 12.0], [-5.2, -4.5], [6.4, -18.5], [-4.5, -28.0], [18.5, -16.5], [-21.0, 2.5]].forEach(p => {
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 6.2, 8), poleMat); pole.position.set(p[0], 3.1, p[1]); pole.castShadow = true; worldGroup.add(pole);
-        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), lampBulb); lamp.position.set(p[0] + (p[0] < 0 ? 0.35 : -0.35), 5.6, p[1]); worldGroup.add(lamp);
+        const lx = p[0] + (p[0] < 0 ? 0.35 : -0.35);
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), lampBulb); lamp.position.set(lx, 5.6, p[1]); worldGroup.add(lamp);
+        if (LS.isHD) {
+          const halo = LS.createGlowSprite(0xffe090, 2.0); halo.position.set(lx, 5.6, p[1]); worldGroup.add(halo);
+        }
       });
 
       // Organic asymmetrical tree groves leaving wide sunlit meadows & clear sky views!

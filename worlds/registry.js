@@ -1,6 +1,14 @@
 window.LailaSalma = window.LailaSalma || {};
 
 (function (LS) {
+  const urlParams = typeof URLSearchParams !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const qMode = urlParams ? urlParams.get('graphics') : null;
+  LS.graphicsMode = (qMode === 'hd' || qMode === 'classic')
+    ? qMode
+    : (window.LS_GRAPHICS_MODE === 'hd' ? 'hd' : 'classic');
+  LS.isHD = LS.graphicsMode === 'hd';
+  LS.maxAnisotropy = 1;
+
   LS.WORLDS = {
     tokyo: {
       id: 'tokyo',

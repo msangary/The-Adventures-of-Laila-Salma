@@ -3,6 +3,8 @@ window.LailaSalma = window.LailaSalma || {};
 (function (LS) {
   let scene, camera, renderer, hemiLight, dirLight, streetLight, accentLight;
   let worldGroup = null;
+  let hdCloudsGroup = null;
+  let hdMotes = null;
   let sparkleSystem = null;
   let sparkleIdx = 0;
   let starBurstGroup = null;
@@ -45,10 +47,13 @@ window.LailaSalma = window.LailaSalma || {};
     const meta = LS.WORLDS[wid] || LS.WORLDS.tokyo;
     const btn = document.getElementById('btn-time');
 
+    if (hdCloudsGroup) hdCloudsGroup.visible = !meta.isInterior;
+    if (hdMotes) hdMotes.visible = !meta.isInterior;
+
     if (meta.isInterior) {
       scene.fog.color.setHex(wid === 'kyoto_room' ? 0x3b2c26 : 0xffeef4);
       dirLight.color.setHex(0xfff1d6);
-      dirLight.intensity = 0.62;
+      dirLight.intensity = LS.isHD ? 0.85 : 0.62;
       hemiLight.color.setHex(0xfff4e2);
       hemiLight.groundColor.setHex(0x9a7d60);
       streetLight.intensity = 0.32;
@@ -56,10 +61,11 @@ window.LailaSalma = window.LailaSalma || {};
       return;
     }
 
+    const hdBoost = LS.isHD ? 1.15 : 1.0;
     if (mode === 1) {
       scene.fog.color.setHex(wid === 'kyoto' ? 0xeb9b6c : 0xf2a772);
       dirLight.color.setHex(0xffa45b);
-      dirLight.intensity = 1.05;
+      dirLight.intensity = 1.08 * hdBoost;
       hemiLight.color.setHex(0xffc99e);
       hemiLight.groundColor.setHex(0x6e4b3a);
       streetLight.intensity = 0.72;
@@ -68,7 +74,7 @@ window.LailaSalma = window.LailaSalma || {};
     } else if (mode === 2) {
       scene.fog.color.setHex(0x25355a);
       dirLight.color.setHex(0x88a8e6);
-      dirLight.intensity = 0.62;
+      dirLight.intensity = 0.66 * hdBoost;
       hemiLight.color.setHex(0x50689c);
       hemiLight.groundColor.setHex(0x1f2536);
       streetLight.intensity = 1.05;
@@ -77,13 +83,24 @@ window.LailaSalma = window.LailaSalma || {};
     } else {
       scene.fog.color.setHex(wid === 'kyoto' ? 0xc8e4f2 : 0xcbe6f7);
       dirLight.color.setHex(0xfff1d0);
-      dirLight.intensity = 1.12;
+      dirLight.intensity = 1.16 * hdBoost;
       hemiLight.color.setHex(0xbbe2ff);
       hemiLight.groundColor.setHex(0x74855c);
       streetLight.intensity = 0.25;
       accentLight.intensity = 0.35;
       if (btn) btn.textContent = '🌤️';
     }
+
+    if (hdCloudsGroup) {
+      const cCol = mode === 1 ? 0xffd7b0 : (mode === 2 ? 0x5c6f9c : 0xfffdf8);
+      hdCloudsGroup.traverse(o => { if (o.isMesh && o.material) o.material.color.setHex(cCol); });
+    }
+    if (hdMotes && hdMotes.material) {
+      hdMotes.material.color.setHex(mode === 2 ? 0xd9ff70 : (mode === 1 ? 0xffdf80 : 0xfff8cc));
+      hdMotes.material.opacity = mode === 2 ? 0.92 : (mode === 1 ? 0.78 : 0.55);
+      hdMotes.material.size = mode === 2 ? 0.34 : 0.22;
+    }
+
     if (LS.activeWorld && LS.activeWorld.skyMesh) {
       LS.activeWorld.skyMesh.material.map = LS.createSkyTexture(mode, wid);
       LS.activeWorld.skyMesh.material.needsUpdate = true;
@@ -1081,6 +1098,130 @@ window.LailaSalma = window.LailaSalma || {};
     ctx.restore();
   }
 
+  function initHDAtmosphere() {
+    if (!LS.isHD) return;
+
+    // 1. Procedural Sky PMREM Environment Map for realistic water, glass, ceramic & wood sheen (0 extra lights!)
+    try {
+      if (THREE.PMREMGenerator) {
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        pmrem.compileEquirectangularShader();
+        const envScene = new THREE.Scene();
+        const envDome = new THREE.Mesh(
+          new THREE.SphereGeometry(40, 20, 14),
+          new THREE.MeshBasicMaterial({ map: LS.createSkyTexture(0, 'tokyo'), side: THREE.BackSide })
+        );
+        envScene.add(envDome);
+        const envFloor = new THREE.Mesh(
+          new THREE.CircleGeometry(38, 16),
+          new THREE.MeshBasicMaterial({ color: 0x6ea35a })
+        );
+        envFloor.rotation.x = -Math.PI / 2;
+        envFloor.position.y = -6;
+        envScene.add(envFloor);
+        scene.environment = pmrem.fromScene(envScene, 0.04).texture;
+        pmrem.dispose();
+      }
+    } catch (e) {
+      console.warn('[HD PMREM]', e);
+    }
+
+    // 2. Volumetric 3D Fluffy Ghibli Clouds drifting lazily across the valley sky
+    hdCloudsGroup = new THREE.Group();
+    const cloudMat = new THREE.MeshLambertMaterial({ color: 0xfffdf8, transparent: true, opacity: 0.88 });
+    const cloudLayout = [
+      [-65, 42, -78, 1.35], [22, 46, -92, 1.65], [88, 39, -58, 1.25],
+      [-92, 37, 10, 1.2], [75, 43, 35, 1.45], [-25, 48, 62, 1.3], [10, 44, -22, 1.1]
+    ];
+    cloudLayout.forEach((c, idx) => {
+      const cg = new THREE.Group();
+      cg.position.set(c[0], c[1], c[2]);
+      cg.scale.setScalar(c[3]);
+      [[0, 0, 0, 5.2], [-4.5, -0.8, 0.8, 3.8], [4.6, -0.6, -0.5, 4.0], [-1.8, 2.2, -0.4, 3.5], [2.4, 1.8, 0.6, 3.2]].forEach(p => {
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(p[3], 12, 10), cloudMat);
+        puff.scale.set(1.3, 0.72, 1.0);
+        puff.position.set(p[0], p[1], p[2]);
+        cg.add(puff);
+      });
+      cg.userData = { speed: 0.45 + (idx % 3) * 0.22, baseY: c[1], phase: idx * 1.3 };
+      hdCloudsGroup.add(cg);
+    });
+    scene.add(hdCloudsGroup);
+
+    // 3. Soft Glowing Meadow Pollen / Fireflies (circular bokeh glow orb — never harsh squares!)
+    const mCount = 95;
+    const mGeo = new THREE.BufferGeometry();
+    const mPos = new Float32Array(mCount * 3);
+    for (let i = 0; i < mCount; i++) {
+      mPos[i * 3] = -58 + Math.random() * 116;
+      mPos[i * 3 + 1] = 0.6 + Math.random() * 4.5;
+      mPos[i * 3 + 2] = -52 + Math.random() * 94;
+    }
+    mGeo.setAttribute('position', new THREE.BufferAttribute(mPos, 3));
+    const moteC = document.createElement('canvas');
+    moteC.width = 64; moteC.height = 64;
+    const mctx = moteC.getContext('2d');
+    const mg = mctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+    mg.addColorStop(0, 'rgba(255,255,235,1)');
+    mg.addColorStop(0.4, 'rgba(255,244,180,0.55)');
+    mg.addColorStop(1, 'rgba(255,235,150,0)');
+    mctx.fillStyle = mg; mctx.fillRect(0, 0, 64, 64);
+    const mMat = new THREE.PointsMaterial({
+      color: 0xfff8cc, size: 0.34, map: new THREE.CanvasTexture(moteC),
+      transparent: true, opacity: 0.68,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    hdMotes = new THREE.Points(mGeo, mMat);
+    scene.add(hdMotes);
+  }
+
+  function updateHDAtmosphere(dt, elapsed) {
+    if (!LS.isHD) return;
+    // Gently drift volumetric clouds
+    if (hdCloudsGroup && hdCloudsGroup.visible) {
+      hdCloudsGroup.children.forEach(cg => {
+        cg.position.x += cg.userData.speed * dt;
+        cg.position.y = cg.userData.baseY + Math.sin(elapsed * 0.25 + cg.userData.phase) * 0.5;
+        if (cg.position.x > 125) cg.position.x = -125;
+      });
+    }
+    // Gently float sunlit motes / fireflies
+    if (hdMotes && hdMotes.visible) {
+      const pos = hdMotes.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        let x = pos.getX(i) + Math.sin(elapsed * 0.7 + i * 1.7) * dt * 0.35;
+        let y = pos.getY(i) + Math.cos(elapsed * 0.9 + i * 2.3) * dt * 0.18;
+        if (y < 0.45) y = 4.5;
+        if (y > 5.2) y = 0.8;
+        pos.setXY(i, x, y);
+      }
+      pos.needsUpdate = true;
+    }
+    // Gently scroll flowing stream & lake water ripples
+    const wTex = LS.getWaterTexture ? LS.getWaterTexture() : null;
+    if (wTex) {
+      wTex.offset.y = (wTex.offset.y - dt * 0.12) % 1;
+    }
+  }
+
+  function initGraphicsSwitcher() {
+    if (LS.isHD) document.body.classList.add('hd-mode');
+    const btn = document.getElementById('btn-graphics-mode');
+    const badge = document.getElementById('hd-badge');
+    if (badge) badge.classList.toggle('hidden', !LS.isHD);
+    if (btn) {
+      btn.textContent = LS.isHD ? '⚡ Classic' : '✨ HD';
+      btn.title = LS.isHD
+        ? 'Switch to Classic Lightweight Mode (faster for older devices)'
+        : 'Switch to HD Graphics Edition (PBR lighting, reflective water, 2048px shadows & clouds)';
+      btn.classList.toggle('hd-active', LS.isHD);
+      btn.addEventListener('click', () => {
+        LS.saveState();
+        window.location.href = LS.isHD ? 'index.html' : 'hd.html';
+      });
+    }
+  }
+
   function init() {
     if (typeof THREE === 'undefined') {
       showError('Three.js failed to load. Please check your internet connection and reload.');
@@ -1091,22 +1232,35 @@ window.LailaSalma = window.LailaSalma || {};
     scene.fog = new THREE.Fog(0xcbe6f7, 58, 185);
 
     camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 340);
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: LS.isHD ? 'high-performance' : 'default'
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LS.isHD ? 2.0 : 1.5));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (LS.isHD) {
+      renderer.toneMapping = THREE.LinearToneMapping;
+      renderer.toneMappingExposure = 1.02;
+      LS.maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 4);
+    }
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // STRICT 4-LIGHT WEBGL BUDGET
-    hemiLight = new THREE.HemisphereLight(0xbbe2ff, 0x74855c, 0.78);
+    // STRICT 4-LIGHT WEBGL BUDGET (both Classic & HD!)
+    hemiLight = new THREE.HemisphereLight(0xbbe2ff, 0x74855c, LS.isHD ? 0.70 : 0.78);
     scene.add(hemiLight);
 
-    dirLight = new THREE.DirectionalLight(0xfff1d0, 1.12);
+    dirLight = new THREE.DirectionalLight(0xfff1d0, LS.isHD ? 1.24 : 1.12);
     dirLight.position.set(22, 38, 18);
     dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
+    const shadowRes = LS.isHD ? 2048 : 1024;
+    dirLight.shadow.mapSize.width = shadowRes;
+    dirLight.shadow.mapSize.height = shadowRes;
+    if (LS.isHD) {
+      dirLight.shadow.bias = -0.0004;
+      dirLight.shadow.normalBias = 0.03;
+    }
     scene.add(dirLight);
 
     streetLight = new THREE.PointLight(0xffd79a, 0.3, 30);
@@ -1117,12 +1271,15 @@ window.LailaSalma = window.LailaSalma || {};
     accentLight.position.set(-22.0, 3.6, -27.5);
     scene.add(accentLight);
 
+    initHDAtmosphere();
+
     worldGroup = new THREE.Group();
     scene.add(worldGroup);
 
     initSparklesAndStars();
     LS.initCoreCharacters(scene);
     LS.initGameplayUI(scene);
+    initGraphicsSwitcher();
     setupInputs();
 
     const startWorld = LS.WORLDS[LS.state.currentWorld] && !LS.WORLDS[LS.state.currentWorld].isInterior
@@ -1147,6 +1304,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (LS.activeWorld && LS.activeWorld.update) {
           LS.activeWorld.update(dt, elapsed);
         }
+        updateHDAtmosphere(dt, elapsed);
         updateSparklesAndStars(dt);
         updateCamera(dt);
         LS.updateHUD();

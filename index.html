@@ -37,7 +37,10 @@
       <div class="hud-title-block">
         <div class="hud-title-row">
           <span class="player-name">Laila &amp; Salma</span>
-          <span id="hud-world-badge" class="world-badge">🗼 Tokyo</span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <span id="hd-badge" class="hd-badge hidden">HD</span>
+            <span id="hud-world-badge" class="world-badge">🗼 Tokyo</span>
+          </span>
         </div>
         <div class="player-sub" id="hud-level">Lv. 1 • Laila (9) &amp; Salma (5)</div>
       </div>
@@ -63,6 +66,7 @@
 
   <!-- Top-Right Round Icon Buttons -->
   <div id="hud-top-right">
+    <button id="btn-graphics-mode" class="graphics-btn" title="Switch Graphics Edition">✨ HD</button>
     <button id="btn-passport" class="icon-btn passport-btn" title="World Map &amp; Travel Passport (P)">🗺️</button>
     <button id="btn-time" class="icon-btn" title="Cycle Time of Day">🌤️</button>
     <button id="btn-grain" class="icon-btn active" title="Toggle Watercolor Paper Grain">🎨</button>

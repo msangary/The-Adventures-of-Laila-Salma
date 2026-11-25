@@ -86,14 +86,16 @@ window.LailaSalma = window.LailaSalma || {};
           const drape = new THREE.Mesh(new THREE.ConeGeometry(0.72, 2.7, 7), wMat);
           drape.position.set(Math.cos(a) * 0.85, 2.7, Math.sin(a) * 0.85); drape.castShadow = true; g.add(drape);
         }
-        const top = new THREE.Mesh(new THREE.DodecahedronGeometry(1.3, 1), LS.makeToonMat(0x4c8546));
+        const topGeo = LS.isHD ? new THREE.IcosahedronGeometry(1.3, 2) : new THREE.DodecahedronGeometry(1.3, 1);
+        const top = new THREE.Mesh(topGeo, LS.makeToonMat(0x4c8546));
         top.position.y = 3.8; g.add(top);
       } else {
         const colors = kind === 'maple'
           ? [0xd9483b, 0xe86f3a, 0xf29f3d]
           : (kind === 'sakura' ? [0xffc7d9, 0xffaec8, 0xffe0eb] : [0x467d46, 0x599452, 0x366639]);
         [[0, 3.4, 0, 1.55], [-0.95, 2.9, 0.45, 1.15], [0.95, 3.0, -0.35, 1.2], [0.15, 4.0, 0.4, 1.05], [-0.4, 3.6, -0.7, 1.0]].forEach((p, idx) => {
-          const m = new THREE.Mesh(new THREE.DodecahedronGeometry(p[3], 1), LS.makeToonMat(colors[idx % colors.length]));
+          const geo = LS.isHD ? new THREE.IcosahedronGeometry(p[3], 2) : new THREE.DodecahedronGeometry(p[3], 1);
+          const m = new THREE.Mesh(geo, LS.makeToonMat(colors[idx % colors.length]));
           m.position.set(p[0], p[1], p[2]); m.castShadow = true; g.add(m);
         });
       }
@@ -112,7 +114,7 @@ window.LailaSalma = window.LailaSalma || {};
       const darkWood = LS.makeToonMat(cfg.woodColor || 0x4b3322);
       const plaster = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture(cfg.wallHex || '#efe5d1') });
       const lattice = LS.makeToonMat(0xffffff, { map: LS.createWoodLatticeTexture('#4a3120', cfg.shojiHex || '#f7ecd4') });
-      const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture(cfg.roofHex || '#363b45') });
+      const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture(cfg.roofHex || '#363b45'), roughness: 0.48 });
       const glowWin = LS.makeEmissiveMat(0xffe9b5, 0xffc870, 0.55);
 
       const w = cfg.width || 7.0;
@@ -141,6 +143,10 @@ window.LailaSalma = window.LailaSalma || {};
 
       const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), new THREE.MeshBasicMaterial({ color: cfg.lanternColor || 0xffd27d }));
       lantern.scale.set(1, 1.35, 1); lantern.position.set(1.25, 2.35, d / 2 + 0.45); g.add(lantern);
+      if (LS.isHD) {
+        const halo = LS.createGlowSprite(cfg.lanternColor || 0xffd27d, 1.65);
+        halo.position.copy(lantern.position); g.add(halo);
+      }
 
       if (cfg.signText) {
         const sign = new THREE.Mesh(
@@ -173,6 +179,9 @@ window.LailaSalma = window.LailaSalma || {};
       const tG = new THREE.Group(); tG.position.set(x, y0 || 0, z);
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 1.35, 6), stoneMat); post.position.y = 0.68; tG.add(post);
       const glow = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.34, 0.32), new THREE.MeshBasicMaterial({ color: 0xffd27d })); glow.position.y = 1.5; tG.add(glow);
+      if (LS.isHD) {
+        const halo = LS.createGlowSprite(0xffd27d, 1.55); halo.position.y = 1.5; tG.add(halo);
+      }
       const cap = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.24, 4), stoneMat); cap.rotation.y = Math.PI / 4; cap.position.y = 1.78; tG.add(cap);
       worldGroup.add(tG);
     }
@@ -191,7 +200,7 @@ window.LailaSalma = window.LailaSalma || {};
       }));
       worldGroup.add(W.skyMesh);
 
-      const grassMat = new THREE.MeshLambertMaterial({ map: LS.createGrassTexture('kyoto') });
+      const grassMat = LS.makeSurfaceMat(LS.createGrassTexture('kyoto'), { roughness: 0.92, bumpScale: 0.03 });
       function addGroundPatch(x1, x2, z1, z2) {
         const w = x2 - x1, h = z2 - z1;
         const cx = (x1 + x2) / 2, cz = (z1 + z2) / 2;
@@ -281,12 +290,12 @@ window.LailaSalma = window.LailaSalma || {};
         const wall = new THREE.Mesh(new THREE.BoxGeometry(bk[2], 1.15, bk[3]), bankMat); wall.position.set(bk[0], -0.45, bk[1]); worldGroup.add(wall);
       });
 
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(15.4, 20.0), new THREE.MeshLambertMaterial({ map: LS.createWaterTexture(), transparent: true, opacity: 0.88 }));
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(15.4, 20.0), LS.makeWaterMat(0.9));
       water.rotation.x = -Math.PI / 2; water.position.set(-22.5, -0.44, -27.5); worldGroup.add(water);
       addCollider(-22.5, -21.2, 7.6, 4.1); addCollider(-22.5, -33.8, 7.6, 4.1);
 
       const bridgeG = new THREE.Group();
-      const plankMat = new THREE.MeshLambertMaterial({ map: LS.createCedarPlankTexture() });
+      const plankMat = LS.makeSurfaceMat(LS.createCedarPlankTexture(), { roughness: 0.72 });
       const railWood = LS.makeToonMat(0x6e472c), giboshiMat = LS.makeToonMat(0xc99c43), lanternMat = new THREE.MeshBasicMaterial({ color: 0xffd685 });
       const segments = 16, xStart = -13.5, xEnd = -30.5, segLen = (xStart - xEnd) / segments;
       for (let i = 0; i < segments; i++) {
