@@ -15,15 +15,24 @@ window.LailaSalma = window.LailaSalma || {};
   const keys = {};
   const joy = { x: 0, y: 0, active: false };
 
-  // Smooth damped orbit camera state
+  // Smooth damped orbit camera state (auto-follow, pinch-zoom, keyboard orbit & wall-clip spring arm)
   let camYaw = Math.PI;
   let targetCamYaw = Math.PI;
   let camPitch = 0.30;
   let targetCamPitch = 0.30;
   let camDist = 6.6;
   let targetCamDist = 6.6;
-  let dragging = false;
-  let lastPointer = { x: 0, y: 0 };
+  let effectiveCamDist = 6.6;
+  let manualCamCooldown = 0;
+  const camTarget = new THREE.Vector3();
+  const lastMoveInput = { x: 0, z: 0, moving: false };
+  const activePointers = new Map();
+  let lastPinchDist = null;
+  let camOccluderBoxes = [];
+  const camRay = new THREE.Ray();
+  const camRayDir = new THREE.Vector3();
+  const camRayHit = new THREE.Vector3();
+  let camSnapNext = true;
 
   let velY = 0;
   let grounded = true;
@@ -33,6 +42,49 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.activeWorld = null;
   LS.getScene = function () { return scene; };
+  LS.getCameraState = function () {
+    return {
+      yaw: camYaw,
+      targetYaw: targetCamYaw,
+      pitch: camPitch,
+      dist: effectiveCamDist,
+      targetDist: targetCamDist,
+      mode: LS.runtime.camMode,
+      occluders: camOccluderBoxes.length
+    };
+  };
+
+  function wrapAngleDelta(from, to) {
+    let d = (to - from) % (Math.PI * 2);
+    if (d > Math.PI) d -= Math.PI * 2;
+    if (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
+  function buildCamOccluders() {
+    camOccluderBoxes = [];
+    if (!worldGroup) return;
+    worldGroup.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    const size = new THREE.Vector3();
+    worldGroup.traverse(obj => {
+      if (!obj.isMesh || obj.isInstancedMesh || !obj.visible) return;
+      if (obj.userData && (obj.userData.isOutline || obj.userData.noCamClip)) return;
+      const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+      if (mat && mat.transparent && (mat.opacity === undefined || mat.opacity < 0.85)) return;
+      if (!obj.geometry) return;
+      const gType = obj.geometry.type || '';
+      if (gType === 'PlaneGeometry' || gType === 'RingGeometry' || gType === 'CircleGeometry') return;
+      box.setFromObject(obj);
+      if (box.isEmpty()) return;
+      box.getSize(size);
+      // Include solid tall buildings & walls while skipping flat ground/water, low bridges, thin poles, and high tree canopies
+      if (box.min.y <= 1.2 && box.max.y >= 2.5 && size.y >= 1.8 &&
+          size.x >= 2.0 && size.z >= 2.0 && size.x <= 24.0 && size.z <= 24.0) {
+        camOccluderBoxes.push(box.clone());
+      }
+    });
+  }
 
   function showError(msg) {
     const ov = document.getElementById('error-overlay');
@@ -258,6 +310,7 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     LS.activeWorld = builder.build(worldGroup, scene);
+    buildCamOccluders();
 
     const sp = customSpawn || (viaTrain ? meta.arrivalSpawn : meta.spawn);
     const baseH = LS.activeWorld.getGroundHeight ? LS.activeWorld.getGroundHeight(sp.x, sp.z) : 0;
@@ -278,10 +331,17 @@ window.LailaSalma = window.LailaSalma || {};
     targetCamYaw = sp.rotY;
     camPitch = meta.isInterior ? 0.38 : 0.30;
     targetCamPitch = camPitch;
-    camDist = meta.isInterior ? 5.2 : 6.8;
+    camDist = meta.isInterior ? 4.8 : 6.8;
     targetCamDist = camDist;
-    camera.position.set(sp.x, baseH + 3.4, sp.z + camDist);
-    camera.lookAt(sp.x, baseH + 1.25, sp.z);
+    effectiveCamDist = camDist;
+    manualCamCooldown = 0;
+    camTarget.set(sp.x, baseH + 1.25, sp.z);
+    camSnapNext = true;
+    const initOffX = -Math.sin(camYaw) * Math.cos(camPitch) * camDist;
+    const initOffY = Math.sin(camPitch) * camDist + 1.35;
+    const initOffZ = -Math.cos(camYaw) * Math.cos(camPitch) * camDist;
+    camera.position.set(sp.x + initOffX, baseH + initOffY, sp.z + initOffZ);
+    camera.lookAt(camTarget);
 
     const legendAnimal = document.getElementById('mm-animal-label');
     if (legendAnimal) {
@@ -414,23 +474,37 @@ window.LailaSalma = window.LailaSalma || {};
     }
   }
 
-  function cycleCameraMode() {
-    LS.runtime.camMode = (LS.runtime.camMode + 1) % 3;
+  function setCameraMode(mode) {
+    LS.runtime.camMode = mode;
     const btn = document.getElementById('btn-front-cam');
     const banner = document.getElementById('front-view-banner');
     const label = document.getElementById('front-view-label');
     if (LS.runtime.camMode === 0) {
-      btn.classList.remove('active');
-      banner.classList.add('hidden');
+      if (btn) btn.classList.remove('active');
+      if (banner) banner.classList.add('hidden');
     } else if (LS.runtime.camMode === 1) {
-      btn.classList.add('active');
-      label.textContent = "📷 Laila's Front View";
-      banner.classList.remove('hidden');
+      if (btn) btn.classList.add('active');
+      if (label) label.textContent = "📷 Laila's Front View";
+      if (banner) banner.classList.remove('hidden');
     } else {
-      btn.classList.add('active');
-      label.textContent = "📷 Salma's Front View";
-      banner.classList.remove('hidden');
+      if (btn) btn.classList.add('active');
+      if (label) label.textContent = "📷 Salma's Front View";
+      if (banner) banner.classList.remove('hidden');
     }
+  }
+
+  function cycleCameraMode() {
+    setCameraMode((LS.runtime.camMode + 1) % 3);
+  }
+
+  function recenterCamera() {
+    const laila = LS.chars.laila;
+    if (!laila || LS.runtime.modalOpen || LS.runtime.eating) return;
+    if (LS.runtime.camMode !== 0) setCameraMode(0);
+    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
+    targetCamYaw = camYaw + wrapAngleDelta(camYaw, laila.root.rotation.y);
+    targetCamPitch = meta.isInterior ? 0.38 : 0.30;
+    manualCamCooldown = 0;
   }
 
   function toggleMiniMap() {
@@ -506,6 +580,7 @@ window.LailaSalma = window.LailaSalma || {};
         return;
       }
       if (k === 'c') cycleCameraMode();
+      if (k === 'q') recenterCamera();
       if (k === 'v') triggerSisterPose();
       if (k === 'm') toggleMiniMap();
       if (k === 'p') LS.openPassportModal();
@@ -518,26 +593,85 @@ window.LailaSalma = window.LailaSalma || {};
       keys[e.key.toLowerCase()] = false;
     });
 
+    const containerEl = document.getElementById('game-container');
     const dom = renderer.domElement;
+
+    const getZoomBounds = () => {
+      const meta = LS.WORLDS[LS.state.currentWorld];
+      return (meta && meta.isInterior) ? { min: 2.8, max: 7.2 } : { min: 3.2, max: 13.5 };
+    };
+
+    const releasePointer = pointerId => {
+      activePointers.delete(pointerId);
+      if (activePointers.size < 2) lastPinchDist = null;
+      if (activePointers.size === 0 && containerEl) containerEl.classList.remove('cam-dragging');
+    };
+
+    window.addEventListener('blur', () => {
+      Object.keys(keys).forEach(k => { keys[k] = false; });
+      activePointers.clear();
+      lastPinchDist = null;
+      if (containerEl) containerEl.classList.remove('cam-dragging');
+    });
+
+    dom.addEventListener('contextmenu', e => e.preventDefault());
+    dom.addEventListener('dblclick', () => recenterCamera());
+
     dom.addEventListener('pointerdown', e => {
       if (LS.runtime.modalOpen) return;
-      dragging = true;
-      lastPointer = { x: e.clientX, y: e.clientY };
+      // Only orbit with primary/secondary mouse buttons or touch
+      if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
+      if (LS.runtime.camMode !== 0) setCameraMode(0);
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (dom.setPointerCapture) {
+        try { dom.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+      if (containerEl) containerEl.classList.add('cam-dragging');
+      if (activePointers.size === 2) {
+        const pts = Array.from(activePointers.values());
+        lastPinchDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      }
     });
+
     window.addEventListener('pointermove', e => {
-      if (!dragging || LS.runtime.modalOpen) return;
-      const dx = e.clientX - lastPointer.x;
-      const dy = e.clientY - lastPointer.y;
-      lastPointer = { x: e.clientX, y: e.clientY };
-      targetCamYaw -= dx * 0.0062;
-      targetCamPitch = Math.max(0.08, Math.min(0.88, targetCamPitch + dy * 0.0042));
+      if (LS.runtime.modalOpen || !activePointers.has(e.pointerId)) return;
+      const prev = activePointers.get(e.pointerId);
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 1) {
+        // Drag right -> look right; drag up -> look up (natural 3rd-person orbit)
+        const yawSens = e.pointerType === 'touch' ? 0.0068 : 0.0056;
+        const pitchSens = e.pointerType === 'touch' ? 0.0048 : 0.0042;
+        targetCamYaw -= dx * yawSens;
+        targetCamPitch = Math.max(0.06, Math.min(1.12, targetCamPitch + dy * pitchSens));
+        manualCamCooldown = 1.8;
+      } else if (activePointers.size >= 2) {
+        // Two-finger pinch-to-zoom + gentle orbit
+        const pts = Array.from(activePointers.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        if (lastPinchDist !== null) {
+          const zb = getZoomBounds();
+          targetCamDist = Math.max(zb.min, Math.min(zb.max, targetCamDist - (dist - lastPinchDist) * 0.025));
+        }
+        lastPinchDist = dist;
+        targetCamYaw -= dx * 0.0022;
+        manualCamCooldown = 1.8;
+      }
     });
-    window.addEventListener('pointerup', () => { dragging = false; });
+
+    window.addEventListener('pointerup', e => releasePointer(e.pointerId));
+    window.addEventListener('pointercancel', e => releasePointer(e.pointerId));
 
     dom.addEventListener('wheel', e => {
       if (LS.runtime.modalOpen) return;
-      targetCamDist = Math.max(4.4, Math.min(12.5, targetCamDist + e.deltaY * 0.004));
-    }, { passive: true });
+      e.preventDefault();
+      if (LS.runtime.camMode !== 0) setCameraMode(0);
+      const zb = getZoomBounds();
+      targetCamDist = Math.max(zb.min, Math.min(zb.max, targetCamDist + e.deltaY * 0.0045));
+      manualCamCooldown = 1.2;
+    }, { passive: false });
 
     document.getElementById('btn-passport').addEventListener('click', LS.openPassportModal);
     document.getElementById('btn-time').addEventListener('click', () => {
@@ -816,6 +950,9 @@ window.LailaSalma = window.LailaSalma || {};
     if (joy.active) { inX = joy.x; inZ = joy.y; }
 
     const moving = Math.hypot(inX, inZ) > 0.08;
+    lastMoveInput.x = inX;
+    lastMoveInput.z = inZ;
+    lastMoveInput.moving = moving;
     if (moving) LS.runtime.poseTimer = 0;
 
     const wantsRun = (keys['shift'] || LS.runtime.runToggle) && moving;
@@ -1002,41 +1139,134 @@ window.LailaSalma = window.LailaSalma || {};
     }
   }
 
+  function computeSafeCamDist(origin, dir, maxDist, meta) {
+    let safeDist = maxDist;
+    // Keep camera cleanly inside room walls & ceiling for interior worlds
+    if (meta && meta.isInterior && meta.bounds) {
+      const b = meta.bounds;
+      if (dir.x > 1e-4) safeDist = Math.min(safeDist, (b.maxX - 0.15 - origin.x) / dir.x);
+      else if (dir.x < -1e-4) safeDist = Math.min(safeDist, (b.minX + 0.15 - origin.x) / dir.x);
+      if (dir.z > 1e-4) safeDist = Math.min(safeDist, (b.maxZ - 0.15 - origin.z) / dir.z);
+      else if (dir.z < -1e-4) safeDist = Math.min(safeDist, (b.minZ + 0.15 - origin.z) / dir.z);
+      if (dir.y > 1e-4) safeDist = Math.min(safeDist, (4.1 - origin.y) / dir.y);
+      return Math.max(1.4, safeDist);
+    }
+    // Ray-vs-Box3 spring arm against solid buildings so camera never clips inside houses
+    if (camOccluderBoxes.length > 0) {
+      camRay.set(origin, dir);
+      for (let i = 0; i < camOccluderBoxes.length; i++) {
+        const box = camOccluderBoxes[i];
+        if (box.containsPoint(origin)) continue;
+        if (camRay.intersectBox(box, camRayHit)) {
+          const hitDist = origin.distanceTo(camRayHit) - 0.38;
+          if (hitDist < safeDist) safeDist = hitDist;
+        }
+      }
+    }
+    return Math.max(1.5, safeDist);
+  }
+
   function updateCamera(dt) {
     const laila = LS.chars.laila;
     const salma = LS.chars.salma;
     if (!laila) return;
 
-    const damp = Math.min(1, dt * 10);
-    camYaw += (targetCamYaw - camYaw) * damp;
+    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
+    const minDist = meta.isInterior ? 2.8 : 3.2;
+    const maxDist = meta.isInterior ? 7.2 : 13.5;
+
+    // Smooth continuous keyboard camera controls (J/L or [/] rotate, I/K tilt, +/- zoom)
+    if (!LS.runtime.modalOpen && !LS.runtime.eating) {
+      const yawKey = (keys['j'] || keys['['] ? 1 : 0) - (keys['l'] || keys[']'] ? 1 : 0);
+      const pitchKey = (keys['k'] ? 1 : 0) - (keys['i'] ? 1 : 0);
+      const zoomKey = (keys['-'] || keys['_'] ? 1 : 0) - (keys['='] || keys['+'] ? 1 : 0);
+      if (yawKey !== 0 || pitchKey !== 0 || zoomKey !== 0) {
+        if (LS.runtime.camMode !== 0) setCameraMode(0);
+        targetCamYaw += yawKey * 2.15 * dt;
+        targetCamPitch = Math.max(0.06, Math.min(1.12, targetCamPitch + pitchKey * 1.25 * dt));
+        targetCamDist = Math.max(minDist, Math.min(maxDist, targetCamDist + zoomKey * 6.5 * dt));
+        manualCamCooldown = 1.8;
+      }
+    }
+
+    if (activePointers.size === 0 && manualCamCooldown > 0) {
+      manualCamCooldown = Math.max(0, manualCamCooldown - dt);
+    }
+
+    // Gentle auto-follow behind Laila when walking sideways/turning (never fights manual orbit or walking backward!)
+    if (LS.runtime.camMode === 0 && !LS.runtime.eating && !LS.runtime.modalOpen &&
+        activePointers.size === 0 && manualCamCooldown <= 0 &&
+        lastMoveInput.moving && Math.abs(lastMoveInput.x) > 0.15 && lastMoveInput.z < 0.72) {
+      const followDelta = wrapAngleDelta(targetCamYaw, laila.root.rotation.y);
+      const followRate = 0.95 + Math.min(1, Math.abs(lastMoveInput.x)) * 0.85;
+      targetCamYaw += followDelta * Math.min(1, dt * followRate);
+    }
+
+    const damp = Math.min(1, dt * 12);
+    camYaw += wrapAngleDelta(camYaw, targetCamYaw) * damp;
     camPitch += (targetCamPitch - camPitch) * damp;
     camDist += (targetCamDist - camDist) * damp;
 
     const p = laila.root.position;
-    let desiredPos, lookTarget;
 
     if (LS.runtime.eating && LS.runtime.eating.camPos) {
-      desiredPos = LS.runtime.eating.camPos;
-      lookTarget = LS.runtime.eating.camLook;
-    } else if (LS.runtime.camMode === 1) {
-      const fwd = new THREE.Vector3(Math.sin(laila.root.rotation.y), 0, Math.cos(laila.root.rotation.y));
-      desiredPos = p.clone().addScaledVector(fwd, 2.25).add(new THREE.Vector3(0, 1.32, 0));
-      lookTarget = p.clone().add(new THREE.Vector3(0, 1.18, 0));
-    } else if (LS.runtime.camMode === 2 && salma) {
-      const sp = salma.root.position;
-      const fwd = new THREE.Vector3(Math.sin(salma.root.rotation.y), 0, Math.cos(salma.root.rotation.y));
-      desiredPos = sp.clone().addScaledVector(fwd, 1.95).add(new THREE.Vector3(0, 1.1, 0));
-      lookTarget = sp.clone().add(new THREE.Vector3(0, 0.95, 0));
-    } else {
-      const offX = -Math.sin(camYaw) * Math.cos(camPitch) * camDist;
-      const offY = Math.sin(camPitch) * camDist + 1.5;
-      const offZ = -Math.cos(camYaw) * Math.cos(camPitch) * camDist;
-      desiredPos = new THREE.Vector3(p.x + offX, p.y + offY, p.z + offZ);
-      lookTarget = new THREE.Vector3(p.x, p.y + 1.25, p.z);
+      camera.position.lerp(LS.runtime.eating.camPos, Math.min(1, dt * 8.5));
+      camTarget.lerp(LS.runtime.eating.camLook, Math.min(1, dt * 10));
+      camera.lookAt(camTarget);
+      camSnapNext = false;
+      return;
     }
 
-    camera.position.lerp(desiredPos, Math.min(1, dt * 8.5));
-    camera.lookAt(lookTarget);
+    if (LS.runtime.camMode === 1) {
+      const fwd = new THREE.Vector3(Math.sin(laila.root.rotation.y), 0, Math.cos(laila.root.rotation.y));
+      const desiredPos = p.clone().addScaledVector(fwd, 2.25).add(new THREE.Vector3(0, 1.32, 0));
+      const lookTarget = p.clone().add(new THREE.Vector3(0, 1.18, 0));
+      camera.position.lerp(desiredPos, Math.min(1, dt * 8.5));
+      camTarget.lerp(lookTarget, Math.min(1, dt * 12));
+      camera.lookAt(camTarget);
+      camSnapNext = false;
+      return;
+    }
+
+    if (LS.runtime.camMode === 2 && salma) {
+      const sp = salma.root.position;
+      const fwd = new THREE.Vector3(Math.sin(salma.root.rotation.y), 0, Math.cos(salma.root.rotation.y));
+      const desiredPos = sp.clone().addScaledVector(fwd, 1.95).add(new THREE.Vector3(0, 1.1, 0));
+      const lookTarget = sp.clone().add(new THREE.Vector3(0, 0.95, 0));
+      camera.position.lerp(desiredPos, Math.min(1, dt * 8.5));
+      camTarget.lerp(lookTarget, Math.min(1, dt * 12));
+      camera.lookAt(camTarget);
+      camSnapNext = false;
+      return;
+    }
+
+    // Standard 3rd-person orbit: smooth pivot target + crisp circular arc + anti-clip spring arm!
+    const desiredTarget = new THREE.Vector3(p.x, p.y + 1.25, p.z);
+    if (camSnapNext) {
+      camTarget.copy(desiredTarget);
+      effectiveCamDist = camDist;
+      camSnapNext = false;
+    } else {
+      camTarget.lerp(desiredTarget, Math.min(1, dt * 12));
+    }
+
+    camRayDir.set(
+      -Math.sin(camYaw) * Math.cos(camPitch),
+      Math.sin(camPitch),
+      -Math.cos(camYaw) * Math.cos(camPitch)
+    ).normalize();
+
+    const safeDist = computeSafeCamDist(camTarget, camRayDir, camDist, meta);
+    const armRate = safeDist < effectiveCamDist ? 18.0 : 5.5;
+    effectiveCamDist += (safeDist - effectiveCamDist) * Math.min(1, dt * armRate);
+
+    const camX = camTarget.x + camRayDir.x * effectiveCamDist;
+    const camZ = camTarget.z + camRayDir.z * effectiveCamDist;
+    const groundFloor = getGroundH(camX, camZ) + 0.55;
+    const camY = Math.max(groundFloor, camTarget.y + camRayDir.y * effectiveCamDist + 0.15);
+
+    camera.position.set(camX, camY, camZ);
+    camera.lookAt(camTarget);
   }
 
   function updateMiniMap() {

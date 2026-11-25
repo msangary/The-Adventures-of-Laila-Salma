@@ -20,6 +20,14 @@ html, body {
   inset: 0;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+#game-container.cam-dragging {
+  cursor: grabbing;
 }
 
 #grain-overlay {
@@ -779,6 +787,40 @@ html, body {
   background: #ede4d3;
   padding: 2px 8px;
   border-radius: 99px;
+}
+
+.pw-bonus {
+  font-size: 11px;
+  font-weight: 800;
+  color: #7c3b00;
+  background: linear-gradient(135deg, #fff3c4, #ffd875);
+  border: 1px solid #e0a43b;
+  padding: 2px 8px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+.airport-section-hdr {
+  margin-top: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #7c3b00;
+  background: linear-gradient(90deg, #fff4d2, #fde7b0);
+  border: 1px solid #e2b25c;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.bonus-flight {
+  background: #fffaf0 !important;
+  border-color: #e6ba64 !important;
+}
+
+#airport-flights-grid {
+  max-height: 54vh;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .passport-section-title {

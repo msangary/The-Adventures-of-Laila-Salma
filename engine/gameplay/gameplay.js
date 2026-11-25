@@ -300,7 +300,7 @@ window.LailaSalma = window.LailaSalma || {};
       const airportNote = document.createElement('div');
       airportNote.className = 'passport-world-card upcoming-world';
       airportNote.innerHTML =
-        '<div class="pw-head"><div><strong>✈️ Haneda International Airport (Tokyo)</strong></div><span class="pw-soon">9 Future Cities</span></div>' +
+        '<div class="pw-head"><div><strong>✈️ Haneda International Airport (Tokyo)</strong></div><span class="pw-soon">' + LS.UPCOMING_WORLDS.length + ' Future Worlds</span></div>' +
         '<p class="ramen-desc">Upcoming flights: ' + LS.UPCOMING_WORLDS.map(u => u.emoji + ' ' + u.title).join(' • ') + '</p>';
       worldsBox.appendChild(airportNote);
     }
@@ -328,15 +328,24 @@ window.LailaSalma = window.LailaSalma || {};
     const grid = document.getElementById('airport-flights-grid');
     if (grid) {
       grid.innerHTML = '';
+      let bonusHeadingAdded = false;
       LS.UPCOMING_WORLDS.forEach(uw => {
+        if (uw.bonus && !bonusHeadingAdded) {
+          bonusHeadingAdded = true;
+          const hdr = document.createElement('div');
+          hdr.className = 'airport-section-hdr';
+          hdr.textContent = '✨ Bonus Fantasy, Time-Travel & Island Gates';
+          grid.appendChild(hdr);
+        }
         const row = document.createElement('div');
-        row.className = 'ramen-item';
+        row.className = 'ramen-item' + (uw.bonus ? ' bonus-flight' : '');
         row.innerHTML =
           '<div>' +
-            '<strong>' + uw.emoji + ' ' + uw.title + '</strong> <span class="pw-soon">' + uw.gate + '</span>' +
+            '<strong>' + uw.emoji + ' ' + uw.title + '</strong> ' +
+            '<span class="' + (uw.bonus ? 'pw-bonus' : 'pw-soon') + '">' + uw.gate + (uw.bonus ? ' • ✨ Bonus' : '') + '</span>' +
             '<div class="ramen-desc">' + uw.description + '</div>' +
           '</div>' +
-          '<span class="pw-soon">Coming Soon ✈️</span>';
+          '<span class="' + (uw.bonus ? 'pw-bonus' : 'pw-soon') + '">Coming Soon ✈️</span>';
         grid.appendChild(row);
       });
     }

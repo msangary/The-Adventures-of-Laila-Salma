@@ -112,7 +112,17 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'australia', title: 'Australian Wilderness', subtitle: 'Outback, Koalas & Great Barrier Reef', emoji: '🦘', gate: 'Gate C2',
       description: 'Hop with kangaroos, hug eucalyptus koalas, explore red desert arches, and snorkel colorful coral reefs!' },
     { id: 'space', title: 'Outer Space Station', subtitle: 'Moon Base & Starlight Observatory', emoji: '🚀', gate: 'Gate S1',
-      description: 'Bounce in low gravity on the Moon, drive a lunar rover, meet friendly alien pets, and explore planets!' }
+      description: 'Bounce in low gravity on the Moon, drive a lunar rover, meet friendly alien pets, and explore planets!' },
+    { id: 'dinosaur_valley', title: 'Dinosaur Valley & Prehistoric Park', subtitle: 'Amber Jungle & Time-Travel Sanctuary', emoji: '🦕', gate: 'Gate T1', bonus: true,
+      description: 'Step through a glowing time portal to feed gentle Brachiosaurus, ride a Triceratops trail, hatch baby dino eggs, and hunt amber fossils!' },
+    { id: 'atlantis_reef', title: 'Underwater Coral Kingdom & Atlantis', subtitle: 'Crystal Reef & Bubble Submarine', emoji: '🐠', gate: 'Gate U1', bonus: true,
+      description: 'Dive aboard a bubble submarine to swim with friendly dolphins & sea turtles, explore glowing Atlantis arches, and collect pearl shells!' },
+    { id: 'fairy_castle', title: 'Medieval Fairy-Tale Castle & Dragon Valley', subtitle: 'Storybook Keep & Friendly Dragons', emoji: '🏰', gate: 'Gate M1', bonus: true,
+      description: 'Visit a hilltop storybook castle, befriend a playful baby dragon, brew rainbow sparkle potions, and hunt enchanted crystal crowns!' },
+    { id: 'arctic_village', title: 'Arctic Snow Village & Polar Penguins', subtitle: 'Glittering Glaciers & Dancing Aurora', emoji: '❄️', gate: 'Gate N1', bonus: true,
+      description: 'Sled down sparkling snow hills under the Northern Lights, waddle with adorable penguins & polar bear cubs, and sip hot cocoa in a cozy igloo!' },
+    { id: 'hawaii_lagoon', title: 'Hawaiian Tropical Island & Volcano Lagoon', subtitle: 'Turquoise Surf & Hibiscus Beach', emoji: '🌴', gate: 'Gate P1', bonus: true,
+      description: 'Weave hibiscus flower leis, surf gentle turquoise waves, roast marshmallows by a tiki lagoon, and spot colorful tropical parrots!' }
   ];
 
   LS.PASSPORT_STAMPS = [
