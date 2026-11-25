@@ -15,7 +15,9 @@ window.LailaSalma = window.LailaSalma || {};
     anime_shrub: 'assets/hd/anime_shrub.glb',
     utility_pole: 'assets/hd/utility_pole.glb',
     anime_vending: 'assets/hd/anime_vending.glb',
-    anime_bike: 'assets/hd/anime_bike.glb'
+    anime_bike: 'assets/hd/anime_bike.glb',
+    anime_duck_mallard: 'assets/hd/anime_duck_mallard.glb',
+    anime_duck_white: 'assets/hd/anime_duck_white.glb'
   };
 
   const cache = {};
@@ -155,6 +157,70 @@ window.LailaSalma = window.LailaSalma || {};
         '  float edge = smoothstep(0.08, 0.0, min(vUv.x, 1.0 - vUv.x));',
         '  col = mix(col, vec3(0.90, 0.95, 0.96), edge * (0.42 + 0.18 * sin(vWorldPos.z * 2.5 + uTime * 2.0)));',
         '  gl_FragColor = vec4(clamp(col, 0.0, 0.92), uOpacity);',
+        '}'
+      ].join('\n')
+    });
+  };
+
+  // Dedicated Translucent Crystal Kyoto Garden Pond Water Shader (clearly reveals swimming Koi & river pebbles!)
+  LS.createAAAPondWaterMaterial = function () {
+    const uniforms = {
+      uTime: { value: 0.0 },
+      uTimeMode: { value: LS.state ? LS.state.timeMode : 0.0 }
+    };
+    animatedUniforms.push(uniforms);
+
+    return new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      vertexShader: [
+        'varying vec2 vUv;',
+        'varying vec3 vWorldPos;',
+        'void main() {',
+        '  vUv = uv;',
+        '  vec4 wp = modelMatrix * vec4(position, 1.0);',
+        '  vWorldPos = wp.xyz;',
+        '  gl_Position = projectionMatrix * viewMatrix * wp;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform float uTime;',
+        'uniform float uTimeMode;',
+        'varying vec2 vUv;',
+        'varying vec3 vWorldPos;',
+        'float pondWave(vec2 p) {',
+        '  return sin(p.x * 1.45 + uTime * 0.95) * cos(p.y * 1.35 - uTime * 0.85)',
+        '       + 0.45 * sin(p.x * 2.9 - p.y * 2.2 + uTime * 1.45);',
+        '}',
+        'void main() {',
+        '  vec2 uvC = (vUv - 0.5) * 2.0;',
+        '  float edgeDist = length(uvC);',
+        '  vec2 p = vWorldPos.xz * 0.52;',
+        '  float w1 = pondWave(p + vec2(uTime * 0.14, uTime * 0.18));',
+        '  float w2 = pondWave(p * 1.6 - vec2(uTime * 0.22, -uTime * 0.12));',
+        '  vec3 N = normalize(vec3((w1 - w2) * 0.10, 1.0, (w1 + w2) * 0.10));',
+        '  vec3 V = normalize(cameraPosition - vWorldPos);',
+        '  float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.8);',
+        '  vec3 deepJade = uTimeMode > 1.5 ? vec3(0.05, 0.15, 0.24) : (uTimeMode > 0.5 ? vec3(0.11, 0.30, 0.34) : vec3(0.08, 0.38, 0.42));',
+        '  vec3 shallowJade = uTimeMode > 1.5 ? vec3(0.10, 0.24, 0.36) : (uTimeMode > 0.5 ? vec3(0.24, 0.48, 0.46) : vec3(0.18, 0.56, 0.54));',
+        '  vec3 skyCol = uTimeMode > 1.5 ? vec3(0.22, 0.36, 0.58) : (uTimeMode > 0.5 ? vec3(1.0, 0.68, 0.42) : vec3(0.70, 0.88, 1.0));',
+        '  float shallowMask = smoothstep(0.45, 0.96, edgeDist);',
+        '  vec3 col = mix(deepJade, shallowJade, shallowMask * 0.72 + clamp(w1 * 0.18, 0.0, 0.25));',
+        '  // Gentle sunlit pond caustics + Fresnel sky reflection',
+        '  float caust = smoothstep(0.55, 1.15, w1 * 0.65 + w2 * 0.55);',
+        '  vec3 L = normalize(vec3(0.65, 0.58, 0.42));',
+        '  vec3 H = normalize(L + V);',
+        '  float spec = pow(max(dot(N, H), 0.0), 110.0) * (uTimeMode > 1.5 ? 0.22 : 0.48);',
+        '  col = mix(col, skyCol, clamp(fresnel * 0.62, 0.0, 0.68));',
+        '  col += mix(vec3(0.62, 0.94, 0.92), vec3(0.98, 0.84, 0.62), clamp(uTimeMode, 0.0, 1.0)) * (caust * 0.15 + spec);',
+        '  // Soft glistening shoreline meniscus foam around mossy rocks',
+        '  float shore = smoothstep(0.84, 0.98, edgeDist);',
+        '  col = mix(col, vec3(0.86, 0.94, 0.92), shore * (0.28 + 0.12 * sin(uTime * 1.8 + vWorldPos.x * 2.0)));',
+        '  // Crystal translucency in center so colorful Koi & submerged river pebbles shine through!',
+        '  float alpha = clamp(0.66 + fresnel * 0.24 + shore * 0.12, 0.62, 0.90);',
+        '  gl_FragColor = vec4(clamp(col, 0.0, 0.92), alpha);',
         '}'
       ].join('\n')
     });
@@ -496,7 +562,7 @@ window.LailaSalma = window.LailaSalma || {};
       const outMat = new THREE.MeshBasicMaterial({ color: hexColor || 0x2b1e1a, side: THREE.BackSide });
       const meshes = [];
       group.traverse(o => {
-        if (o.isMesh && o.geometry && o.material && !o.material.transparent) meshes.push(o);
+        if (o.isMesh && o.geometry && o.material && !o.material.transparent && !(o.userData && o.userData.noOutline)) meshes.push(o);
       });
       const sc = 1.0 + (thickness || 0.048);
       meshes.forEach(m => {

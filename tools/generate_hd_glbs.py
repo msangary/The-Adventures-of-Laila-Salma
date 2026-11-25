@@ -370,6 +370,36 @@ class GLBBuilder:
             rn = self._rot_pt(norm, rx, ry, rz)
             self.add_quad(mat_idx, tv[0], tv[1], tv[2], tv[3], rn, [(0, uh), (uw, uh), (uw, 0), (0, 0)], cols)
 
+    def add_ellipsoid(self, mat_idx, cx, cy, cz, rx_rad, ry_rad, rz_rad, segs=16, rings=10, rx=0, ry=0, rz=0, ao_bot=0.78, ao_top=1.0):
+        p = self._p(mat_idx)
+        base = len(p["pos"]) // 3
+        for r in range(rings + 1):
+            v = r / rings
+            phi = v * math.pi
+            sp, cp = math.sin(phi), math.cos(phi)
+            ao = ao_bot + (ao_top - ao_bot) * (0.5 + 0.5 * cp)
+            for s in range(segs + 1):
+                u = s / segs
+                th = u * math.tau
+                ct, st = math.cos(th), math.sin(th)
+                lx, ly, lz = rx_rad * sp * ct, ry_rad * cp, rz_rad * sp * st
+                nx, ny, nz = sp * ct / max(1e-4, rx_rad), cp / max(1e-4, ry_rad), sp * st / max(1e-4, rz_rad)
+                nl = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+                nx, ny, nz = self._rot_pt((nx / nl, ny / nl, nz / nl), rx, ry, rz)
+                vx, vy, vz = self._rot_pt((lx, ly, lz), rx, ry, rz)
+                p["pos"].extend((vx + cx, vy + cy, vz + cz))
+                p["norm"].extend((nx, ny, nz))
+                p["uv"].extend((u, v))
+                p["col"].extend((ao, ao, min(1.0, ao + 0.04)))
+        stride = segs + 1
+        for r in range(rings):
+            for s in range(segs):
+                a = base + r * stride + s
+                b = a + 1
+                c = base + (r + 1) * stride + s
+                d = c + 1
+                p["idx"].extend([a, b, c, b, d, c])
+
     def add_cylinder(self, mat_idx, cx, cy, cz, r_bot, r_top, h, segs=10, rx=0, ry=0, rz=0, ao_bot=0.76, ao_top=1.0):
         hh = h * 0.5
         c_bot = (ao_bot, ao_bot, min(1.0, ao_bot + 0.05))
@@ -876,8 +906,85 @@ def build_anime_bike():
     b.save_glb(os.path.join(OUT_DIR, "anime_bike.glb"))
 
 
+def make_feather_tex(base=(244, 238, 224), accent=(212, 200, 180), size=128):
+    img = Image.new("RGBA", (size, size), base + (255,))
+    draw = ImageDraw.Draw(img)
+    for row in range(8):
+        ry = row * 16
+        for col in range(8):
+            cx = col * 16 + (row % 2) * 8
+            draw.arc([cx - 10, ry - 4, cx + 10, ry + 14], start=10, end=170, fill=accent + (185,), width=2)
+    return img
+
+
+def build_anime_duck(filename, variant="mallard"):
+    """Sculpted Studio Ghibli Pond Duck with layered feathered wings, S-neck, contoured bill & glossy eyes!"""
+    b = GLBBuilder()
+    if variant == "mallard":
+        m_body = b.add_material("duck_body", (1, 1, 1, 1), make_feather_tex((196, 188, 174), (138, 130, 118)), normal_strength=1.5, roughness=0.72)
+        m_wing = b.add_material("duck_wing", (1, 1, 1, 1), make_feather_tex((128, 108, 92), (76, 62, 50)), normal_strength=1.8, roughness=0.68)
+        m_speculum = b.add_material("duck_speculum", (0.14, 0.32, 0.62, 1), roughness=0.32, metallic=0.25)
+        m_breast = b.add_material("duck_breast", (0.48, 0.23, 0.16, 1), roughness=0.74)
+        m_neck_ring = b.add_material("duck_ring", (0.97, 0.96, 0.94, 1), roughness=0.65)
+        m_head = b.add_material("duck_head_gloss", (0.09, 0.36, 0.24, 1), roughness=0.35, metallic=0.20)
+        m_bill = b.add_material("duck_bill", (0.94, 0.72, 0.16, 1), roughness=0.38)
+        m_tail = b.add_material("duck_tail", (0.18, 0.18, 0.20, 1), roughness=0.68)
+    else:
+        m_body = b.add_material("duck_body", (1, 1, 1, 1), make_feather_tex((252, 249, 240), (228, 220, 204)), normal_strength=1.2, roughness=0.70)
+        m_wing = b.add_material("duck_wing", (1, 1, 1, 1), make_feather_tex((246, 241, 230), (214, 206, 192)), normal_strength=1.5, roughness=0.68)
+        m_speculum = m_wing
+        m_breast = m_body
+        m_neck_ring = m_body
+        m_head = m_body
+        m_bill = b.add_material("duck_bill", (0.96, 0.56, 0.14, 1), roughness=0.36)
+        m_tail = m_body
+
+    m_eye = b.add_material("duck_eye_glass", (0.07, 0.05, 0.05, 1), roughness=0.10, metallic=0.15)
+    m_shine = b.add_material("duck_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.85, 0.85, 0.85))
+    m_cheek = b.add_material("duck_cheek", (0.96, 0.64, 0.68, 1), roughness=0.75)
+
+    # Buoyant contoured duck body (facing +Z, waterline at y=0)
+    b.add_ellipsoid(m_body, 0.0, 0.11, -0.02, 0.23, 0.165, 0.35, segs=18, rings=12, rx=0.05)
+    # Plump rounded chest breast
+    b.add_ellipsoid(m_breast, 0.0, 0.15, 0.22, 0.18, 0.155, 0.16, segs=16, rings=10)
+    # Layered sculpted folded wings + Mallard blue speculum wing-bar!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_wing, side * 0.175, 0.165, -0.05, 0.085, 0.125, 0.27, segs=14, rings=9, rx=-0.08, ry=side * -0.14, rz=side * 0.18)
+        b.add_ellipsoid(m_wing, side * 0.145, 0.185, -0.17, 0.06, 0.085, 0.17, segs=12, rings=8, rx=-0.16, ry=side * -0.22)
+        if variant == "mallard":
+            b.add_ellipsoid(m_speculum, side * 0.215, 0.155, -0.09, 0.032, 0.052, 0.11, segs=10, rings=6, ry=side * -0.14)
+    # Perky upturned feathered tail + curled drake feather!
+    b.add_ellipsoid(m_tail, 0.0, 0.185, -0.34, 0.11, 0.072, 0.16, segs=12, rings=8, rx=0.42)
+    b.add_ellipsoid(m_body, 0.0, 0.225, -0.40, 0.065, 0.05, 0.10, segs=10, rings=6, rx=0.68)
+
+    # Graceful curved S-neck + white Mallard collar ring
+    b.add_ellipsoid(m_breast if variant == "mallard" else m_body, 0.0, 0.27, 0.24, 0.115, 0.11, 0.11, segs=14, rings=8, rx=-0.18)
+    if variant == "mallard":
+        b.add_cylinder(m_neck_ring, 0.0, 0.325, 0.255, 0.098, 0.092, 0.042, segs=14, rx=-0.12)
+    b.add_ellipsoid(m_head, 0.0, 0.37, 0.26, 0.092, 0.095, 0.095, segs=14, rings=8)
+
+    # Rounded expressive anime duck head
+    b.add_ellipsoid(m_head, 0.0, 0.445, 0.275, 0.135, 0.125, 0.145, segs=18, rings=12)
+    # Soft rosy cheek blush on snowy call duck
+    if variant != "mallard":
+        for side in (-1, 1):
+            b.add_ellipsoid(m_cheek, side * 0.105, 0.415, 0.34, 0.038, 0.024, 0.028, segs=8, rings=6)
+
+    # Glossy expressive dark anime eyes + crisp specular catchlights!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_eye, side * 0.108, 0.468, 0.355, 0.030, 0.034, 0.026, segs=10, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.118, 0.480, 0.372, 0.011, 0.013, 0.010, segs=8, rings=6)
+
+    # Contoured smooth duckbill (upper curved spoon bill + gentle smiling lower bill + tip nail)
+    b.add_ellipsoid(m_bill, 0.0, 0.425, 0.435, 0.072, 0.032, 0.105, segs=14, rings=8, rx=0.06)
+    b.add_ellipsoid(m_bill, 0.0, 0.405, 0.425, 0.056, 0.022, 0.085, segs=12, rings=6)
+    b.add_ellipsoid(m_bill, 0.0, 0.422, 0.515, 0.058, 0.022, 0.042, segs=12, rings=6)
+
+    b.save_glb(os.path.join(OUT_DIR, filename))
+
+
 if __name__ == "__main__":
-    print("Generating 14 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
+    print("Generating 16 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
     build_tokyo_house_2f()
     build_tokyo_house_1f()
     build_kyoto_machiya()
@@ -892,4 +999,6 @@ if __name__ == "__main__":
     build_utility_pole()
     build_anime_vending()
     build_anime_bike()
-    print("All 14 AAA .glb assets built successfully!")
+    build_anime_duck("anime_duck_mallard.glb", "mallard")
+    build_anime_duck("anime_duck_white.glb", "white")
+    print("All 16 AAA .glb assets built successfully!")

@@ -790,25 +790,29 @@ window.LailaSalma = window.LailaSalma || {};
       LS.spawnWorldNPCs(worldGroup, [
         { name: 'Yui', pos: new THREE.Vector3(-3.8, 0, 4.5), patrol: { axis: 'z', center: 4.5, range: 5.5, speed: 0.9 },
           line: 'Follow the winding gravel path west across Sakura Creek, or east to the Bakery, Park & Haneda Airport!',
-          char: { scale: 0.86, hairColor: 0x5c3724, topColor: 0xffffff, bottomColor: 0x2c4a7c, sailorCollar: true, backpackColor: 0xe67e8a, longHair: true } },
+          char: { scale: 0.86, hairColor: 0x5c3724, topColor: 0xffffff, bottomColor: 0x2c4a7c, sailorCollar: true, backpackColor: 0xe67e8a, longHair: true,
+            faceOpts: { eyeColor: '#5c2f24', eyeHighlight: '#d97a66', blush: 'rgba(248, 128, 148, 0.50)' } } },
         { name: 'Haruto', pos: new THREE.Vector3(3.8, 0, 12.5), patrol: { axis: 'z', center: 12.5, range: 4.5, speed: 1.05 },
           line: '5 cats hide across 20 spots in Tokyo — and every 2 hours after you find them, they hide in brand-new places!',
-          char: { scale: 0.88, hairColor: 0x242429, topColor: 0x34527a, bottomColor: 0x2b3342, pants: true, backpackColor: 0x22262e } },
+          char: { scale: 0.88, hairColor: 0x242429, topColor: 0x34527a, bottomColor: 0x2b3342, pants: true, backpackColor: 0x22262e,
+            faceOpts: { eyeColor: '#253c6b', eyeHighlight: '#5c9be0', blush: 'rgba(235, 130, 130, 0.28)' } } },
         { name: 'Ojii-san', pos: new THREE.Vector3(-4.2, 0, -5.5), patrol: { axis: 'z', center: -5.5, range: 3.0, speed: 0.55 },
           line: 'Hello Laila & Salma! Walk up to Mochi to play Fetch or Tag, or press V for a piggyback boost!',
-          char: { scale: 0.96, hairColor: 0xc9c9c9, topColor: 0x7b8c6e, bottomColor: 0x4d463f, pants: true, faceOpts: { elder: true, glasses: true, mustache: true } } },
+          char: { scale: 0.96, hairColor: 0xc9c9c9, topColor: 0x7b8c6e, bottomColor: 0x4d463f, pants: true, faceOpts: { elder: true, glasses: true, mustache: true, eyeColor: '#46362b', eyeHighlight: '#8c725a', blush: 'rgba(224, 132, 122, 0.26)' } } },
         { name: 'Master Ken', pos: new THREE.Vector3(6.6, 0, -3.2), baseRot: -Math.PI / 2, waveOnNear: true,
           line: 'Irasshaimase, Laila & Salma! Two steaming bowls ready at Ichiban Ramen!',
-          char: { scale: 1.02, hairColor: 0x29231f, topColor: 0x2b3a55, bottomColor: 0x222630, pants: true, headband: true, faceOpts: { mustache: true } } },
+          char: { scale: 1.02, hairColor: 0x29231f, topColor: 0x2b3a55, bottomColor: 0x222630, pants: true, headband: true, faceOpts: { mustache: true, eyeColor: '#3a2214', eyeHighlight: '#915b30', blush: 'rgba(232, 128, 118, 0.28)' } } },
         { name: 'Ms. Aoi', pos: new THREE.Vector3(-2.6, 0, -33.0),
           line: 'Hello Laila & Salma! Step up anytime for Laila or Salma quiz fun!',
-          char: { scale: 0.98, hairColor: 0x382820, topColor: 0xe8d5c4, bottomColor: 0x4a5b70, hairBun: true, faceOpts: { glasses: true } } },
+          char: { scale: 0.98, hairColor: 0x382820, topColor: 0xe8d5c4, bottomColor: 0x4a5b70, hairBun: true, faceOpts: { glasses: true, eyeColor: '#2a5a4e', eyeHighlight: '#64b898', blush: 'rgba(244, 136, 150, 0.42)' } } },
         { name: 'Mina', pos: new THREE.Vector3(-6.4, 0, -10.8), baseRot: Math.PI / 2, waveOnNear: true,
           line: 'Welcome to Tokyo Boutique! Try cute hats & dresses, or walk inside your pink house to decorate in 3D!',
-          char: { scale: 0.9, hairColor: 0x6b3e2e, topColor: 0xffb3c6, bottomColor: 0x723d46, hatType: 'beret', hatColor: 0xd95d88 } },
+          char: { scale: 0.9, hairColor: 0x6b3e2e, topColor: 0xffb3c6, bottomColor: 0x723d46, hatType: 'beret', hatColor: 0xd95d88,
+            faceOpts: { eyeColor: '#6d356b', eyeHighlight: '#d17bc2', blush: 'rgba(250, 126, 154, 0.52)' } } },
         { name: 'Captain Sora', pos: new THREE.Vector3(25.5, 0, 21.5), baseRot: -Math.PI / 2, waveOnNear: true,
           line: 'Welcome to Haneda International Airport! Check our departures board for Safari, Egypt, Paris & Outer Space!',
-          char: { scale: 1.0, hairColor: 0x24262b, topColor: 0x1d3557, bottomColor: 0x16243b, pants: true, hatType: 'cap', hatColor: 0x1d3557 } }
+          char: { scale: 1.0, hairColor: 0x24262b, topColor: 0x1d3557, bottomColor: 0x16243b, pants: true, hatType: 'cap', hatColor: 0x1d3557,
+            faceOpts: { eyeColor: '#1e4268', eyeHighlight: '#5ea4db', blush: 'rgba(225, 130, 125, 0.25)' } } }
       ]);
 
       // AAA 6,500 wind-swept 3D instanced grass tufts across Tokyo open meadows (1 GPU draw call!)

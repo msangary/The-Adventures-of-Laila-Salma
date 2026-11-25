@@ -262,40 +262,84 @@ window.LailaSalma = window.LailaSalma || {};
     if (hd) headGroup.scale.set(0.84, 0.88, 0.84);
     bodyPivot.add(headGroup);
 
-    const headSphere = new THREE.Mesh(new THREE.SphereGeometry(0.29, hd ? 24 : 18, hd ? 18 : 14), skinMat);
+    const headSphere = new THREE.Mesh(new THREE.SphereGeometry(0.29, hd ? 26 : 18, hd ? 20 : 14), skinMat);
+    headSphere.scale.set(1.0, 1.03, 0.98);
     headSphere.castShadow = true;
     headGroup.add(headSphere);
+
+    // Cute sculpted 3D anime ears & delicate nose contour
+    [-0.268, 0.268].forEach(ex => {
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.052, 10, 8), skinMat);
+      ear.scale.set(0.38, 0.95, 0.68);
+      ear.position.set(ex, -0.025, -0.015);
+      ear.rotation.y = ex < 0 ? -0.2 : 0.2;
+      headGroup.add(ear);
+    });
+    if (hd) {
+      const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 6), skinMat);
+      noseTip.scale.set(0.85, 0.9, 1.2);
+      noseTip.position.set(0, -0.048, 0.283);
+      noseTip.userData.noOutline = true;
+      headGroup.add(noseTip);
+    }
 
     const openFaceTex = LS.createAnimeFaceTexture(cfg.faceOpts);
     const blinkFaceTex = LS.createAnimeFaceTexture(Object.assign({}, cfg.faceOpts, { blink: true }));
     const happyFaceTex = LS.createAnimeFaceTexture(Object.assign({}, cfg.faceOpts, { happy: true }));
 
-    const faceMat = new THREE.MeshBasicMaterial({ map: openFaceTex, transparent: true });
+    const faceMat = new THREE.MeshBasicMaterial({
+      map: openFaceTex,
+      transparent: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2
+    });
     const facePlane = new THREE.Mesh(
-      new THREE.SphereGeometry(0.294, 16, 12, -Math.PI * 0.34, Math.PI * 0.68, Math.PI * 0.22, Math.PI * 0.56),
+      new THREE.SphereGeometry(0.294, hd ? 24 : 16, hd ? 16 : 12, -Math.PI * 0.34, Math.PI * 0.68, Math.PI * 0.22, Math.PI * 0.56),
       faceMat
     );
+    facePlane.scale.set(1.0, 1.03, 0.98);
     facePlane.rotation.y = Math.PI / 2;
     headGroup.add(facePlane);
 
-    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.305, hd ? 22 : 16, hd ? 16 : 12, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
-    hairTop.position.y = 0.02;
+    // Tilt hair crown gently back so the back of the skull is full while the forehead & anime eyes stay 100% open and clear!
+    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.308, hd ? 24 : 16, hd ? 18 : 12, 0, Math.PI * 2, 0, Math.PI * 0.52), hairMat);
+    hairTop.scale.set(1.01, 1.03, 1.02);
+    hairTop.position.set(0, 0.025, -0.012);
+    hairTop.rotation.x = -0.34;
     headGroup.add(hairTop);
 
+    // Sculpted layered anime forehead bangs framing the brow cleanly ABOVE the eyes!
+    [
+      [-0.165, 0.178, 0.205, 0.062, 0.115, 0.34],
+      [-0.082, 0.198, 0.232, 0.056, 0.105, 0.16],
+      [0.0, 0.204, 0.240, 0.054, 0.098, 0.0],
+      [0.082, 0.198, 0.232, 0.056, 0.105, -0.16],
+      [0.165, 0.178, 0.205, 0.062, 0.115, -0.34]
+    ].forEach(b => {
+      const bang = new THREE.Mesh(new THREE.ConeGeometry(b[3], b[4], 7), hairMat);
+      bang.scale.set(1.0, 1.0, 0.48);
+      bang.position.set(b[0], b[1], b[2]);
+      bang.rotation.set(Math.PI + 0.36, 0, b[5]);
+      bang.userData.noOutline = true;
+      headGroup.add(bang);
+    });
+
     if (hd) {
-      // Sculpted anime side bangs framing the face!
-      [-0.22, 0.22].forEach(bx => {
-        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.36, 7), hairMat);
-        strand.position.set(bx, -0.06, 0.14);
+      // Sculpted anime side hair locks framing the cheeks cleanly behind the eyes!
+      [-0.235, 0.235].forEach(bx => {
+        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.074, 0.34, 8), hairMat);
+        strand.scale.set(0.78, 1.0, 0.68);
+        strand.position.set(bx, -0.055, 0.105);
         strand.rotation.x = Math.PI;
-        strand.rotation.z = bx < 0 ? 0.14 : -0.14;
+        strand.rotation.z = bx < 0 ? 0.16 : -0.16;
         headGroup.add(strand);
       });
     }
 
     if (cfg.longHair) {
-      const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.27, hd ? 0.34 : 0.31, hd ? 0.54 : 0.42, hd ? 16 : 12), hairMat);
-      backHair.position.set(0, hd ? -0.20 : -0.14, -0.08);
+      const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.275, hd ? 0.35 : 0.31, hd ? 0.56 : 0.42, hd ? 18 : 12), hairMat);
+      backHair.position.set(0, hd ? -0.20 : -0.14, -0.085);
       headGroup.add(backHair);
     }
     if (cfg.pigtails) {

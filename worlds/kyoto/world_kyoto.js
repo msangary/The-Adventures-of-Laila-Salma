@@ -326,23 +326,104 @@ window.LailaSalma = window.LailaSalma || {};
       worldGroup.add(pag);
     });
 
-    // 2. Stone Path, Excavated Koi Lake, Arched Cedar Bridge, Koi, Ducks, Rowboat & Feeding Dock
+    // 2. Stone Path, Natural Kyoto Temple Koi Pond, Arched Cedar Bridge, Calico Koi, Sculpted Ducks & Ducklings, Waterfall & Rowboat
     safeRun('lake_and_bridge', () => {
-      const stonePath = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.08, 3.6), new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() }));
+      W.waterfallRings = [];
+      W.ducklings = [];
+      const stonePath = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.08, 3.6), LS.makeSurfaceMat(LS.createStonePathTexture(), { roughness: 0.78 }));
       stonePath.position.set(-8.3, 0.04, -27.5); stonePath.receiveShadow = true; worldGroup.add(stonePath);
 
-      const bed = new THREE.Mesh(new THREE.PlaneGeometry(16.2, 20.8), LS.makeToonMat(0x1b3c42));
-      bed.rotation.x = -Math.PI / 2; bed.position.set(-22.5, -0.95, -27.5); worldGroup.add(bed);
+      // Textured natural river-pebble pond bed (visible through crystal emerald water!)
+      const bed = new THREE.Mesh(
+        new THREE.PlaneGeometry(16.4, 21.0),
+        LS.makeSurfaceMat(LS.createPondBedTexture(), { roughness: 0.92 })
+      );
+      bed.rotation.x = -Math.PI / 2; bed.position.set(-22.5, -0.95, -27.5); bed.receiveShadow = true; worldGroup.add(bed);
 
-      const bankMat = LS.makeToonMat(0x524c44);
-      [[-22.5, -17.4, 15.8, 0.45], [-22.5, -37.6, 15.8, 0.45], [-14.7, -27.5, 0.45, 20.4], [-30.3, -27.5, 0.45, 20.4]].forEach(bk => {
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(bk[2], 1.15, bk[3]), bankMat); wall.position.set(bk[0], -0.45, bk[1]); worldGroup.add(wall);
+      // Submerged sloped river-stone shelves instead of bare rectangular concrete walls!
+      const shelfMat = LS.makeToonMat(0x565c4e);
+      [[-22.5, -17.35, 16.0, 0.75, 0.35, 0], [-22.5, -37.65, 16.0, 0.75, -0.35, 0],
+       [-14.65, -27.5, 0.75, 20.6, 0, -0.35], [-30.35, -27.5, 0.75, 20.6, 0, 0.35]].forEach(bk => {
+        const slopeWall = new THREE.Mesh(new THREE.BoxGeometry(bk[2], 1.2, bk[3]), shelfMat);
+        slopeWall.position.set(bk[0], -0.46, bk[1]);
+        slopeWall.rotation.set(bk[4], 0, bk[5]);
+        worldGroup.add(slopeWall);
       });
 
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(15.4, 20.0), LS.makeWaterMat(0.9));
-      water.rotation.x = -Math.PI / 2; water.position.set(-22.5, -0.44, -27.5); worldGroup.add(water);
+      // Soft mossy corner promontories curving inward to eliminate sharp rectangle corners!
+      const cornerMoss = LS.makeToonMat(0x4f7f44);
+      [[-15.2, -18.0, 2.3], [-29.8, -18.0, 2.5], [-15.2, -37.0, 2.4], [-29.6, -36.8, 2.8]].forEach(cm => {
+        const mound = new THREE.Mesh(new THREE.SphereGeometry(cm[2], 14, 10), cornerMoss);
+        mound.scale.set(1.15, 0.34, 1.15);
+        mound.position.set(cm[0], -0.22, cm[1]);
+        mound.receiveShadow = true;
+        worldGroup.add(mound);
+      });
+
+      // Crystal-clear emerald Kyoto Garden Pond water (custom GLSL translucent shader in HD!)
+      const pondMat = (LS.isHD && LS.createAAAPondWaterMaterial)
+        ? LS.createAAAPondWaterMaterial()
+        : LS.makeWaterMat(0.84, THREE.DoubleSide);
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(15.6, 20.2, LS.isHD ? 24 : 1, LS.isHD ? 24 : 1), pondMat);
+      water.rotation.x = -Math.PI / 2; water.position.set(-22.5, -0.42, -27.5); worldGroup.add(water);
       addCollider(-22.5, -21.2, 7.6, 4.1); addCollider(-22.5, -33.8, 7.6, 4.1);
 
+      // Organic tiered Kyoto garden riverstones (varied heights, faceted slate/granite tones tucked naturally into the waterline!)
+      const rockMats = [LS.makeToonMat(0x5c6056), LS.makeToonMat(0x6e7166), LS.makeToonMat(0x4d524a)];
+      const mossCapMat = LS.makeToonMat(0x4e8444);
+      const shoreStones = [
+        [-15.2, -17.6, 0.92, 0.52], [-16.5, -17.5, 0.62, 0.36], [-17.6, -17.7, 0.48, 0.28], [-19.2, -17.5, 0.85, 0.44],
+        [-20.6, -17.6, 0.54, 0.30], [-22.4, -17.5, 0.78, 0.40], [-24.0, -17.7, 0.52, 0.28], [-25.6, -17.5, 0.82, 0.44],
+        [-27.2, -17.6, 0.96, 0.54], [-28.8, -18.0, 1.12, 0.62], [-30.0, -19.4, 0.94, 0.52], [-30.2, -21.2, 0.78, 0.42],
+        [-30.1, -23.1, 0.66, 0.36], [-30.2, -24.8, 0.58, 0.32],
+        [-30.2, -30.3, 0.64, 0.36], [-30.2, -32.2, 0.86, 0.48], [-30.0, -34.2, 1.02, 0.58], [-29.2, -36.4, 1.18, 0.68],
+        [-27.4, -37.3, 0.96, 0.54], [-25.2, -37.4, 0.76, 0.42], [-23.0, -37.3, 0.88, 0.46], [-20.5, -37.5, 0.98, 0.52],
+        [-18.2, -37.3, 0.74, 0.40], [-16.0, -37.1, 0.94, 0.52], [-14.9, -35.5, 0.84, 0.46], [-14.8, -33.3, 0.72, 0.38],
+        [-14.8, -31.0, 0.64, 0.34], [-14.9, -24.5, 0.62, 0.34], [-14.9, -19.2, 0.76, 0.42]
+      ];
+      shoreStones.forEach((b, idx) => {
+        const sg = new THREE.Group();
+        sg.position.set(b[0], -0.22, b[1]);
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(b[2], 0), rockMats[idx % rockMats.length]);
+        rock.scale.set(1.25 + (idx % 3) * 0.14, b[3] / b[2], 0.92 + ((idx + 1) % 3) * 0.12);
+        rock.rotation.set((idx % 2) * 0.15, idx * 1.1, ((idx + 1) % 2) * 0.12);
+        rock.position.y = b[3] * 0.48;
+        rock.castShadow = true; rock.receiveShadow = true;
+        sg.add(rock);
+        if (idx % 2 === 0) {
+          const moss = new THREE.Mesh(new THREE.SphereGeometry(b[2] * 0.58, 9, 6), mossCapMat);
+          moss.scale.set(1.15, 0.24, 0.95);
+          moss.position.set(0.04, b[3] * 0.86, 0);
+          sg.add(moss);
+        }
+        worldGroup.add(sg);
+      });
+
+      // Northwest Mossy Rockery & Cascading Bamboo Pond Waterfall (X=-28.8, Z=-35.8)
+      const wfG = new THREE.Group(); wfG.position.set(-28.8, 0, -35.8); wfG.rotation.y = 0.72;
+      const rockDark = LS.makeToonMat(0x5e6258);
+      [[0, 0.45, -0.4, 1.35, 1.05], [-1.0, 0.25, -0.1, 0.95, 0.8], [1.0, 0.28, -0.15, 0.92, 0.85], [0, 1.15, -0.75, 1.05, 0.95]].forEach(rk => {
+        const st = new THREE.Mesh(new THREE.DodecahedronGeometry(rk[3], LS.isHD ? 1 : 0), rockDark);
+        st.scale.set(1.15, rk[4], 0.95); st.position.set(rk[0], rk[1], rk[2]); st.castShadow = true; wfG.add(st);
+      });
+      const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 1.5, 10), LS.makeToonMat(0x7a964b));
+      spout.rotation.x = Math.PI / 2 + 0.22; spout.position.set(0, 0.95, 0.2); wfG.add(spout);
+      const streamFall = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.10, 0.24, 1.38, 10),
+        new THREE.MeshBasicMaterial({ color: 0xd8f5ff, transparent: true, opacity: 0.78 })
+      );
+      streamFall.position.set(0, 0.24, 0.88); streamFall.rotation.x = 0.24; wfG.add(streamFall);
+      for (let r = 0; r < 3; r++) {
+        const wr = new THREE.Mesh(
+          new THREE.RingGeometry(0.18, 0.30, 18),
+          new THREE.MeshBasicMaterial({ color: 0xe6faff, transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+        );
+        wr.rotation.x = -Math.PI / 2; wr.position.set(0, -0.40, 1.08);
+        wfG.add(wr); W.waterfallRings.push(wr);
+      }
+      worldGroup.add(wfG);
+
+      // Arched Cedar Bridge with warm lantern halos
       const bridgeG = new THREE.Group();
       const plankMat = LS.makeSurfaceMat(LS.createCedarPlankTexture(), { roughness: 0.72 });
       const railWood = LS.makeToonMat(0x6e472c), giboshiMat = LS.makeToonMat(0xc99c43), lanternMat = new THREE.MeshBasicMaterial({ color: 0xffd685 });
@@ -365,6 +446,9 @@ window.LailaSalma = window.LailaSalma || {};
           const post = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.15, 0.16), railWood); post.position.set(px, py + 0.52, -27.5 + rz); bridgeG.add(post);
           if (idx === 1 || idx === 3) {
             const lBox = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.24), lanternMat); lBox.position.set(px, py + 1.24, -27.5 + rz); bridgeG.add(lBox);
+            if (LS.isHD && LS.createGlowSprite) {
+              const halo = LS.createGlowSprite(0xffd27d, 1.45); halo.position.copy(lBox.position); bridgeG.add(halo);
+            }
             const cap = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.16, 4), railWood); cap.rotation.y = Math.PI / 4; cap.position.set(px, py + 1.48, -27.5 + rz); bridgeG.add(cap);
           } else {
             const giboshi = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), giboshiMat); giboshi.scale.set(1, 1.3, 1); giboshi.position.set(px, py + 1.16, -27.5 + rz); bridgeG.add(giboshi);
@@ -374,29 +458,135 @@ window.LailaSalma = window.LailaSalma || {};
       [-13.42, -30.58].forEach(rx => { const ramp = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.12, 3.4), LS.makeToonMat(0x524c44)); ramp.position.set(rx, 0.04, -27.5); bridgeG.add(ramp); });
       worldGroup.add(bridgeG);
 
-      // Koi, Ducks, Rowboat, Feeding Dock
-      const koiColors = [0xff6b35, 0xffd166, 0xffffff, 0xe63946, 0xff9f1c, 0xf77f00, 0xf8f9fa, 0xef476f];
+      // 8 Articulated Calico Koi Fish (Kohaku, Sanke & Yamabuki gold patterns + swishing tails & pectoral fins!)
+      const koiSpecs = [
+        [0xfaf7f2, 0xe63946], [0xffd166, 0xff9f1c], [0xfaf7f2, 0xff6b35], [0xe63946, 0x1f242c],
+        [0xff9f1c, 0xfaf7f2], [0xf77f00, 0xfff3d6], [0xfaf7f2, 0xef476f], [0xffb703, 0xe63946]
+      ];
       for (let i = 0; i < 8; i++) {
-        const kg = new THREE.Group(), kMat = LS.makeToonMat(koiColors[i]);
-        const kBody = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), kMat); kBody.scale.set(0.55, 0.45, 1.85); kg.add(kBody);
-        const kTail = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 5), kMat); kTail.rotation.x = Math.PI / 2; kTail.position.z = -0.32; kg.add(kTail);
+        const kg = new THREE.Group();
+        const kMat = LS.makeToonMat(koiSpecs[i][0]), spotMat = LS.makeToonMat(koiSpecs[i][1]);
+        const kBody = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), kMat); kBody.scale.set(0.55, 0.44, 1.95); kg.add(kBody);
+        const kSpot = new THREE.Mesh(new THREE.SphereGeometry(0.115, 8, 6), spotMat); kSpot.scale.set(0.62, 0.35, 1.15); kSpot.position.set(0, 0.05, 0.06); kg.add(kSpot);
+        const kSpot2 = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), spotMat); kSpot2.scale.set(0.55, 0.32, 0.85); kSpot2.position.set(0, 0.045, -0.15); kg.add(kSpot2);
+        [-0.11, 0.11].forEach(fx => {
+          const fin = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), kMat);
+          fin.scale.set(1.3, 0.18, 0.75); fin.position.set(fx, -0.01, 0.05); fin.rotation.y = fx > 0 ? -0.4 : 0.4; kg.add(fin);
+        });
+        const tailPivot = new THREE.Group(); tailPivot.position.z = -0.28;
+        const kTail = new THREE.Mesh(new THREE.ConeGeometry(0.125, 0.30, 5), spotMat);
+        kTail.rotation.x = Math.PI / 2; kTail.scale.set(0.32, 1.0, 1.0); kTail.position.z = -0.12; tailPivot.add(kTail);
+        kg.add(tailPivot);
         const cx = -22.5 + (i % 2 === 0 ? 3.2 : -3.2), cz = i < 4 ? -21.8 : -33.2;
         kg.position.set(cx, -0.52, cz); worldGroup.add(kg);
-        W.koiList.push({ mesh: kg, cx, cz, rx: 2.2 + (i % 3) * 0.7, rz: 1.6 + (i % 2) * 0.8, speed: 0.45 + (i % 4) * 0.14, phase: i * 1.15 });
+        W.koiList.push({ mesh: kg, tail: tailPivot, cx, cz, rx: 2.2 + (i % 3) * 0.7, rz: 1.6 + (i % 2) * 0.8, speed: 0.45 + (i % 4) * 0.14, phase: i * 1.15 });
       }
-      for (let i = 0; i < 3; i++) {
-        const dg = new THREE.Group();
-        const dBody = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), LS.makeToonMat(i === 0 ? 0xfbf8f1 : 0x8d6e63)); dBody.scale.set(0.85, 0.72, 1.35); dBody.position.y = 0.08; dg.add(dBody);
-        const dHead = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), LS.makeToonMat(i === 0 ? 0xfbf8f1 : 0x2d6a4f)); dHead.position.set(0, 0.28, 0.22); dg.add(dHead);
-        const beak = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.14), LS.makeToonMat(0xf59e0b)); beak.position.set(0, 0.26, 0.36); dg.add(beak);
-        worldGroup.add(dg);
-        W.duckList.push({ mesh: dg, cx: -20.5 - i * 2.4, cz: i === 2 ? -33.0 : -21.5, r: 1.9 + i * 0.5, speed: 0.36 + i * 0.08, phase: i * 2.1 });
-      }
-      const boat = new THREE.Group(); boat.position.set(-26.8, -0.36, -20.6); boat.rotation.y = 0.45;
-      boat.add(new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.32, 2.3), LS.makeToonMat(0x7c5333)));
-      const bench = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.08, 0.36), LS.makeToonMat(0x9a6539)); bench.position.y = 0.16; boat.add(bench);
-      worldGroup.add(boat); W.rowboat = boat;
 
+      // Sculpted Pond Ducks (Normal-mapped GLBs in HD + Upgraded Multi-Part Ducks in Classic!) + Water Wake Ripples!
+      function buildPondDuck(variant) {
+        const glbKey = variant === 'white' ? 'anime_duck_white' : 'anime_duck_mallard';
+        const wrap = new THREE.Group();
+        if (LS.isHD && LS.hdAssets && LS.hdAssets.has(glbKey)) {
+          const mdl = LS.hdAssets.clone(glbKey);
+          mdl.scale.setScalar(1.48);
+          wrap.add(mdl);
+        } else {
+          const isW = variant === 'white';
+          const bodyM = LS.makeToonMat(isW ? 0xfcf9f0 : 0xa89f91);
+          const wingM = LS.makeToonMat(isW ? 0xf2ece0 : 0x7c6855);
+          const headM = LS.makeToonMat(isW ? 0xfcf9f0 : 0x1e6042);
+          const billM = LS.makeToonMat(isW ? 0xf5921b : 0xe8b923);
+          const eyeM = LS.makeToonMat(0x181210);
+          const inner = new THREE.Group(); inner.scale.setScalar(1.38);
+          const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10), bodyM); body.scale.set(0.9, 0.7, 1.42); body.position.y = 0.11; body.castShadow = true; inner.add(body);
+          [-0.17, 0.17].forEach(wx => {
+            const w = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), wingM); w.scale.set(0.55, 0.72, 1.65); w.position.set(wx, 0.15, -0.04); inner.add(w);
+          });
+          const tail = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.24, 7), LS.makeToonMat(isW ? 0xfcf9f0 : 0x303238));
+          tail.position.set(0, 0.20, -0.34); tail.rotation.x = -0.85; inner.add(tail);
+          const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.105, 0.22, 10), isW ? bodyM : LS.makeToonMat(0x7c3f2c));
+          neck.position.set(0, 0.26, 0.22); inner.add(neck);
+          if (!isW) {
+            const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.092, 0.04, 12), LS.makeToonMat(0xfbf9f4));
+            ring.position.set(0, 0.32, 0.23); inner.add(ring);
+          }
+          const head = new THREE.Mesh(new THREE.SphereGeometry(0.135, 14, 10), headM); head.position.set(0, 0.43, 0.25); head.castShadow = true; inner.add(head);
+          [-0.095, 0.095].forEach(ex => {
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), eyeM); eye.position.set(ex, 0.46, 0.34); inner.add(eye);
+            const sp = new THREE.Mesh(new THREE.SphereGeometry(0.01, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); sp.position.set(ex * 1.08, 0.47, 0.358); inner.add(sp);
+          });
+          const bill = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), billM); bill.scale.set(0.9, 0.42, 1.55); bill.position.set(0, 0.41, 0.42); inner.add(bill);
+          wrap.add(inner);
+        }
+        // Subtle expanding translucent wake ring right at the waterline!
+        const wake = new THREE.Mesh(
+          new THREE.RingGeometry(0.42, 0.54, 22),
+          new THREE.MeshBasicMaterial({ color: 0xe6f8ff, transparent: true, opacity: 0.48, side: THREE.DoubleSide })
+        );
+        wake.rotation.x = -Math.PI / 2; wake.position.set(0, 0.02, -0.04);
+        wrap.add(wake);
+        return { root: wrap, wake };
+      }
+
+      const duckConfigs = [
+        { variant: 'white', cx: -20.2, cz: -21.8, r: 2.1, speed: 0.35, phase: 0.4 },
+        { variant: 'mallard', cx: -23.6, cz: -22.2, r: 2.2, speed: 0.40, phase: 2.6 },
+        { variant: 'mallard', cx: -22.6, cz: -32.6, r: 2.5, speed: 0.36, phase: 4.5 }
+      ];
+      duckConfigs.forEach((dc, i) => {
+        const built = buildPondDuck(dc.variant);
+        worldGroup.add(built.root);
+        W.duckList.push({ mesh: built.root, wake: built.wake, cx: dc.cx, cz: dc.cz, r: dc.r, speed: dc.speed, phase: dc.phase, isMama: i === 0 });
+      });
+
+      // 2 Adorable Fluffy Yellow Ducklings swimming right behind the White Mama Duck!
+      const dklYellow = LS.makeToonMat(0xffe066), dklBill = LS.makeToonMat(0xf59e0b), dklEye = LS.makeToonMat(0x1a120e);
+      for (let k = 0; k < 2; k++) {
+        const dl = new THREE.Group();
+        const inner = new THREE.Group(); inner.scale.setScalar(1.38);
+        const db = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), dklYellow); db.scale.set(0.92, 0.78, 1.25); db.position.y = 0.06; inner.add(db);
+        const dh = new THREE.Mesh(new THREE.SphereGeometry(0.082, 10, 8), dklYellow); dh.position.set(0, 0.18, 0.09); inner.add(dh);
+        const bk = new THREE.Mesh(new THREE.SphereGeometry(0.036, 8, 6), dklBill); bk.scale.set(0.85, 0.45, 1.4); bk.position.set(0, 0.165, 0.17); inner.add(bk);
+        [-0.055, 0.055].forEach(ex => {
+          const ey = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 6), dklEye); ey.position.set(ex, 0.20, 0.145); inner.add(ey);
+        });
+        dl.add(inner);
+        const dlWake = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.24, 14), new THREE.MeshBasicMaterial({ color: 0xe6f8ff, transparent: true, opacity: 0.40, side: THREE.DoubleSide }));
+        dlWake.rotation.x = -Math.PI / 2; dlWake.position.y = 0.015; dl.add(dlWake);
+        worldGroup.add(dl);
+        W.ducklings.push({ mesh: dl, wake: dlWake, lag: 0.52 + k * 0.42, phase: k * 1.4 });
+      }
+
+      // Sculpted Traditional Wooden Kyoto Wasen Rowboat (tapered bow/stern, ribs, seats, resting oars & mooring post!)
+      const boat = new THREE.Group(); boat.position.set(-26.8, -0.38, -20.5); boat.rotation.y = 0.52;
+      const hullWood = LS.makeToonMat(0x7c5333), trimWood = LS.makeToonMat(0x5a3921), seatWood = LS.makeToonMat(0xa67449);
+      const hullFloor = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.12, 1.85), hullWood); hullFloor.position.y = 0.06; hullFloor.castShadow = true; boat.add(hullFloor);
+      [-0.56, 0.56].forEach(sx => {
+        const side = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.34, 1.95), hullWood);
+        side.position.set(sx, 0.20, 0); side.rotation.z = sx > 0 ? -0.16 : 0.16; side.castShadow = true; boat.add(side);
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.07, 2.0), trimWood); rail.position.set(sx * 1.05, 0.38, 0); boat.add(rail);
+      });
+      [-1.18, 1.18].forEach(pz => {
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.56, 0.72, 4), hullWood);
+        tip.rotation.x = pz > 0 ? Math.PI / 2 : -Math.PI / 2; tip.rotation.y = Math.PI / 4;
+        tip.scale.set(1.05, 1.0, 0.42); tip.position.set(0, 0.22, pz); boat.add(tip);
+      });
+      [-0.38, 0.38].forEach(bz => {
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.07, 0.34), seatWood); seat.position.set(0, 0.28, bz); boat.add(seat);
+      });
+      // Resting wooden oars tucked neatly inside the rowboat
+      [-0.24, 0.24].forEach(ox => {
+        const oar = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.75, 6), seatWood);
+        oar.rotation.x = Math.PI / 2; oar.rotation.z = ox > 0 ? 0.1 : -0.1; oar.position.set(ox, 0.34, 0.05); boat.add(oar);
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.025, 0.42), trimWood);
+        blade.position.set(ox * 1.1, 0.34, -0.78); boat.add(blade);
+      });
+      worldGroup.add(boat); W.rowboat = boat;
+      // Weathered wooden mooring post beside the rowboat
+      const moorPost = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.35, 8), trimWood);
+      moorPost.position.set(-28.1, -0.05, -19.2); moorPost.castShadow = true; worldGroup.add(moorPost);
+
+      // Cedar Koi Feeding Dock
       const dock = new THREE.Group(); dock.position.set(-14.3, 0, -22.2);
       const dockDeck = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 2.6), plankMat); dockDeck.position.set(-0.4, 0.08, 0); dockDeck.receiveShadow = true; dock.add(dockDeck);
       const feedSign = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.65, 1.8), new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🐟 FEED KOI & DUCKS', { bg: '#e0f2fe', border: '#0284c7', color: '#0c4a6e', font: 'bold 34px sans-serif' }) }));
@@ -407,14 +597,47 @@ window.LailaSalma = window.LailaSalma || {};
 
       for (let i = 0; i < 4; i++) {
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.3, 18), new THREE.MeshBasicMaterial({ color: 0xd8f3ff, transparent: true, opacity: 0.0, side: THREE.DoubleSide }));
-        ring.rotation.x = -Math.PI / 2; ring.position.set(-17.5 - i * 0.9, -0.41, -21.8 + (i % 2) * 0.9); worldGroup.add(ring); W.rippleRings.push(ring);
+        ring.rotation.x = -Math.PI / 2; ring.position.set(-17.5 - i * 0.9, -0.39, -21.8 + (i % 2) * 0.9); worldGroup.add(ring); W.rippleRings.push(ring);
       }
-      // Natural shoreline mossy boulders, waterside reeds & floating lily pads to soften lake edges
-      [[-14.5, -17.0, 0.95], [-17.5, -17.1, 0.72], [-21.5, -16.8, 1.05], [-26.0, -17.1, 0.85], [-29.8, -17.0, 1.0],
-       [-14.6, -37.2, 0.9], [-20.0, -38.2, 1.15], [-27.5, -37.9, 0.95], [-30.6, -21.0, 0.85], [-30.5, -34.0, 0.95]
-      ].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
-      [[-15.8, -16.9], [-24.0, -16.9], [-29.5, -19.2], [-15.2, -36.0], [-23.8, -38.0], [-30.6, -32.2]].forEach(rg => SC.addTallGrass(worldGroup, rg[0], rg[1], 1.25));
-      [[-18.2, -19.5, true], [-19.4, -20.2, false], [-24.6, -19.4, true], [-28.0, -23.5, false], [-26.2, -35.2, true], [-18.5, -34.8, false]].forEach(lp => SC.addLilyPad(worldGroup, lp[0], -0.41, lp[1], 1.1, lp[2]));
+
+      // Lush shoreline cattails, tall pond reeds & blooming 3D Pink/White Lotus Lily Pads!
+      const reedMat = LS.makeToonMat(0x4c7c3e), cattailMat = LS.makeToonMat(0x613b22);
+      [[-15.6, -17.3], [-19.0, -17.4], [-24.2, -17.3], [-28.8, -18.4], [-15.2, -36.2], [-22.6, -37.7], [-27.2, -37.2], [-30.3, -32.4], [-30.2, -23.0]].forEach((rg, idx) => {
+        SC.addTallGrass(worldGroup, rg[0], rg[1], 1.32);
+        // Pair of slender cattails rising naturally from the shoreline reeds
+        for (let c = 0; c < 2; c++) {
+          const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 1.15 + c * 0.22, 5), reedMat);
+          stem.position.set(rg[0] + (c - 0.5) * 0.24, 0.42, rg[1] + (idx % 2 === 0 ? 0.16 : -0.16));
+          stem.rotation.z = (c - 0.5) * 0.16; worldGroup.add(stem);
+          const head = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.22, 6), cattailMat);
+          head.position.set(stem.position.x + (c - 0.5) * 0.07, 0.88 + c * 0.18, stem.position.z);
+          head.rotation.z = stem.rotation.z; worldGroup.add(head);
+        }
+      });
+
+      // Floating lily pads with sculpted 3D multi-petal pink & cream Kyoto lotus blossoms!
+      const lotusCoords = [
+        [-17.8, -19.2, true, 0xff9ec0], [-19.1, -20.0, false, 0], [-24.5, -19.1, true, 0xfff3f6],
+        [-25.4, -19.8, false, 0], [-28.2, -23.4, true, 0xff8fab], [-26.4, -35.0, true, 0xffb3c6],
+        [-25.2, -34.2, false, 0], [-18.4, -34.8, true, 0xfff5f8], [-17.2, -33.8, false, 0], [-21.5, -35.6, true, 0xff9ec0]
+      ];
+      lotusCoords.forEach(lp => {
+        SC.addLilyPad(worldGroup, lp[0], -0.39, lp[1], 1.15, false);
+        if (lp[2]) {
+          const lg = new THREE.Group(); lg.position.set(lp[0], -0.36, lp[1]);
+          const pMat = LS.makeToonMat(lp[3]);
+          for (let p = 0; p < 6; p++) {
+            const ang = (p / 6) * Math.PI * 2;
+            const pet = new THREE.Mesh(new THREE.SphereGeometry(0.085, 7, 6), pMat);
+            pet.scale.set(0.62, 0.45, 1.45);
+            pet.position.set(Math.cos(ang) * 0.10, 0.05, Math.sin(ang) * 0.10);
+            pet.rotation.y = -ang + Math.PI / 2; pet.rotation.x = -0.35; lg.add(pet);
+          }
+          const core = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 6), LS.makeToonMat(0xffd166));
+          core.position.y = 0.07; lg.add(core);
+          worldGroup.add(lg);
+        }
+      });
     });
 
     // 3. Lakeside Sushi Stand (桜寿司)
@@ -825,25 +1048,31 @@ window.LailaSalma = window.LailaSalma || {};
       LS.spawnWorldNPCs(worldGroup, [
         { name: 'Chef Hiroshi', pos: new THREE.Vector3(-8.2, 0, -30.5), baseRot: 0, waveOnNear: true,
           line: 'Irasshaimase! Fresh lakeside tamago & salmon sushi ready at Sakura Sushi!',
-          char: { scale: 1.0, hairColor: 0x262626, topColor: 0xffffff, bottomColor: 0x1e293b, pants: true, headband: true, faceOpts: { mustache: true } } },
+          char: { scale: 1.0, hairColor: 0x262626, topColor: 0xffffff, bottomColor: 0x1e293b, pants: true, headband: true,
+            faceOpts: { mustache: true, eyeColor: '#362014', eyeHighlight: '#8e5a32', blush: 'rgba(232, 128, 118, 0.28)' } } },
         { name: 'Hana', pos: new THREE.Vector3(-6.2, 0, 2.0), baseRot: Math.PI / 2, waveOnNear: true,
           line: 'Follow the stone path west to the Zen Rock Garden & Craft Village, or step inside your 3D Ryokan!',
-          char: { scale: 0.92, hairColor: 0x2c1b18, topColor: 0xd62828, bottomColor: 0x8f1d21, hairBun: true, hatType: 'kanzashi', hatColor: 0xffb3c6 } },
+          char: { scale: 0.92, hairColor: 0x2c1b18, topColor: 0xd62828, bottomColor: 0x8f1d21, hairBun: true, hatType: 'kanzashi', hatColor: 0xffb3c6,
+            faceOpts: { eyeColor: '#692434', eyeHighlight: '#e07a94', blush: 'rgba(250, 128, 152, 0.50)' } } },
         { name: 'Auntie Midori', pos: new THREE.Vector3(6.2, 0, -5.0), baseRot: -Math.PI / 2, waveOnNear: true,
           line: 'Ohayo! Cross any of our 3 willow canal bridges to reach Kyoto Blossom Park & the Foothill Hamlet!',
-          char: { scale: 0.94, hairColor: 0x4a3b32, topColor: 0x74c69d, bottomColor: 0x2d6a4f, hairBun: true, faceOpts: { glasses: true } } },
+          char: { scale: 0.94, hairColor: 0x4a3b32, topColor: 0x74c69d, bottomColor: 0x2d6a4f, hairBun: true,
+            faceOpts: { glasses: true, eyeColor: '#255c42', eyeHighlight: '#6cc494', blush: 'rgba(244, 134, 146, 0.42)' } } },
         { name: 'Sensei Kenji', pos: new THREE.Vector3(6.2, 0, -21.0), baseRot: -Math.PI / 2,
           line: 'Welcome to Kyoto Temple Academy! Test your Kyoto knowledge for XP & coins!',
-          char: { scale: 0.98, hairColor: 0x9ca3af, topColor: 0x3b6ea5, bottomColor: 0x1e293b, pants: true, faceOpts: { elder: true, glasses: true, mustache: true } } },
+          char: { scale: 0.98, hairColor: 0x9ca3af, topColor: 0x3b6ea5, bottomColor: 0x1e293b, pants: true,
+            faceOpts: { elder: true, glasses: true, mustache: true, eyeColor: '#3d332a', eyeHighlight: '#8a7660', blush: 'rgba(224, 132, 122, 0.24)' } } },
         { name: 'Miko Aiko', pos: new THREE.Vector3(-42.5, 0.75, -24.5), baseRot: Math.PI / 2, waveOnNear: true,
           line: 'Welcome to Sakurako Shrine! Draw a lucky Omikuji fortune or hang an Ema wish!',
-          char: { scale: 0.92, hairColor: 0x1f191a, topColor: 0xffffff, bottomColor: 0xd62828, longHair: true } },
+          char: { scale: 0.92, hairColor: 0x1f191a, topColor: 0xffffff, bottomColor: 0xd62828, longHair: true,
+            faceOpts: { eyeColor: '#3b245c', eyeHighlight: '#a67de0', blush: 'rgba(248, 128, 152, 0.48)' } } },
         { name: 'Ren', pos: new THREE.Vector3(-3.4, 0, -6.0), patrol: { axis: 'z', center: -6.0, range: 6.5, speed: 0.85 },
           line: '5 kitsune hide across 20 natural Kyoto spots — and 2 hours after you find them all, they hide in brand-new places!',
-          char: { scale: 0.88, hairColor: 0x382820, topColor: 0x2a9d8f, bottomColor: 0x264653, pants: true, backpackColor: 0xe9c46a } }
+          char: { scale: 0.88, hairColor: 0x382820, topColor: 0x2a9d8f, bottomColor: 0x264653, pants: true, backpackColor: 0xe9c46a,
+            faceOpts: { eyeColor: '#1f5452', eyeHighlight: '#5ec2b6', blush: 'rgba(236, 132, 132, 0.30)' } } }
       ]);
 
-      // AAA 6,500 wind-swept 3D instanced grass tufts across Kyoto open meadows (1 GPU draw call!)
+      // AAA 16,000 wind-swept 3D instanced grass tufts across Kyoto open meadows (1 GPU draw call!)
       if (LS.isHD && LS.hdAssets && LS.hdAssets.addInstancedGrass) {
         const laneSp = SC.sampleSpline(KYOTO_LANE_PTS, 5);
         const streamSp = SC.sampleSpline(KYOTO_STREAM_PTS, 5);
@@ -920,20 +1149,51 @@ window.LailaSalma = window.LailaSalma || {};
         const dx = nx - k.mesh.position.x, dz = nz - k.mesh.position.z;
         k.mesh.position.x += dx * Math.min(1, dt * 3.2); k.mesh.position.z += dz * Math.min(1, dt * 3.2);
         k.mesh.rotation.y = Math.atan2(dx, dz);
+        if (k.tail) k.tail.rotation.y = Math.sin(elapsed * (feeding ? 11.5 : 7.2) + k.phase) * 0.42;
       });
+      let mamaDuck = null;
       W.duckList.forEach((d, idx) => {
+        if (d.isMama) mamaDuck = d;
         const ang = elapsed * d.speed + d.phase;
-        const nx = d.cx + Math.cos(ang) * d.r, nz = d.cz + Math.sin(ang) * d.r * 0.7;
+        const nx = d.cx + Math.cos(ang) * d.r, nz = d.cz + Math.sin(ang) * d.r * 0.72;
         const dx = nx - d.mesh.position.x, dz = nz - d.mesh.position.z;
         d.mesh.position.x = nx; d.mesh.position.z = nz;
-        d.mesh.position.y = -0.44 + Math.sin(elapsed * 3.2 + idx) * 0.03;
+        d.mesh.position.y = -0.40 + Math.sin(elapsed * 3.0 + idx) * 0.025;
         d.mesh.rotation.y = Math.atan2(dx, dz);
+        d.mesh.rotation.z = Math.sin(elapsed * 2.6 + idx) * 0.05;
+        if (d.wake) {
+          const wp = (elapsed * 0.65 + idx * 0.35) % 1;
+          d.wake.scale.setScalar(0.85 + wp * 1.35);
+          d.wake.material.opacity = (1 - wp) * 0.48;
+        }
       });
+      if (mamaDuck && W.ducklings) {
+        W.ducklings.forEach(dl => {
+          const ang = elapsed * mamaDuck.speed + mamaDuck.phase - dl.lag;
+          const nx = mamaDuck.cx + Math.cos(ang) * mamaDuck.r, nz = mamaDuck.cz + Math.sin(ang) * mamaDuck.r * 0.72;
+          const dx = nx - dl.mesh.position.x, dz = nz - dl.mesh.position.z;
+          dl.mesh.position.x = nx; dl.mesh.position.z = nz;
+          dl.mesh.position.y = -0.40 + Math.sin(elapsed * 4.4 + dl.phase) * 0.02;
+          dl.mesh.rotation.y = Math.atan2(dx, dz);
+          if (dl.wake) {
+            const wp = (elapsed * 0.85 + dl.phase) % 1;
+            dl.wake.scale.setScalar(0.8 + wp * 1.15);
+            dl.wake.material.opacity = (1 - wp) * 0.38;
+          }
+        });
+      }
+      if (W.waterfallRings) {
+        W.waterfallRings.forEach((wr, i) => {
+          const p = (elapsed * 1.1 + i * 0.33) % 1;
+          wr.scale.setScalar(0.65 + p * 3.1);
+          wr.material.opacity = (1 - p) * 0.62;
+        });
+      }
       W.rippleRings.forEach((ring, i) => {
         if (feeding) { const p = (elapsed * 1.8 + i * 0.4) % 1; ring.scale.setScalar(0.7 + p * 2.8); ring.material.opacity = (1 - p) * 0.75; }
         else { ring.material.opacity = 0; }
       });
-      if (W.rowboat) { W.rowboat.position.y = -0.36 + Math.sin(elapsed * 1.8) * 0.04; W.rowboat.rotation.z = Math.sin(elapsed * 1.3) * 0.04; }
+      if (W.rowboat) { W.rowboat.position.y = -0.40 + Math.sin(elapsed * 1.8) * 0.03; W.rowboat.rotation.z = Math.sin(elapsed * 1.3) * 0.035; }
       W.bambooStalks.forEach(b => { b.mesh.rotation.z = Math.sin(elapsed * 1.1 + b.phase) * 0.035; });
       if (W.shinkansenTrain) W.shinkansenTrain.position.x = Math.sin(elapsed * 0.24) * 3.8;
       if (W.petals) {
