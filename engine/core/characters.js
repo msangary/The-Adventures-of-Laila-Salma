@@ -417,43 +417,175 @@ window.LailaSalma = window.LailaSalma || {};
     }
   };
 
-  function createShibaInu() {
-    const g = new THREE.Group();
+  function buildShibaVisuals() {
+    const visual = new THREE.Group();
+    if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_shiba')) {
+      const mdl = LS.hdAssets.clone('anime_shiba');
+      mdl.scale.setScalar(1.06);
+      visual.add(mdl);
+      return visual;
+    }
     const fur = LS.makeToonMat(0xd98a3b);
     const cream = LS.makeToonMat(0xfae8cd);
+    const dark = LS.makeToonMat(0x1f1714);
+    const pink = LS.makeToonMat(0xf09fa4);
+    const scarf = LS.makeToonMat(0xd63031);
+    const gold = LS.makeToonMat(0xfacc15);
 
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.32, 0.65), fur);
-    body.position.y = 0.36;
-    body.castShadow = true;
-    g.add(body);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 10), fur);
+    body.scale.set(0.86, 0.78, 1.48); body.position.y = 0.41; body.castShadow = true; visual.add(body);
+    const chest = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), cream);
+    chest.position.set(0, 0.42, 0.24); visual.add(chest);
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.036, 8, 16), scarf);
+    collar.rotation.x = Math.PI / 2 + 0.25; collar.position.set(0, 0.50, 0.26); visual.add(collar);
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.044, 10, 8), gold);
+    bell.position.set(0, 0.43, 0.40); visual.add(bell);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), fur);
-    head.position.set(0, 0.56, 0.34);
-    g.add(head);
-
-    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), cream);
-    snout.position.set(0, 0.52, 0.5);
-    g.add(snout);
-
-    [-0.12, 0.12].forEach(ex => {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.16, 6), fur);
-      ear.position.set(ex, 0.76, 0.32);
-      g.add(ear);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.215, 16, 12), fur);
+    head.position.set(0, 0.65, 0.34); head.castShadow = true; visual.add(head);
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), cream);
+    snout.scale.set(0.95, 0.78, 1.15); snout.position.set(0, 0.59, 0.51); visual.add(snout);
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.036, 8, 6), dark);
+    nose.position.set(0, 0.62, 0.61); visual.add(nose);
+    [-0.092, 0.092].forEach(ex => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), dark); eye.position.set(ex, 0.68, 0.51); visual.add(eye);
+      const sp = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); sp.position.set(ex * 1.08, 0.692, 0.532); visual.add(sp);
+      const brow = new THREE.Mesh(new THREE.SphereGeometry(0.024, 6, 6), cream); brow.scale.set(1.2, 0.65, 0.6); brow.position.set(ex * 0.92, 0.74, 0.49); visual.add(brow);
     });
-
-    const tail = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.04, 6, 12, Math.PI * 1.4), fur);
-    tail.position.set(0, 0.52, -0.34);
-    tail.rotation.y = Math.PI / 2;
-    g.add(tail);
-
-    [[-0.11, 0.2], [0.11, 0.2], [-0.11, -0.2], [0.11, -0.2]].forEach(lp => {
-      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.28, 8), cream);
-      leg.position.set(lp[0], 0.14, lp[1]);
-      g.add(leg);
+    [-0.135, 0.135].forEach(ex => {
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.072, 0.17, 7), fur); ear.position.set(ex, 0.85, 0.31); ear.rotation.z = ex < 0 ? 0.22 : -0.22; visual.add(ear);
+      const ein = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.12, 6), pink); ein.position.set(ex, 0.84, 0.34); ein.rotation.z = ex < 0 ? 0.22 : -0.22; visual.add(ein);
     });
+    const tail = new THREE.Mesh(new THREE.TorusGeometry(0.10, 0.045, 8, 14, Math.PI * 1.5), fur);
+    tail.position.set(0, 0.58, -0.30); tail.rotation.y = Math.PI / 2; visual.add(tail);
+    [[-0.115, 0.20], [0.115, 0.20], [-0.115, -0.20], [0.115, -0.20]].forEach(lp => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.28, 8), cream); leg.position.set(lp[0], 0.14, lp[1]); visual.add(leg);
+      const paw = new THREE.Mesh(new THREE.SphereGeometry(0.052, 8, 6), cream); paw.scale.set(1, 0.62, 1.3); paw.position.set(lp[0], 0.032, lp[1] + 0.02); visual.add(paw);
+    });
+    return visual;
+  }
 
+  function createShibaInu() {
+    const g = new THREE.Group();
+    const vis = buildShibaVisuals();
+    g.userData.visualSlot = vis;
+    g.add(vis);
     return g;
   }
+
+  LS.refreshMochiHD = function () {
+    if (!LS.chars.mochi || !LS.isHD || !LS.hdAssets || !LS.hdAssets.has('anime_shiba')) return;
+    const oldVis = LS.chars.mochi.userData.visualSlot;
+    if (oldVis) LS.chars.mochi.remove(oldVis);
+    const newVis = buildShibaVisuals();
+    LS.chars.mochi.userData.visualSlot = newVis;
+    LS.chars.mochi.add(newVis);
+  };
+
+  LS.createCatModel = function (coatHex, accentHex, opts) {
+    const cfg = opts || {};
+    const root = new THREE.Group();
+    const s = cfg.scale || 1.0;
+    const furMat = LS.makeToonMat(coatHex !== undefined ? coatHex : 0xe89643);
+    const accMat = LS.makeToonMat(accentHex !== undefined ? accentHex : 0xfff3d6);
+    const collarHex = cfg.collarColor || 0xe04858;
+
+    if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_cat')) {
+      const mdl = LS.hdAssets.clone('anime_cat', {
+        furTint: coatHex,
+        accentTint: accentHex,
+        collarTint: collarHex
+      });
+      mdl.scale.setScalar(1.08);
+      root.add(mdl);
+    } else {
+      const pinkMat = LS.makeToonMat(0xf5a6b8);
+      const eyeMat = LS.makeToonMat(0x2a7a42);
+      const darkMat = LS.makeToonMat(0x161210);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 10), furMat); body.scale.set(0.9, 1.05, 1.1); body.position.set(0, 0.22, -0.04); body.castShadow = true; root.add(body);
+      const chest = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), accMat); chest.position.set(0, 0.24, 0.10); root.add(chest);
+      [-0.075, 0.075].forEach(px => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.042, 0.20, 8), furMat); leg.position.set(px, 0.13, 0.13); root.add(leg);
+        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), accMat); paw.scale.set(1, 0.65, 1.25); paw.position.set(px, 0.03, 0.16); root.add(paw);
+      });
+      const collar = new THREE.Mesh(new THREE.TorusGeometry(0.115, 0.025, 8, 14), LS.makeToonMat(collarHex)); collar.rotation.x = Math.PI / 2 + 0.15; collar.position.set(0, 0.36, 0.08); root.add(collar);
+      const bell = new THREE.Mesh(new THREE.SphereGeometry(0.036, 8, 6), LS.makeToonMat(0xfacc15)); bell.position.set(0, 0.34, 0.19); root.add(bell);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.175, 14, 10), furMat); head.position.set(0, 0.49, 0.10); head.castShadow = true; root.add(head);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.024, 8, 6), pinkMat); nose.position.set(0, 0.47, 0.265); root.add(nose);
+      [-0.08, 0.08].forEach(ex => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.034, 8, 6), eyeMat); eye.position.set(ex, 0.51, 0.24); root.add(eye);
+        const pup = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), darkMat); pup.scale.set(0.65, 1.3, 0.8); pup.position.set(ex, 0.51, 0.262); root.add(pup);
+        const sp = new THREE.Mesh(new THREE.SphereGeometry(0.011, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); sp.position.set(ex * 1.12, 0.525, 0.268); root.add(sp);
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.062, 0.145, 6), furMat); ear.position.set(ex * 1.35, 0.65, 0.085); ear.rotation.z = ex < 0 ? 0.22 : -0.22; root.add(ear);
+        const ein = new THREE.Mesh(new THREE.ConeGeometry(0.036, 0.10, 5), pinkMat); ein.position.set(ex * 1.32, 0.64, 0.105); ein.rotation.z = ex < 0 ? 0.22 : -0.22; root.add(ein);
+      });
+    }
+
+    // Articulated gently-curved animated cat tail!
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.16, -0.22);
+    const tSeg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.038, 0.26, 8), furMat);
+    tSeg1.position.set(0, 0.11, -0.07); tSeg1.rotation.x = -0.48; tailPivot.add(tSeg1);
+    const tSeg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.030, 0.22, 8), furMat);
+    tSeg2.position.set(0, 0.28, -0.14); tSeg2.rotation.x = -0.15; tailPivot.add(tSeg2);
+    const tTip = new THREE.Mesh(new THREE.SphereGeometry(0.034, 8, 6), accMat);
+    tTip.position.set(0, 0.39, -0.16); tailPivot.add(tTip);
+    root.add(tailPivot);
+
+    root.scale.setScalar(s);
+    return { root, tail: tailPivot };
+  };
+
+  LS.createKitsuneModel = function (coatHex, tipHex, opts) {
+    const cfg = opts || {};
+    const root = new THREE.Group();
+    const s = cfg.scale || 1.0;
+    const furMat = LS.makeToonMat(coatHex !== undefined ? coatHex : 0xf77f00);
+    const tipMat = LS.makeToonMat(tipHex !== undefined ? tipHex : 0xffffff);
+
+    if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_kitsune')) {
+      const mdl = LS.hdAssets.clone('anime_kitsune', {
+        furTint: coatHex,
+        accentTint: 0xfff8ee
+      });
+      mdl.scale.setScalar(1.10);
+      root.add(mdl);
+    } else {
+      const bibMat = LS.makeToonMat(0xd62828);
+      const darkMat = LS.makeToonMat(0x1f1714);
+      const eyeMat = LS.makeToonMat(0xe05a1e);
+      const creamMat = LS.makeToonMat(0xfff8ee);
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 10), furMat); body.scale.set(0.84, 1.15, 1.08); body.position.set(0, 0.26, -0.04); body.castShadow = true; root.add(body);
+      const bib = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.20, 8), bibMat); bib.position.set(0, 0.36, 0.16); bib.rotation.x = 0.35; root.add(bib);
+      const bell = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 6), LS.makeToonMat(0xfacc15)); bell.position.set(0, 0.38, 0.23); root.add(bell);
+      [-0.072, 0.072].forEach(px => {
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.038, 0.24, 8), furMat); leg.position.set(px, 0.15, 0.13); root.add(leg);
+        const paw = new THREE.Mesh(new THREE.SphereGeometry(0.040, 8, 6), darkMat); paw.scale.set(1, 0.65, 1.3); paw.position.set(px, 0.03, 0.16); root.add(paw);
+      });
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 10), furMat); head.position.set(0, 0.56, 0.10); head.castShadow = true; root.add(head);
+      const snout = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.22, 8), creamMat); snout.rotation.x = Math.PI / 2; snout.position.set(0, 0.53, 0.29); root.add(snout);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), darkMat); nose.position.set(0, 0.54, 0.40); root.add(nose);
+      [-0.078, 0.078].forEach(ex => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), eyeMat); eye.position.set(ex, 0.58, 0.24); root.add(eye);
+        const sp = new THREE.Mesh(new THREE.SphereGeometry(0.011, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff })); sp.position.set(ex * 1.1, 0.59, 0.264); root.add(sp);
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.064, 0.22, 7), furMat); ear.position.set(ex * 1.35, 0.76, 0.085); ear.rotation.z = ex < 0 ? 0.18 : -0.18; root.add(ear);
+      });
+    }
+
+    // Lush animated multi-lobe fluffy kitsune fox tail with contrasting tip!
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 0.22, -0.22);
+    const tBase = new THREE.Mesh(new THREE.SphereGeometry(0.115, 10, 8), furMat);
+    tBase.scale.set(0.85, 0.95, 1.55); tBase.position.set(0, 0.09, -0.12); tBase.rotation.x = 0.48; tBase.castShadow = true; tailPivot.add(tBase);
+    const tMid = new THREE.Mesh(new THREE.SphereGeometry(0.135, 10, 8), furMat);
+    tMid.scale.set(0.92, 1.0, 1.45); tMid.position.set(0, 0.22, -0.26); tMid.rotation.x = 0.62; tMid.castShadow = true; tailPivot.add(tMid);
+    const tTip = new THREE.Mesh(new THREE.ConeGeometry(0.115, 0.26, 9), tipMat);
+    tTip.position.set(0, 0.36, -0.39); tTip.rotation.x = -0.82; tailPivot.add(tTip);
+    root.add(tailPivot);
+
+    root.scale.setScalar(s);
+    return { root, tail: tailPivot };
+  };
 
   LS.initCoreCharacters = function (scene) {
     LS.chars.laila = LS.createAnimeCharacter({

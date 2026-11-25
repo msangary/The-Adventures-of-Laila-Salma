@@ -17,7 +17,10 @@ window.LailaSalma = window.LailaSalma || {};
     anime_vending: 'assets/hd/anime_vending.glb',
     anime_bike: 'assets/hd/anime_bike.glb',
     anime_duck_mallard: 'assets/hd/anime_duck_mallard.glb',
-    anime_duck_white: 'assets/hd/anime_duck_white.glb'
+    anime_duck_white: 'assets/hd/anime_duck_white.glb',
+    anime_shiba: 'assets/hd/anime_shiba.glb',
+    anime_cat: 'assets/hd/anime_cat.glb',
+    anime_kitsune: 'assets/hd/anime_kitsune.glb'
   };
 
   const cache = {};
@@ -347,7 +350,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (!src) return null;
       const cloned = src.clone(true);
       const cfg = opts || {};
-      if (cfg.wallTint || cfg.roofTint || cfg.tint) {
+      if (cfg.wallTint || cfg.roofTint || cfg.furTint !== undefined || cfg.accentTint !== undefined || cfg.collarTint !== undefined || cfg.tint) {
         cloned.traverse(o => {
           if (!o.isMesh || !o.material) return;
           const nm = (o.material.name || '').toLowerCase();
@@ -357,6 +360,15 @@ window.LailaSalma = window.LailaSalma || {};
           } else if (cfg.roofTint && (nm.indexOf('kawara') >= 0 || nm.indexOf('tile') >= 0)) {
             o.material = o.material.clone();
             o.material.color.set(cfg.roofTint);
+          } else if (cfg.furTint !== undefined && (nm.indexOf('cat_fur') >= 0 || nm.indexOf('fox_fur') >= 0)) {
+            o.material = o.material.clone();
+            o.material.color.set(cfg.furTint);
+          } else if (cfg.accentTint !== undefined && (nm.indexOf('cat_accent') >= 0 || nm.indexOf('fox_tip') >= 0)) {
+            o.material = o.material.clone();
+            o.material.color.set(cfg.accentTint);
+          } else if (cfg.collarTint !== undefined && nm.indexOf('cat_collar') >= 0) {
+            o.material = o.material.clone();
+            o.material.color.set(cfg.collarTint);
           } else if (cfg.tint) {
             o.material = o.material.clone();
             o.material.color.multiply(new THREE.Color(cfg.tint));

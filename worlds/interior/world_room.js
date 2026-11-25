@@ -279,24 +279,15 @@ window.LailaSalma = window.LailaSalma || {};
       W.petMeshes = [];
       const foundList = isKyoto ? LS.state.foundKitsune : LS.state.foundCats;
       const palette = isKyoto
-        ? [0xf77f00, 0xfff8f0, 0xe76f51, 0xffb703, 0xfffcf7]
-        : [0xe89643, 0x2a2d36, 0xfaf7f2, 0xf4b678, 0x8b95a5];
+        ? [[0xf77f00, 0xffffff], [0xfff8f0, 0xe63946], [0xe76f51, 0xfff3d6], [0xffb703, 0xffffff], [0xfffcf7, 0xff8fab]]
+        : [[0xe89643, 0xfff3d6], [0x2c303a, 0xf4e4c4], [0xfaf7f2, 0xffe4ec], [0xf4b678, 0xfff8ec], [0x8b95a5, 0xffffff]];
       foundList.slice(0, 5).forEach((fid, idx) => {
-        const pg = new THREE.Group();
+        const pair = palette[idx % palette.length];
+        const built = isKyoto
+          ? LS.createKitsuneModel(pair[0], pair[1], { scale: 0.78 })
+          : LS.createCatModel(pair[0], pair[1], { scale: 0.80 });
+        const pg = built.root;
         pg.position.set(1.1 + idx * 0.65, 0.14, -3.7);
-        const fur = LS.makeToonMat(palette[idx % palette.length]);
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), fur);
-        body.scale.set(1.15, 0.78, 1.0);
-        body.position.y = 0.16;
-        pg.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), fur);
-        head.position.set(0, 0.28, 0.14);
-        pg.add(head);
-        [-0.07, 0.07].forEach(ex => {
-          const ear = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.11, 5), fur);
-          ear.position.set(ex, 0.42, 0.14);
-          pg.add(ear);
-        });
         petGroup.add(pg);
         W.petMeshes.push(pg);
       });

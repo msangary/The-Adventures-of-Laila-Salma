@@ -1319,6 +1319,7 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     const bootWorld = () => {
+      if (LS.refreshMochiHD) LS.refreshMochiHD();
       LS.loadWorld(startWorld, false);
       if (LS.isHD) {
         dirLight.position.set(34, 24, 18);

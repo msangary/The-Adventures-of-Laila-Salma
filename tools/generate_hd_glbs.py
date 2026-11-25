@@ -983,8 +983,177 @@ def build_anime_duck(filename, variant="mallard"):
     b.save_glb(os.path.join(OUT_DIR, filename))
 
 
+def make_fur_tex(base=(232, 224, 212), streak=(196, 184, 168), size=128):
+    img = Image.new("RGBA", (size, size), base + (255,))
+    draw = ImageDraw.Draw(img)
+    for i in range(420):
+        x = int(hash01(i * 3.7 + 1.1) * size)
+        y = int(hash01(i * 7.3 + 2.5) * size)
+        ln = int(4 + hash01(i * 2.9) * 8)
+        draw.line([(x, y), (x + int((hash01(i) - 0.5) * 4), y + ln)], fill=streak + (165,), width=2)
+    return img
+
+
+def build_anime_shiba():
+    """Sculpted Studio Ghibli Shiba Inu (Mochi) with urajiro cream markings, maro eyebrows, red scarf, gold bell & curled tail!"""
+    b = GLBBuilder()
+    m_fur = b.add_material("shiba_fur", (1, 1, 1, 1), make_fur_tex((224, 146, 68), (186, 112, 46)), normal_strength=1.4, roughness=0.76)
+    m_cream = b.add_material("shiba_cream", (1, 1, 1, 1), make_fur_tex((252, 240, 216), (230, 212, 184)), normal_strength=1.1, roughness=0.78)
+    m_ear_in = b.add_material("ear_pink", (0.94, 0.72, 0.70, 1), roughness=0.78)
+    m_collar = b.add_material("shiba_scarf", (0.84, 0.20, 0.22, 1), roughness=0.60)
+    m_bell = b.add_material("gold_bell_metal", (0.98, 0.80, 0.22, 1), roughness=0.22, metallic=0.78)
+    m_dark = b.add_material("nose_dark", (0.12, 0.09, 0.08, 1), roughness=0.22, metallic=0.12)
+    m_eye = b.add_material("dog_eye_glass", (0.09, 0.06, 0.05, 1), roughness=0.10, metallic=0.15)
+    m_shine = b.add_material("eye_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.90, 0.90, 0.90))
+    m_tongue = b.add_material("pink_tongue", (0.96, 0.48, 0.54, 1), roughness=0.45)
+
+    # Contoured Shiba torso (facing +Z, paws at y=0)
+    b.add_ellipsoid(m_fur, 0.0, 0.41, 0.0, 0.205, 0.185, 0.36, segs=18, rings=12)
+    # Fluffy cream urajiro chest & underbelly
+    b.add_ellipsoid(m_cream, 0.0, 0.34, 0.04, 0.165, 0.135, 0.31, segs=14, rings=10)
+    b.add_ellipsoid(m_cream, 0.0, 0.44, 0.26, 0.175, 0.165, 0.16, segs=16, rings=10)
+    # Rounded haunches
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.125, 0.38, -0.22, 0.105, 0.145, 0.145, segs=12, rings=8)
+
+    # 4 tapered legs with cream sock paws!
+    for lx, lz in [(-0.115, 0.20), (0.115, 0.20), (-0.12, -0.21), (0.12, -0.21)]:
+        b.add_cylinder(m_fur, lx, 0.22, lz, 0.048, 0.058, 0.20, segs=10)
+        b.add_cylinder(m_cream, lx, 0.08, lz, 0.044, 0.048, 0.12, segs=10)
+        b.add_ellipsoid(m_cream, lx, 0.032, lz + 0.025, 0.052, 0.034, 0.068, segs=10, rings=6)
+
+    # Iconic festive red bandana scarf + dangling shiny golden bell!
+    b.add_cylinder(m_collar, 0.0, 0.50, 0.26, 0.155, 0.145, 0.085, segs=16, rx=0.28)
+    b.add_ellipsoid(m_collar, 0.0, 0.43, 0.38, 0.105, 0.095, 0.055, segs=10, rings=6, rx=0.45)
+    b.add_ellipsoid(m_bell, 0.0, 0.42, 0.425, 0.044, 0.044, 0.044, segs=12, rings=8)
+
+    # Plump Shiba Inu head with fluffy cream cheek puffs!
+    b.add_ellipsoid(m_fur, 0.0, 0.65, 0.34, 0.215, 0.195, 0.205, segs=18, rings=12)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_cream, side * 0.125, 0.59, 0.425, 0.105, 0.095, 0.095, segs=12, rings=8)
+    # Cream muzzle, glossy black button nose & happy pink smile tongue!
+    b.add_ellipsoid(m_cream, 0.0, 0.595, 0.515, 0.095, 0.075, 0.115, segs=14, rings=8)
+    b.add_ellipsoid(m_dark, 0.0, 0.625, 0.618, 0.038, 0.028, 0.030, segs=10, rings=6)
+    b.add_ellipsoid(m_tongue, 0.0, 0.545, 0.575, 0.032, 0.020, 0.042, segs=8, rings=6, rx=0.45)
+
+    # Expressive glossy anime Shiba eyes + catchlights + iconic white Shiba "maro" eyebrow dots!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_eye, side * 0.095, 0.685, 0.515, 0.035, 0.038, 0.026, segs=10, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.103, 0.698, 0.534, 0.014, 0.016, 0.010, segs=8, rings=6)
+        b.add_ellipsoid(m_cream, side * 0.088, 0.745, 0.492, 0.028, 0.016, 0.018, segs=8, rings=6)
+
+    # Perky triangular Shiba ears with warm pink inner ear
+    for side in (-1, 1):
+        b.add_cylinder(m_fur, side * 0.145, 0.855, 0.31, 0.076, 0.016, 0.18, segs=8, rx=0.14, rz=side * -0.24)
+        b.add_cylinder(m_ear_in, side * 0.142, 0.848, 0.338, 0.046, 0.010, 0.13, segs=8, rx=0.14, rz=side * -0.24)
+
+    # Iconic curled fluffy Shiba donut tail tucked proudly over the back!
+    b.add_ellipsoid(m_fur, 0.0, 0.56, -0.34, 0.085, 0.105, 0.115, segs=12, rings=8, rx=0.45)
+    b.add_ellipsoid(m_cream, 0.0, 0.64, -0.28, 0.075, 0.085, 0.095, segs=12, rings=8)
+    b.add_ellipsoid(m_fur, 0.0, 0.62, -0.20, 0.068, 0.068, 0.075, segs=10, rings=6)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_shiba.glb"))
+
+
+def build_anime_cat():
+    """Sculpted Seated Studio Ghibli Cat with tintable coat/accent materials, expressive eyes, collar & bell!"""
+    b = GLBBuilder()
+    # Neutral white-tinted fur textures so JS clone() tints Mikan, Kuro, Yuki, Sakura & Tama vividly!
+    m_fur = b.add_material("cat_fur", (1, 1, 1, 1), make_fur_tex((246, 244, 240), (218, 214, 208)), normal_strength=1.3, roughness=0.76)
+    m_accent = b.add_material("cat_accent", (1, 1, 1, 1), make_fur_tex((248, 246, 242), (226, 222, 216)), normal_strength=1.0, roughness=0.78)
+    m_ear_in = b.add_material("cat_pink", (0.96, 0.72, 0.76, 1), roughness=0.72)
+    m_collar = b.add_material("cat_collar", (0.88, 0.24, 0.32, 1), roughness=0.55)
+    m_bell = b.add_material("cat_bell_metal", (0.98, 0.82, 0.24, 1), roughness=0.22, metallic=0.78)
+    m_eye = b.add_material("cat_eye_glass", (0.14, 0.44, 0.24, 1), roughness=0.10, metallic=0.18)
+    m_pupil = b.add_material("cat_pupil", (0.06, 0.05, 0.05, 1), roughness=0.10)
+    m_shine = b.add_material("cat_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.92, 0.92, 0.92))
+
+    # Graceful seated feline body (facing +X to match existing Tokyo cat orientation!)
+    # Wait: let's orient facing +Z cleanly and rotate in JS or match +Z! Facing +Z is standard & super clean.
+    b.add_ellipsoid(m_fur, 0.0, 0.22, -0.04, 0.175, 0.205, 0.22, segs=16, rings=12, rx=0.16)
+    # Fluffy accent chest bib & tucked haunches
+    b.add_ellipsoid(m_accent, 0.0, 0.24, 0.11, 0.12, 0.145, 0.11, segs=14, rings=8)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.13, 0.13, -0.09, 0.095, 0.115, 0.145, segs=12, rings=8)
+        # Neat seated front legs + cute accent mittens!
+        b.add_cylinder(m_fur, side * 0.075, 0.14, 0.135, 0.036, 0.044, 0.20, segs=10)
+        b.add_ellipsoid(m_accent, side * 0.075, 0.032, 0.165, 0.044, 0.030, 0.058, segs=10, rings=6)
+
+    # Ribbon collar + shiny golden cat bell
+    b.add_cylinder(m_collar, 0.0, 0.365, 0.08, 0.115, 0.112, 0.048, segs=16, rx=0.18)
+    b.add_ellipsoid(m_bell, 0.0, 0.34, 0.19, 0.038, 0.038, 0.038, segs=10, rings=8)
+
+    # Cute plump feline head with fluffy cheek tufts!
+    b.add_ellipsoid(m_fur, 0.0, 0.49, 0.10, 0.175, 0.155, 0.165, segs=18, rings=12)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_accent, side * 0.075, 0.445, 0.22, 0.068, 0.052, 0.058, segs=10, rings=6)
+    # Tiny cute pink cat nose
+    b.add_ellipsoid(m_ear_in, 0.0, 0.468, 0.268, 0.026, 0.018, 0.020, segs=8, rings=6)
+
+    # Big luminous anime cat eyes + vertical pupil + bright white sparkles!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_eye, side * 0.082, 0.51, 0.235, 0.038, 0.042, 0.025, segs=10, rings=8)
+        b.add_ellipsoid(m_pupil, side * 0.083, 0.51, 0.252, 0.016, 0.032, 0.014, segs=8, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.095, 0.525, 0.260, 0.013, 0.015, 0.010, segs=8, rings=6)
+
+    # Pointed triangular cat ears with soft pink inner ear
+    for side in (-1, 1):
+        b.add_cylinder(m_fur, side * 0.115, 0.65, 0.085, 0.066, 0.012, 0.15, segs=7, rz=side * -0.22)
+        b.add_cylinder(m_ear_in, side * 0.112, 0.645, 0.106, 0.040, 0.008, 0.11, segs=7, rz=side * -0.22)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_cat.glb"))
+
+
+def build_anime_kitsune():
+    """Sculpted Mystical Kyoto Shrine Kitsune Fox with vermilion Inari bib, gold bell, sleek snout & tall ears!"""
+    b = GLBBuilder()
+    m_fur = b.add_material("fox_fur", (1, 1, 1, 1), make_fur_tex((246, 244, 240), (218, 212, 204)), normal_strength=1.4, roughness=0.74)
+    m_tip = b.add_material("fox_tip", (1, 1, 1, 1), make_fur_tex((252, 250, 246), (232, 228, 222)), normal_strength=1.0, roughness=0.76)
+    m_bib = b.add_material("kitsune_bib", (0.84, 0.16, 0.18, 1), roughness=0.58)
+    m_bell = b.add_material("fox_bell_metal", (0.98, 0.82, 0.22, 1), roughness=0.22, metallic=0.80)
+    m_dark = b.add_material("fox_dark", (0.12, 0.09, 0.09, 1), roughness=0.30)
+    m_ear_in = b.add_material("fox_pink", (0.95, 0.70, 0.72, 1), roughness=0.72)
+    m_eye = b.add_material("fox_eye_glass", (0.86, 0.36, 0.12, 1), roughness=0.10, metallic=0.20)
+    m_shine = b.add_material("fox_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.94, 0.92, 0.86))
+
+    # Graceful seated shrine fox torso (facing +Z, paws at y=0)
+    b.add_ellipsoid(m_fur, 0.0, 0.26, -0.05, 0.165, 0.23, 0.22, segs=16, rings=12, rx=0.14)
+    # Fluffy chest ruff & slender tucked haunches
+    b.add_ellipsoid(m_tip, 0.0, 0.31, 0.10, 0.135, 0.145, 0.12, segs=14, rings=8)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.125, 0.14, -0.10, 0.092, 0.125, 0.145, segs=12, rings=8)
+        b.add_cylinder(m_fur, side * 0.072, 0.16, 0.135, 0.032, 0.042, 0.24, segs=10)
+        b.add_ellipsoid(m_dark, side * 0.072, 0.030, 0.165, 0.038, 0.028, 0.054, segs=10, rings=6)
+
+    # Traditional vermilion Inari shrine bib (yodarekake) + golden cord & shrine bell!
+    b.add_cylinder(m_bib, 0.0, 0.425, 0.09, 0.122, 0.115, 0.055, segs=16, rx=0.22)
+    b.add_ellipsoid(m_bib, 0.0, 0.34, 0.195, 0.125, 0.115, 0.058, segs=12, rings=8, rx=0.35)
+    b.add_ellipsoid(m_bell, 0.0, 0.375, 0.238, 0.038, 0.038, 0.038, segs=10, rings=8)
+
+    # Sleek vulpine head with tapered fox snout & fluffy cheek ruffs!
+    b.add_ellipsoid(m_fur, 0.0, 0.56, 0.10, 0.165, 0.145, 0.175, segs=18, rings=12)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_tip, side * 0.12, 0.515, 0.14, 0.088, 0.068, 0.078, segs=10, rings=6)
+    # Tapered pointed fox muzzle + dark button nose!
+    b.add_ellipsoid(m_tip, 0.0, 0.525, 0.275, 0.072, 0.055, 0.125, segs=14, rings=8, rx=0.08)
+    b.add_ellipsoid(m_dark, 0.0, 0.542, 0.392, 0.030, 0.024, 0.026, segs=10, rings=6)
+
+    # Expressive luminous mystic anime fox eyes + bright catchlights!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_eye, side * 0.078, 0.582, 0.242, 0.036, 0.034, 0.024, segs=10, rings=8, rz=side * 0.22)
+        b.add_ellipsoid(m_dark, side * 0.080, 0.582, 0.258, 0.016, 0.026, 0.014, segs=8, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.090, 0.594, 0.264, 0.012, 0.014, 0.010, segs=8, rings=6)
+
+    # Tall pointed shrine fox ears with pink inner ear!
+    for side in (-1, 1):
+        b.add_cylinder(m_fur, side * 0.108, 0.765, 0.085, 0.068, 0.012, 0.23, segs=8, rz=side * -0.18)
+        b.add_cylinder(m_ear_in, side * 0.105, 0.755, 0.108, 0.040, 0.008, 0.165, segs=8, rz=side * -0.18)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_kitsune.glb"))
+
+
 if __name__ == "__main__":
-    print("Generating 16 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
+    print("Generating 19 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
     build_tokyo_house_2f()
     build_tokyo_house_1f()
     build_kyoto_machiya()
@@ -1001,4 +1170,7 @@ if __name__ == "__main__":
     build_anime_bike()
     build_anime_duck("anime_duck_mallard.glb", "mallard")
     build_anime_duck("anime_duck_white.glb", "white")
-    print("All 16 AAA .glb assets built successfully!")
+    build_anime_shiba()
+    build_anime_cat()
+    build_anime_kitsune()
+    print("All 19 AAA .glb assets built successfully!")

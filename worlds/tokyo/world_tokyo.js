@@ -741,23 +741,22 @@ window.LailaSalma = window.LailaSalma || {};
       ];
 
       const catMeta = [
-        { id: 'cat_mikan', name: 'Mikan (Orange Tabby)', color: 0xe89643, accent: 0xfff3d6 },
-        { id: 'cat_kuro', name: 'Kuro (Midnight Cat)', color: 0x2a2d36, accent: 0xffd166 },
-        { id: 'cat_yuki', name: 'Yuki (Snowball)', color: 0xfaf7f2, accent: 0xffa6c1 },
-        { id: 'cat_sakura', name: 'Sakura (Calico)', color: 0xf4b678, accent: 0x4a3525 },
-        { id: 'cat_tama', name: 'Tama (Tabby Explorer)', color: 0x8b95a5, accent: 0xffffff }
+        { id: 'cat_mikan', name: 'Mikan (Orange Tabby)', color: 0xe89643, accent: 0xfff3d6, collar: 0x2a9d8f },
+        { id: 'cat_kuro', name: 'Kuro (Midnight Cat)', color: 0x2c303a, accent: 0xf4e4c4, collar: 0xe63946 },
+        { id: 'cat_yuki', name: 'Yuki (Snowball)', color: 0xfaf7f2, accent: 0xffe4ec, collar: 0xff758f },
+        { id: 'cat_sakura', name: 'Sakura (Calico)', color: 0xf4b678, accent: 0xfff8ec, collar: 0xd95d88 },
+        { id: 'cat_tama', name: 'Tama (Tabby Explorer)', color: 0x8b95a5, accent: 0xffffff, collar: 0x3b6ea5 }
       ];
 
       const chosenSpots = LS.pickRoundSpots(catPool, LS.state.catsRound || 0, 5);
       catMeta.forEach((cd, idx) => {
         const spot = chosenSpots[idx];
         const alreadyFound = LS.state.foundCats.includes(cd.id);
-        const g = new THREE.Group(); g.position.copy(spot.pos);
-        const fur = LS.makeToonMat(cd.color), acc = LS.makeToonMat(cd.accent);
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), fur); body.scale.set(1.25, 0.78, 0.95); body.position.y = 0.2; body.castShadow = true; g.add(body);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), fur); head.position.set(0.22, 0.34, 0); g.add(head);
-        [-0.08, 0.08].forEach(ez => { const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.13, 5), acc); ear.position.set(0.24, 0.5, ez); g.add(ear); });
-        const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.34, 6), fur); tail.position.set(-0.28, 0.34, 0); tail.rotation.z = 0.65; g.add(tail);
+        const built = LS.createCatModel(cd.color, cd.accent, { collarColor: cd.collar, scale: 1.08 });
+        const g = built.root;
+        g.position.copy(spot.pos);
+        g.rotation.y = (idx * 1.15) - 0.5;
+        const tail = built.tail;
 
         const mc = document.createElement('canvas'); mc.width = 128; mc.height = 128;
         const mctx = mc.getContext('2d'); mctx.fillStyle = 'rgba(255, 248, 225, 0.95)';
@@ -765,7 +764,7 @@ window.LailaSalma = window.LailaSalma || {};
         mctx.strokeStyle = '#e07a34'; mctx.lineWidth = 8; mctx.stroke();
         mctx.font = 'bold 54px sans-serif'; mctx.textAlign = 'center'; mctx.fillText('🐾', 64, 82);
         const marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(mc), transparent: true }));
-        marker.scale.set(0.75, 0.75, 1); marker.position.set(0.1, 1.05, 0); marker.visible = !alreadyFound; g.add(marker);
+        marker.scale.set(0.75, 0.75, 1); marker.position.set(0, 1.22, 0); marker.visible = !alreadyFound; g.add(marker);
 
         worldGroup.add(g);
         W.hiddenAnimals.push({ id: cd.id, kind: 'cat', name: cd.name, hint: spot.hint, mesh: g, marker, tail, found: alreadyFound });
@@ -889,8 +888,8 @@ window.LailaSalma = window.LailaSalma || {};
     W.update = function (dt, elapsed) {
       W.norenPanels.forEach(n => { n.mesh.rotation.z = Math.sin(elapsed * 2.1 + n.phase) * 0.08; });
       W.hiddenAnimals.forEach((cat, idx) => {
-        if (cat.tail) cat.tail.rotation.x = Math.sin(elapsed * 3.2 + idx) * 0.25;
-        if (cat.marker && !cat.found) cat.marker.position.y = 1.02 + Math.sin(elapsed * 3.0 + idx) * 0.12;
+        if (cat.tail) cat.tail.rotation.z = Math.sin(elapsed * 3.2 + idx) * 0.28;
+        if (cat.marker && !cat.found) cat.marker.position.y = 1.22 + Math.sin(elapsed * 3.0 + idx) * 0.12;
       });
       if (W.swingPivot) {
         if (LS.runtime.parkActivity && LS.runtime.parkActivity.type === 'swing') W.swingPivot.rotation.x = Math.sin(elapsed * 4.5) * 0.58;

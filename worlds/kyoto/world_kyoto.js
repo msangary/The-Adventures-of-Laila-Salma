@@ -1005,17 +1005,11 @@ window.LailaSalma = window.LailaSalma || {};
       foxMeta.forEach((fd, idx) => {
         const spot = chosenSpots[idx];
         const alreadyFound = LS.state.foundKitsune.includes(fd.id);
-        const g = new THREE.Group(); g.position.copy(spot.pos);
-        const fur = LS.makeToonMat(fd.color), tip = LS.makeToonMat(fd.tailTip), bibMat = LS.makeToonMat(0xd62828);
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), fur); body.scale.set(1.25, 0.85, 0.92); body.position.y = 0.26; body.castShadow = true; g.add(body);
-        const bib = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.2, 8), bibMat); bib.position.set(0.16, 0.32, 0); bib.rotation.z = -0.3; g.add(bib);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), fur); head.position.set(0.24, 0.44, 0); g.add(head);
-        const snout = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.2, 6), tip); snout.rotation.z = -Math.PI / 2; snout.position.set(0.42, 0.41, 0); g.add(snout);
-        [-0.09, 0.09].forEach(ez => { const ear = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 5), fur); ear.position.set(0.22, 0.65, ez); g.add(ear); });
-        const tail = new THREE.Group(); tail.position.set(-0.28, 0.34, 0);
-        const tMain = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), fur); tMain.scale.set(1.6, 0.85, 0.85); tMain.rotation.z = -0.6; tail.add(tMain);
-        const tTip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), tip); tTip.position.set(-0.18, 0.16, 0); tail.add(tTip);
-        g.add(tail);
+        const built = LS.createKitsuneModel(fd.color, fd.tailTip, { scale: 1.08 });
+        const g = built.root;
+        g.position.copy(spot.pos);
+        g.rotation.y = (idx * 1.2) - 0.4;
+        const tail = built.tail;
 
         const mc = document.createElement('canvas'); mc.width = 128; mc.height = 128;
         const mctx = mc.getContext('2d'); mctx.fillStyle = 'rgba(255, 248, 225, 0.96)';
@@ -1023,7 +1017,7 @@ window.LailaSalma = window.LailaSalma || {};
         mctx.strokeStyle = '#d62828'; mctx.lineWidth = 8; mctx.stroke();
         mctx.font = 'bold 54px sans-serif'; mctx.textAlign = 'center'; mctx.fillText('🦊', 64, 82);
         const marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(mc), transparent: true }));
-        marker.scale.set(0.78, 0.78, 1); marker.position.set(0.1, 1.15, 0); marker.visible = !alreadyFound; g.add(marker);
+        marker.scale.set(0.78, 0.78, 1); marker.position.set(0, 1.35, 0); marker.visible = !alreadyFound; g.add(marker);
 
         worldGroup.add(g);
         W.hiddenAnimals.push({ id: fd.id, kind: 'kitsune', name: fd.name, hint: spot.hint, mesh: g, marker, tail, found: alreadyFound });
