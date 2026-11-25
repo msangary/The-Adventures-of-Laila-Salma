@@ -36,7 +36,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     // Smooth walkable arch over the meandering West Sakura Creek footbridge (X=-41..-47, Z=3.0)
     W.getGroundHeight = function (x, z) {
-      if (x <= -41.0 && x >= -47.0 && Math.abs(z - 3.0) <= 2.1) {
+      if (x <= -41.0 && x >= -47.0 && Math.abs(z - 3.0) <= 1.55) {
         const t = Math.max(0, Math.min(1, (-41.0 - x) / 6.0));
         return Math.sin(t * Math.PI) * 0.55;
       }
@@ -347,6 +347,9 @@ window.LailaSalma = window.LailaSalma || {};
           r.position.set(xm, ym + 0.82, 3.0 + rz); r.rotation.z = -slope; worldGroup.add(r);
         });
       }
+      // Solid bridge railing colliders so player can never walk through the rails into the creek!
+      addCollider(-44.0, 1.54, 3.2, 0.28);
+      addCollider(-44.0, 4.46, 3.2, 0.28);
 
       // Weeping willows, lakeside bench & spacious open West Flower Meadow
       buildTree(-38.8, -4.5, 'willow', 1.2);
@@ -700,17 +703,7 @@ window.LailaSalma = window.LailaSalma || {};
         new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🚅 TOKYO SHINKANSEN → KYOTO', { bg: '#0f2544', border: '#60a5fa', color: '#ffffff', font: 'bold 29px sans-serif', width: 640 }) })
       );
       sign.position.set(0, 3.45, -2.15); g.add(sign);
-      const track = new THREE.Mesh(new THREE.BoxGeometry(130, 0.4, 2.8), LS.makeToonMat(0x6c757d)); track.position.set(0, 0.3, 3.6); g.add(track);
-
-      const train = new THREE.Group(); train.position.set(0, 1.25, 3.6);
-      train.add(new THREE.Mesh(new THREE.BoxGeometry(14, 1.55, 1.75), LS.makeToonMat(0xf8fafc)));
-      const tStripe = new THREE.Mesh(new THREE.BoxGeometry(14.05, 0.28, 1.78), LS.makeToonMat(0x1d4ed8)); tStripe.position.y = -0.15; train.add(tStripe);
-      const tWin = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.38, 1.79), glassMat); tWin.position.y = 0.26; train.add(tWin);
-      [-7.8, 7.8].forEach(nx => {
-        const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.5, 12), LS.makeToonMat(0xf8fafc));
-        nose.rotation.z = nx > 0 ? -Math.PI / 2 : Math.PI / 2; nose.scale.set(0.85, 1.0, 0.95); nose.position.set(nx, -0.05, 0); train.add(nose);
-      });
-      g.add(train); W.shinkansenTrain = train;
+      W.shinkansenTrain = SC.buildShinkansenTrackAndTrain(g, 3.6);
       worldGroup.add(g); addCollider(0, 42.3, 7.6, 2.2);
       W.zones.push({ id: 'shinkansen_station', label: 'Board Shinkansen to Kyoto 🚅', pos: new THREE.Vector3(0, 0, 38.0), radius: 4.0 });
     });

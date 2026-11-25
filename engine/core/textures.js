@@ -1398,7 +1398,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     addBike: function (parent, x, z, rotY, colorHex) {
       if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_bike')) {
-        const m = LS.hdAssets.clone('anime_bike');
+        const m = LS.hdAssets.clone('anime_bike', { frameTint: colorHex || 0x52a69a });
         m.position.set(x, 0, z);
         m.rotation.y = rotY || 0;
         parent.add(m);
@@ -1407,16 +1407,100 @@ window.LailaSalma = window.LailaSalma || {};
       const bike = new THREE.Group();
       bike.position.set(x, 0, z);
       bike.rotation.y = rotY || 0;
-      const wheelMat = LS.makeToonMat(0x2c2c2c);
-      [-0.48, 0.48].forEach(wz => {
-        const w = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.04, 7, 14), wheelMat);
-        w.position.set(0, 0.32, wz); w.rotation.y = Math.PI / 2; bike.add(w);
+      const wheelMat = LS.makeToonMat(0x26282c);
+      const chromeMat = LS.makeToonMat(0xd4d8de);
+      const frameMat = LS.makeToonMat(colorHex || 0x52a69a);
+      [-0.54, 0.54].forEach(wz => {
+        const w = new THREE.Mesh(new THREE.TorusGeometry(0.31, 0.036, 8, 18), wheelMat);
+        w.position.set(0, 0.34, wz); w.rotation.y = Math.PI / 2; bike.add(w);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.275, 0.015, 6, 16), chromeMat);
+        rim.position.set(0, 0.34, wz); rim.rotation.y = Math.PI / 2; bike.add(rim);
+        for (let s = 0; s < 4; s++) {
+          const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.54, 4), chromeMat);
+          sp.position.set(0, 0.34, wz); sp.rotation.x = (s / 4) * Math.PI; bike.add(sp);
+        }
       });
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.98), LS.makeToonMat(colorHex || 0x52a69a));
-      frame.position.set(0, 0.52, 0); bike.add(frame);
+      const downTube = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.62, 6), frameMat);
+      downTube.position.set(0, 0.48, 0.14); downTube.rotation.x = 1.15; bike.add(downTube);
+      const seatTube = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.54, 6), frameMat);
+      seatTube.position.set(0, 0.60, -0.15); seatTube.rotation.x = -0.25; bike.add(seatTube);
+      const fork = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.56, 6), frameMat);
+      fork.position.set(0, 0.60, 0.46); fork.rotation.x = -0.28; bike.add(fork);
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.46, 6), chromeMat);
+      bar.position.set(0, 0.98, 0.35); bar.rotation.z = Math.PI / 2; bike.add(bar);
+      const seat = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), LS.makeToonMat(0x5c3620));
+      seat.scale.set(0.85, 0.38, 1.3); seat.position.set(0, 0.92, -0.22); bike.add(seat);
+      const rack = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.025, 0.38), chromeMat);
+      rack.position.set(0, 0.72, -0.54); bike.add(rack);
       const basket = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.24), LS.makeToonMat(0x9a6d40));
-      basket.position.set(0, 0.74, -0.48); bike.add(basket);
+      basket.position.set(0, 0.82, 0.54); bike.add(basket);
       parent.add(bike);
+    },
+
+    buildShinkansenTrackAndTrain: function (stationGroup, trackZ) {
+      const tz = trackZ !== undefined ? trackZ : 3.6;
+      // Gravel ballast bed + concrete sleepers (ties) + twin gleaming steel rails + overhead catenary gantries!
+      const ballast = new THREE.Mesh(new THREE.BoxGeometry(130, 0.36, 3.3), LS.makeToonMat(0x6c6e72));
+      ballast.position.set(0, 0.18, tz); ballast.receiveShadow = true; stationGroup.add(ballast);
+
+      const sleeperMat = LS.makeToonMat(0x8e8c84);
+      for (let sx = -44; sx <= 44; sx += 1.6) {
+        const tie = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 2.2), sleeperMat);
+        tie.position.set(sx, 0.38, tz); stationGroup.add(tie);
+      }
+      const railMat = LS.makeToonMat(0xb8c0cc);
+      [-0.72, 0.72].forEach(rz => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(130, 0.10, 0.09), railMat);
+        rail.position.set(0, 0.45, tz + rz); stationGroup.add(rail);
+      });
+      // Overhead Shinkansen steel catenary gantries & live power wire!
+      const gantryMat = LS.makeToonMat(0x525c68);
+      const wireMat = new THREE.MeshBasicMaterial({ color: 0x262a32 });
+      [-12, 0, 12].forEach(gx => {
+        const pole = new THREE.Mesh(new THREE.BoxGeometry(0.24, 5.2, 0.24), gantryMat);
+        pole.position.set(gx, 2.6, tz + 2.15); stationGroup.add(pole);
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 3.2), gantryMat);
+        arm.position.set(gx, 4.65, tz + 0.65); stationGroup.add(arm);
+      });
+      const catWire = new THREE.Mesh(new THREE.BoxGeometry(120, 0.035, 0.035), wireMat);
+      catWire.position.set(0, 4.02, tz); stationGroup.add(catWire);
+
+      const train = new THREE.Group();
+      train.position.set(0, 0.48, tz);
+
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_shinkansen')) {
+        const mdl = LS.hdAssets.clone('anime_shinkansen');
+        train.add(mdl);
+      } else {
+        // Upgraded Classic 3-car N700S Bullet Train!
+        const whiteM = LS.makeToonMat(0xf8fafc), blueM = LS.makeToonMat(0x144296);
+        const darkM = LS.makeToonMat(0x28303b), glassM = LS.makeEmissiveMat(0x6495c4, 0xffdfa0, 0.28);
+        const headM = new THREE.MeshBasicMaterial({ color: 0xfff8d6 }), tailM = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+        [[-7.4, 5.4], [0, 8.8], [7.4, 5.4]].forEach(c => {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(c[1], 1.56, 1.92), whiteM); body.position.set(c[0], 1.28, 0); body.castShadow = true; train.add(body);
+          const roof = new THREE.Mesh(new THREE.BoxGeometry(c[1], 0.24, 1.54), whiteM); roof.position.set(c[0], 2.15, 0); train.add(roof);
+          const stripe = new THREE.Mesh(new THREE.BoxGeometry(c[1] + 0.04, 0.22, 1.96), blueM); stripe.position.set(c[0], 1.02, 0); train.add(stripe);
+          const win = new THREE.Mesh(new THREE.BoxGeometry(c[1] - 0.6, 0.42, 1.97), glassM); win.position.set(c[0], 1.52, 0); train.add(win);
+          const bogie = new THREE.Mesh(new THREE.BoxGeometry(c[1] - 0.5, 0.42, 1.52), darkM); bogie.position.set(c[0], 0.32, 0); train.add(bogie);
+        });
+        [-4.55, 4.55].forEach(gx => {
+          const gap = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.52, 1.72), darkM); gap.position.set(gx, 1.28, 0); train.add(gap);
+          const panto = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.65, 0.8), darkM); panto.position.set(gx, 2.58, 0); train.add(panto);
+        });
+        [-1, 1].forEach(side => {
+          const nose1 = new THREE.Mesh(new THREE.SphereGeometry(1.02, 14, 10), whiteM);
+          nose1.scale.set(2.8, 0.86, 0.94); nose1.position.set(side * 10.6, 1.08, 0); train.add(nose1);
+          const cab = new THREE.Mesh(new THREE.SphereGeometry(0.76, 12, 8), glassM);
+          cab.scale.set(1.5, 0.48, 0.95); cab.position.set(side * 10.8, 1.58, 0); train.add(cab);
+          [-0.44, 0.44].forEach(lz => {
+            const l = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), side > 0 ? headM : tailM);
+            l.position.set(side * 12.6, 0.84, lz); train.add(l);
+          });
+        });
+      }
+
+      stationGroup.add(train);
+      return train;
     }
   };
 })(window.LailaSalma);

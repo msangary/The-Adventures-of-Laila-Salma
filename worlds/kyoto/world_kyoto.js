@@ -37,7 +37,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     // Smooth walkable elevation across arched koi bridge, 3 East Canal footbridges, and elevated Sakurako Shrine Courtyard
     function getGroundHeight(x, z) {
-      if (x <= -13.3 && x >= -30.7 && Math.abs(z + 27.5) <= 2.3) {
+      if (x <= -13.3 && x >= -30.7 && Math.abs(z + 27.5) <= 1.60) {
         const t = Math.max(0, Math.min(1, (-13.5 - x) / 17.0));
         return Math.sin(t * Math.PI) * 1.15;
       }
@@ -52,7 +52,7 @@ window.LailaSalma = window.LailaSalma || {};
       const bridges = [[19.5, -26.0], [15.5, -13.0], [18.5, 3.0]];
       for (let i = 0; i < bridges.length; i++) {
         const bx = bridges[i][0], bz = bridges[i][1];
-        if (Math.abs(x - bx) <= 2.3 && Math.abs(z - bz) <= 2.1) {
+        if (Math.abs(x - bx) <= 2.3 && Math.abs(z - bz) <= 1.55) {
           const t = Math.max(0, Math.min(1, (x - (bx - 2.3)) / 4.6));
           return Math.sin(t * Math.PI) * 0.42;
         }
@@ -366,7 +366,9 @@ window.LailaSalma = window.LailaSalma || {};
         : LS.makeWaterMat(0.84, THREE.DoubleSide);
       const water = new THREE.Mesh(new THREE.PlaneGeometry(15.6, 20.2, LS.isHD ? 24 : 1, LS.isHD ? 24 : 1), pondMat);
       water.rotation.x = -Math.PI / 2; water.position.set(-22.5, -0.42, -27.5); worldGroup.add(water);
-      addCollider(-22.5, -21.2, 7.6, 4.1); addCollider(-22.5, -33.8, 7.6, 4.1);
+      // Water colliders flush with the bridge railings + solid railing colliders on both sides (zero walking through rails into lake!)
+      addCollider(-22.5, -21.65, 7.6, 4.35); addCollider(-22.5, -33.35, 7.6, 4.35);
+      addCollider(-22.0, -25.88, 8.65, 0.28); addCollider(-22.0, -29.12, 8.65, 0.28);
 
       // Organic tiered Kyoto garden riverstones (varied heights, faceted slate/granite tones tucked naturally into the waterline!)
       const rockMats = [LS.makeToonMat(0x5c6056), LS.makeToonMat(0x6e7166), LS.makeToonMat(0x4d524a)];
@@ -846,6 +848,9 @@ window.LailaSalma = window.LailaSalma || {};
             r.position.set(xm, ym + 0.82, bs.z + rz); r.rotation.z = slope; worldGroup.add(r);
           });
         }
+        // Solid bridge railing colliders so player can never walk through the rails into the East Stream!
+        addCollider(bs.x, bs.z - 1.44, 2.45, 0.28);
+        addCollider(bs.x, bs.z + 1.44, 2.45, 0.28);
         SC.addCurvedPath(worldGroup, bs.lead, 2.3, 'stone', 0.025);
         addStoneLantern(bs.x + 2.5, bs.z + 2.1, 0);
       });
@@ -955,13 +960,7 @@ window.LailaSalma = window.LailaSalma || {};
       const roof = new THREE.Mesh(new THREE.BoxGeometry(15.2, 0.34, 4.8), LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#2f3540') })); roof.position.y = 4.15; roof.castShadow = true; g.add(roof);
       const sign = new THREE.Mesh(new THREE.BoxGeometry(6.8, 1.05, 0.2), new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🚅 KYOTO STATION → TOKYO', { bg: '#3a1f1b', border: '#f59e0b', color: '#fff8eb', font: 'bold 30px sans-serif', width: 640 }) }));
       sign.position.set(0, 3.45, -2.15); g.add(sign);
-      const track = new THREE.Mesh(new THREE.BoxGeometry(130, 0.4, 2.8), LS.makeToonMat(0x6c757d)); track.position.set(0, 0.3, 3.6); g.add(track);
-      const train = new THREE.Group(); train.position.set(0, 1.25, 3.6);
-      train.add(new THREE.Mesh(new THREE.BoxGeometry(14, 1.55, 1.75), LS.makeToonMat(0xf8fafc)));
-      const tStripe = new THREE.Mesh(new THREE.BoxGeometry(14.05, 0.28, 1.78), LS.makeToonMat(0x1d4ed8)); tStripe.position.y = -0.15; train.add(tStripe);
-      const tWin = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.38, 1.79), LS.makeEmissiveMat(0x90e0ef, 0x48cae4, 0.35)); tWin.position.y = 0.26; train.add(tWin);
-      [-7.8, 7.8].forEach(nx => { const nose = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.5, 12), LS.makeToonMat(0xf8fafc)); nose.rotation.z = nx > 0 ? -Math.PI / 2 : Math.PI / 2; nose.scale.set(0.85, 1.0, 0.95); nose.position.set(nx, -0.05, 0); train.add(nose); });
-      g.add(train); W.shinkansenTrain = train;
+      W.shinkansenTrain = SC.buildShinkansenTrackAndTrain(g, 3.6);
       worldGroup.add(g); addCollider(0, 37.3, 7.6, 2.2);
       W.zones.push({ id: 'shinkansen_station', label: 'Board Shinkansen back to Tokyo 🚅', pos: new THREE.Vector3(0, 0, 33.0), radius: 4.0 });
 

@@ -400,6 +400,36 @@ class GLBBuilder:
                 d = c + 1
                 p["idx"].extend([a, b, c, b, d, c])
 
+    def add_torus(self, mat_idx, cx, cy, cz, major_r, minor_r, segs=22, tube_segs=10, rx=0, ry=0, rz=0):
+        p = self._p(mat_idx)
+        base = len(p["pos"]) // 3
+        for i in range(segs + 1):
+            u = i / segs
+            th = u * math.tau
+            ct, st = math.cos(th), math.sin(th)
+            for j in range(tube_segs + 1):
+                v = j / tube_segs
+                ph = v * math.tau
+                cp, sp = math.cos(ph), math.sin(ph)
+                rr = major_r + minor_r * cp
+                lx, ly, lz = rr * ct, rr * st, minor_r * sp
+                nx, ny, nz = cp * ct, cp * st, sp
+                vx, vy, vz = self._rot_pt((lx, ly, lz), rx, ry, rz)
+                rnx, rny, rnz = self._rot_pt((nx, ny, nz), rx, ry, rz)
+                ao = 0.84 + 0.16 * max(0.0, rny)
+                p["pos"].extend((vx + cx, vy + cy, vz + cz))
+                p["norm"].extend((rnx, rny, rnz))
+                p["uv"].extend((u * 4.0, v))
+                p["col"].extend((ao, ao, ao))
+        stride = tube_segs + 1
+        for i in range(segs):
+            for j in range(tube_segs):
+                a = base + i * stride + j
+                b = a + 1
+                c = base + (i + 1) * stride + j
+                d = c + 1
+                p["idx"].extend([a, c, b, b, c, d])
+
     def add_cylinder(self, mat_idx, cx, cy, cz, r_bot, r_top, h, segs=10, rx=0, ry=0, rz=0, ao_bot=0.76, ao_top=1.0):
         hh = h * 0.5
         c_bot = (ao_bot, ao_bot, min(1.0, ao_bot + 0.05))
@@ -887,23 +917,202 @@ def build_anime_vending():
 
 
 def build_anime_bike():
+    """Detailed Japanese Mamachari Neighborhood Cruiser Bicycle with hollow tires, chrome rims, spokes, fenders, open basket & carrier rack!"""
     b = GLBBuilder()
-    m_tire = b.add_material("tire", (0.16, 0.16, 0.18, 1), roughness=0.82)
-    m_frame = b.add_material("frame_red", (0.72, 0.22, 0.24, 1), roughness=0.30, metallic=0.48)
-    m_chrome = b.add_material("chrome", (0.82, 0.84, 0.86, 1), roughness=0.18, metallic=0.85)
-    m_seat = b.add_material("leather", (0.36, 0.22, 0.14, 1), roughness=0.72)
-    m_basket = b.add_material("basket", (0.58, 0.40, 0.24, 1), roughness=0.82)
+    m_tire = b.add_material("bike_tire", (0.14, 0.14, 0.16, 1), roughness=0.84)
+    m_frame = b.add_material("bike_frame", (0.94, 0.94, 0.94, 1), roughness=0.32, metallic=0.45)  # Tinted per-bike in JS!
+    m_chrome = b.add_material("bike_chrome", (0.86, 0.88, 0.91, 1), roughness=0.16, metallic=0.88)
+    m_seat = b.add_material("bike_leather", (0.38, 0.22, 0.14, 1), roughness=0.68)
+    m_basket = b.add_material("bike_basket", (0.64, 0.44, 0.26, 1), roughness=0.76)
+    m_grip = b.add_material("bike_grip", (0.20, 0.16, 0.15, 1), roughness=0.82)
+    m_lamp = b.add_material("bike_lamp_glass", (1.0, 0.96, 0.80, 1), roughness=0.15, emissive=(0.85, 0.78, 0.52))
+    m_refl = b.add_material("bike_reflector", (0.90, 0.16, 0.16, 1), roughness=0.22, emissive=(0.35, 0.05, 0.05))
 
-    for wz in (-0.54, 0.54):
-        b.add_cylinder(m_tire, 0, 0.34, wz, 0.33, 0.33, 0.06, segs=14, rz=math.pi / 2)
-        b.add_cylinder(m_chrome, 0, 0.34, wz, 0.24, 0.24, 0.07, segs=14, rz=math.pi / 2)
-    b.add_cylinder(m_frame, 0, 0.54, -0.18, 0.025, 0.025, 0.78, segs=6, rx=1.22)
-    b.add_cylinder(m_frame, 0, 0.58, 0.24, 0.025, 0.025, 0.72, segs=6, rx=-0.38)
-    b.add_cylinder(m_frame, 0, 0.62, -0.45, 0.024, 0.024, 0.72, segs=6, rx=-0.22)
-    b.add_cylinder(m_chrome, 0, 0.95, 0.42, 0.02, 0.02, 0.58, segs=6, rz=math.pi / 2)
-    b.add_box(m_seat, 0, 0.86, -0.22, 0.16, 0.08, 0.26)
-    b.add_box(m_basket, 0, 0.82, 0.58, 0.34, 0.24, 0.26)
+    # Front (+Z = +0.58) & Rear (-Z = -0.58) wheels: hollow rubber tire + alloy rim + hub + 12 radial spokes!
+    for wz in (-0.58, 0.58):
+        b.add_torus(m_tire, 0, 0.35, wz, 0.315, 0.036, segs=24, tube_segs=10, ry=math.pi / 2)
+        b.add_torus(m_chrome, 0, 0.35, wz, 0.278, 0.015, segs=24, tube_segs=8, ry=math.pi / 2)
+        b.add_cylinder(m_chrome, 0, 0.35, wz, 0.032, 0.032, 0.09, segs=10, rz=math.pi / 2)
+        # 6 diametric chrome spokes (= 12 radial spokes!)
+        for sp in range(6):
+            ang = (sp / 6.0) * math.pi
+            b.add_cylinder(m_chrome, 0, 0.35, wz, 0.006, 0.006, 0.54, segs=4, rx=ang)
+        # Curved painted mudguard fender hugging the upper half of each wheel
+        for fi in range(7):
+            fang = -0.85 + (fi / 6.0) * 1.7
+            fy = 0.35 + math.cos(fang) * 0.365
+            fz = wz + math.sin(fang) * 0.365
+            b.add_box(m_frame, 0, fy, fz, 0.082, 0.018, 0.115, rx=fang)
+
+    # Authentic Japanese step-through Mamachari frame!
+    # Head tube + front fork blades
+    b.add_cylinder(m_frame, 0, 0.74, 0.44, 0.026, 0.026, 0.26, segs=8, rx=-0.30)
+    for fx in (-0.048, 0.048):
+        b.add_cylinder(m_frame, fx, 0.52, 0.52, 0.016, 0.020, 0.38, segs=6, rx=-0.30)
+    # Seat tube & curved double step-through downtubes
+    b.add_cylinder(m_frame, 0, 0.62, -0.15, 0.024, 0.024, 0.54, segs=8, rx=-0.26)
+    b.add_cylinder(m_frame, 0, 0.52, 0.16, 0.022, 0.022, 0.62, segs=8, rx=1.18)
+    b.add_cylinder(m_frame, 0, 0.44, 0.14, 0.022, 0.022, 0.62, segs=8, rx=1.08)
+    # Rear stays + chain guard + crank pedals + kickstand
+    for rx_off in (-0.046, 0.046):
+        b.add_cylinder(m_frame, rx_off, 0.36, -0.35, 0.013, 0.013, 0.48, segs=6, rx=1.55)
+        b.add_cylinder(m_frame, rx_off, 0.57, -0.37, 0.013, 0.013, 0.52, segs=6, rx=0.72)
+    b.add_box(m_frame, 0.045, 0.36, -0.28, 0.032, 0.11, 0.46)  # Chain guard
+    b.add_cylinder(m_chrome, 0, 0.36, -0.06, 0.085, 0.085, 0.02, segs=12, rz=math.pi / 2)  # Chainring
+    b.add_cylinder(m_chrome, 0.08, 0.29, -0.06, 0.012, 0.012, 0.14, segs=6)
+    b.add_box(m_grip, 0.13, 0.22, -0.06, 0.08, 0.025, 0.06)
+    b.add_cylinder(m_chrome, -0.08, 0.43, -0.06, 0.012, 0.012, 0.14, segs=6)
+    b.add_box(m_grip, -0.13, 0.50, -0.06, 0.08, 0.025, 0.06)
+    b.add_cylinder(m_chrome, -0.08, 0.18, -0.52, 0.010, 0.010, 0.36, segs=5, rz=0.35)  # Kickstand
+
+    # Rear steel luggage carrier rack + red tail reflector
+    b.add_box(m_chrome, 0, 0.74, -0.56, 0.18, 0.022, 0.40)
+    for rx_off in (-0.075, 0.075):
+        b.add_cylinder(m_chrome, rx_off, 0.54, -0.58, 0.010, 0.010, 0.40, segs=5)
+    b.add_box(m_refl, 0, 0.72, -0.77, 0.055, 0.045, 0.022)
+
+    # Contoured spring leather saddle on chrome seatpost
+    b.add_cylinder(m_chrome, 0, 0.89, -0.22, 0.016, 0.016, 0.14, segs=8)
+    b.add_ellipsoid(m_seat, 0, 0.96, -0.22, 0.095, 0.042, 0.145, segs=12, rings=8)
+    b.add_ellipsoid(m_seat, 0, 0.96, -0.11, 0.048, 0.034, 0.095, segs=10, rings=6)
+
+    # Swept chrome cruiser handlebars, grips, bell & retro round dynamo headlight!
+    b.add_cylinder(m_chrome, 0, 0.94, 0.38, 0.016, 0.016, 0.22, segs=8, rx=-0.26)
+    b.add_cylinder(m_chrome, 0, 1.03, 0.35, 0.015, 0.015, 0.46, segs=8, rz=math.pi / 2)
+    for side in (-1, 1):
+        b.add_cylinder(m_chrome, side * 0.25, 1.03, 0.29, 0.014, 0.014, 0.15, segs=6, rx=math.pi / 2, ry=side * -0.45)
+        b.add_cylinder(m_grip, side * 0.27, 1.03, 0.23, 0.020, 0.020, 0.11, segs=8, rx=math.pi / 2, ry=side * -0.45)
+    b.add_ellipsoid(m_chrome, 0.13, 1.065, 0.35, 0.026, 0.022, 0.026, segs=8, rings=6)  # Chrome bell
+    b.add_cylinder(m_chrome, 0, 0.72, 0.59, 0.042, 0.034, 0.09, segs=10, rx=math.pi / 2)  # Headlight housing
+    b.add_ellipsoid(m_lamp, 0, 0.72, 0.635, 0.036, 0.036, 0.016, segs=10, rings=6)
+
+    # Open woven rattan/wire front shopping basket (hollow rim + thin slat walls — NOT a solid block!)
+    bx, by, bz = 0, 0.85, 0.56
+    bw, bh, bd = 0.34, 0.23, 0.26
+    b.add_box(m_basket, bx, by - bh * 0.5, bz, bw, 0.022, bd)  # Bottom tray
+    # Top rim frame
+    b.add_box(m_basket, bx, by + bh * 0.5, bz + bd * 0.5, bw + 0.02, 0.022, 0.022)
+    b.add_box(m_basket, bx, by + bh * 0.5, bz - bd * 0.5, bw + 0.02, 0.022, 0.022)
+    b.add_box(m_basket, bx - bw * 0.5, by + bh * 0.5, bz, 0.022, 0.022, bd)
+    b.add_box(m_basket, bx + bw * 0.5, by + bh * 0.5, bz, 0.022, 0.022, bd)
+    # Vertical corner posts & horizontal woven slats
+    for cx_s in (-bw * 0.5, bw * 0.5):
+        for cz_s in (-bd * 0.5, bd * 0.5):
+            b.add_box(m_basket, bx + cx_s, by, bz + cz_s, 0.020, bh, 0.020)
+    for sy in (-0.055, 0.015, 0.08):
+        b.add_box(m_basket, bx, by + sy, bz + bd * 0.5, bw, 0.018, 0.012)
+        b.add_box(m_basket, bx, by + sy, bz - bd * 0.5, bw, 0.018, 0.012)
+        b.add_box(m_basket, bx - bw * 0.5, by + sy, bz, 0.012, 0.018, bd)
+        b.add_box(m_basket, bx + bw * 0.5, by + sy, bz, 0.012, 0.018, bd)
+    b.add_cylinder(m_chrome, 0, 0.60, 0.57, 0.010, 0.010, 0.34, segs=5)  # Basket support strut
+
     b.save_glb(os.path.join(OUT_DIR, "anime_bike.glb"))
+
+
+def make_shinkansen_side_tex(w=512, h=128):
+    """Crisp Tokaido N700S Shinkansen porcelain-white livery with double cobalt-blue stripes, recessed panoramic windows & doors."""
+    img = Image.new("RGBA", (w, h), (248, 250, 252, 255))
+    draw = ImageDraw.Draw(img)
+    # Subtle metallic roof/lower shadow gradient
+    draw.rectangle([0, 0, w, 12], fill=(228, 234, 240, 255))
+    draw.rectangle([0, h - 14, w, h], fill=(214, 220, 228, 255))
+    # Iconic Tokaido N700S double cobalt-blue stripes!
+    draw.rectangle([0, 76, w, 92], fill=(20, 70, 158, 255))
+    draw.rectangle([0, 96, w, 102], fill=(32, 104, 206, 255))
+    # Sleek panoramic passenger windows with dark tinted glass + warm golden interior cabin glow + diagonal sky reflection!
+    for wx in range(28, w - 52, 46):
+        draw.rounded_rectangle([wx, 28, wx + 32, 66], radius=6, fill=(28, 42, 62, 255), outline=(140, 150, 165, 255), width=2)
+        # Warm cabin interior glow in lower pane
+        draw.rounded_rectangle([wx + 3, 44, wx + 29, 63], radius=3, fill=(218, 194, 146, 165))
+        # Crisp diagonal sky sheen
+        draw.polygon([(wx + 5, 30), (wx + 16, 30), (wx + 10, 62), (wx + 3, 62)], fill=(195, 228, 252, 115))
+    # Passenger vestibule sliding door on right end
+    draw.rectangle([w - 36, 16, w - 8, h - 8], outline=(168, 174, 184, 255), width=2)
+    draw.rounded_rectangle([w - 28, 26, w - 16, 62], radius=4, fill=(36, 52, 72, 255))
+    return img
+
+
+def build_anime_shinkansen():
+    """Sculpted 3-Car N700S Japanese Shinkansen Bullet Train with aerodynamic duck-bill noses, cockpit glass, LEDs, bogies & twin pantographs!"""
+    b = GLBBuilder()
+    m_white = b.add_material("shink_body", (0.97, 0.98, 0.99, 1), roughness=0.22, metallic=0.14)
+    m_side = b.add_material("shink_side", (1, 1, 1, 1), make_shinkansen_side_tex(), roughness=0.24, metallic=0.12)
+    m_blue = b.add_material("shink_blue", (0.08, 0.27, 0.62, 1), roughness=0.28, metallic=0.20)
+    m_glass = b.add_material("shink_cockpit_glass", (0.12, 0.22, 0.34, 1), roughness=0.08, metallic=0.55)
+    m_dark = b.add_material("shink_bogie", (0.18, 0.20, 0.24, 1), roughness=0.62, metallic=0.35)
+    m_metal = b.add_material("shink_metal", (0.72, 0.75, 0.79, 1), roughness=0.28, metallic=0.80)
+    m_head = b.add_material("shink_headlight", (1.0, 0.98, 0.88, 1), roughness=0.15, emissive=(1.0, 0.96, 0.78))
+    m_tail = b.add_material("shink_taillight", (0.95, 0.16, 0.18, 1), roughness=0.15, emissive=(0.90, 0.14, 0.16))
+
+    # Oriented along X axis, wheels resting cleanly at y = 0!
+    # 3 cars: Center Coach (-4.6..+4.6), West Lead Car (-10.8..-4.9), East Lead Car (+4.9..+10.8) + Aerodynamic Noses!
+    car_specs = [(-7.85, 5.7), (0.0, 9.2), (7.85, 5.7)]
+    for cx, clen in car_specs:
+        # Clean porcelain-white cabin core
+        b.add_box(m_white, cx, 1.38, 0.0, clen, 1.48, 2.04)
+        # Pixel-perfect UV-mapped Tokaido N700S side livery panels (V=0..1 full height, U tiled cleanly!)
+        hx, y0, y1, zp = clen * 0.5, 0.64, 2.12, 1.032
+        u_rep = max(1.0, round(clen / 5.2))
+        c_t, c_b = (1.0, 1.0, 1.0), (0.86, 0.86, 0.90)
+        b.add_quad(m_side, (cx - hx, y0, zp), (cx + hx, y0, zp), (cx + hx, y1, zp), (cx - hx, y1, zp),
+                   (0, 0, 1), [(0, 1), (u_rep, 1), (u_rep, 0), (0, 0)], (c_b, c_b, c_t, c_t))
+        b.add_quad(m_side, (cx + hx, y0, -zp), (cx - hx, y0, -zp), (cx - hx, y1, -zp), (cx + hx, y1, -zp),
+                   (0, 0, -1), [(0, 1), (u_rep, 1), (u_rep, 0), (0, 0)], (c_b, c_b, c_t, c_t))
+        # Sleek curved aerodynamic upper roof crown (chamfered 3-piece arch)
+        b.add_box(m_white, cx, 2.18, 0.0, clen, 0.22, 1.82)
+        b.add_box(m_white, cx, 2.30, 0.0, clen, 0.14, 1.38)
+        # Lower aerodynamic underbody skirting (hides bogies like a real N700S!)
+        b.add_box(m_white, cx, 0.58, 0.0, clen - 0.1, 0.34, 1.98)
+        b.add_box(m_dark, cx, 0.32, 0.0, clen - 0.4, 0.24, 1.56)
+        # Bogie wheelsets visible beneath the skirt
+        for bx in (cx - clen * 0.32, cx + clen * 0.32):
+            for wz in (-0.68, 0.68):
+                b.add_cylinder(m_dark, bx - 0.45, 0.24, wz, 0.24, 0.24, 0.12, segs=12, rx=math.pi / 2)
+                b.add_cylinder(m_dark, bx + 0.45, 0.24, wz, 0.24, 0.24, 0.12, segs=12, rx=math.pi / 2)
+        # Sleek rooftop HVAC fairing pod
+        b.add_box(m_metal, cx, 2.42, 0.0, clen * 0.42, 0.14, 0.88)
+
+    # Rubber inter-car articulation gangways (flush dark couplers between cars!)
+    for gx in (-4.8, 4.8):
+        b.add_box(m_dark, gx, 1.32, 0.0, 0.38, 1.62, 1.86)
+        b.add_box(m_white, gx, 2.18, 0.0, 0.36, 0.18, 1.60)
+
+    # Authentic multi-stage sculpted N700S Duck-Bill Aerodynamic Noses on BOTH ends (-X and +X)!
+    for side in (-1, 1):
+        # Tapered smooth aero-nose profile (5 lofted cross-sections from full cabin down to sleek duck-bill tip!)
+        nose_steps = [
+            (10.70, 1.34, 1.05, 1.62, 2.02),
+            (11.65, 1.18, 1.05, 1.32, 1.84),
+            (12.60, 0.98, 1.05, 0.96, 1.58),
+            (13.45, 0.78, 0.95, 0.64, 1.24),
+            (14.15, 0.64, 0.75, 0.42, 0.86),
+        ]
+        for nx, ny, nl, nh, nw in nose_steps:
+            b.add_ellipsoid(m_white, side * nx, ny, 0.0, nl * 0.68, nh * 0.56, nw * 0.52, segs=16, rings=10)
+        # Blue aero cheek stripe sweeping cleanly along the tapered nose!
+        b.add_box(m_blue, side * 11.75, 0.92, 0.0, 2.4, 0.20, 1.72, rz=side * -0.14)
+        b.add_box(m_blue, side * 13.15, 0.72, 0.0, 1.3, 0.14, 1.22, rz=side * -0.16)
+        # Wrap-around flush dark-tinted bullet-train cockpit canopy windshield!
+        b.add_ellipsoid(m_glass, side * 11.45, 1.68, 0.0, 0.98, 0.36, 0.82, segs=14, rings=8, rz=side * -0.28)
+        # Twin glowing LED headlights (east lead) or ruby-red tail markers (west tail)
+        lamp_mat = m_head if side > 0 else m_tail
+        for lz in (-0.48, 0.48):
+            b.add_ellipsoid(lamp_mat, side * 13.55, 0.84, lz, 0.22, 0.10, 0.14, segs=10, rings=6)
+        # Sleek nose coupler seam cover
+        b.add_ellipsoid(m_white, side * 14.48, 0.58, 0.0, 0.36, 0.20, 0.38, segs=12, rings=8)
+
+    # Twin Detailed Roof Diamond Pantographs (above car joints!)
+    for px in (-4.1, 4.1):
+        b.add_box(m_dark, px, 2.42, 0.0, 1.15, 0.12, 0.95)
+        b.add_cylinder(m_metal, px - 0.18, 2.74, 0.0, 0.028, 0.028, 0.72, segs=6, rz=-0.52)
+        b.add_cylinder(m_metal, px + 0.18, 2.74, 0.0, 0.028, 0.028, 0.72, segs=6, rz=0.52)
+        b.add_cylinder(m_metal, px - 0.18, 3.16, 0.0, 0.024, 0.024, 0.68, segs=6, rz=0.52)
+        b.add_cylinder(m_metal, px + 0.18, 3.16, 0.0, 0.024, 0.024, 0.68, segs=6, rz=-0.52)
+        # Carbon collector shoe bar at top of pantograph
+        b.add_box(m_metal, px, 3.44, 0.0, 0.22, 0.05, 1.15)
+        b.add_box(m_dark, px, 3.48, 0.0, 0.12, 0.04, 1.12)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_shinkansen.glb"))
 
 
 def make_feather_tex(base=(244, 238, 224), accent=(212, 200, 180), size=128):
@@ -1168,9 +1377,10 @@ if __name__ == "__main__":
     build_utility_pole()
     build_anime_vending()
     build_anime_bike()
+    build_anime_shinkansen()
     build_anime_duck("anime_duck_mallard.glb", "mallard")
     build_anime_duck("anime_duck_white.glb", "white")
     build_anime_shiba()
     build_anime_cat()
     build_anime_kitsune()
-    print("All 19 AAA .glb assets built successfully!")
+    print("All 20 AAA .glb assets built successfully!")

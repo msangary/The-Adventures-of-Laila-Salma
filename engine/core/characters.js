@@ -325,21 +325,25 @@ window.LailaSalma = window.LailaSalma || {};
       headGroup.add(bang);
     });
 
-    if (hd) {
-      // Sculpted anime side hair locks framing the cheeks cleanly behind the eyes!
-      [-0.235, 0.235].forEach(bx => {
-        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.074, 0.34, 8), hairMat);
-        strand.scale.set(0.78, 1.0, 0.68);
-        strand.position.set(bx, -0.055, 0.105);
+    if (hd && (cfg.longHair || cfg.hairBun)) {
+      // Sculpted anime side hair locks framing cleanly outside the cheeks (angled gently outward, never crossing under the chin!)
+      [-0.255, 0.255].forEach(bx => {
+        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.064, 0.34, 8), hairMat);
+        strand.scale.set(0.75, 1.0, 0.65);
+        strand.position.set(bx, -0.06, 0.02);
         strand.rotation.x = Math.PI;
-        strand.rotation.z = bx < 0 ? 0.16 : -0.16;
+        strand.rotation.z = bx < 0 ? -0.08 : 0.08;
+        strand.userData.noOutline = true;
         headGroup.add(strand);
       });
     }
 
     if (cfg.longHair) {
-      const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.275, hd ? 0.35 : 0.31, hd ? 0.56 : 0.42, hd ? 18 : 12), hairMat);
-      backHair.position.set(0, hd ? -0.20 : -0.14, -0.085);
+      // Silky flowing back hair veil positioned cleanly behind the ears & neck (zero chin/neck clip!)
+      const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.265, hd ? 0.33 : 0.30, hd ? 0.56 : 0.44, hd ? 18 : 12), hairMat);
+      backHair.scale.set(1.0, 1.0, 0.42);
+      backHair.position.set(0, hd ? -0.20 : -0.14, -0.195);
+      backHair.rotation.x = 0.08;
       headGroup.add(backHair);
     }
     if (cfg.pigtails) {
