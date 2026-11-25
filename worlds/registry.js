@@ -16,12 +16,12 @@ window.LailaSalma = window.LailaSalma || {};
       destinationName: 'Kyoto',
       destinationId: 'kyoto',
       description: 'Explore expanded Sakura-cho! Visit Ichiban Ramen, Sakura Elementary, Tokyo Pocket Park, Gachapon & Drink machines, decorate inside Laila & Salma\'s 3D Room, check out Haneda International Airport, and find 5 hiding cats (new spots every 2 hours!).',
-      bounds: { minX: -48, maxX: 52, minZ: -50, maxZ: 40 },
-      mapBounds: { minX: -50, maxX: 54, minZ: -52, maxZ: 44 },
+      bounds: { minX: -62, maxX: 66, minZ: -62, maxZ: 50 },
+      mapBounds: { minX: -64, maxX: 68, minZ: -64, maxZ: 52 },
       spawn: { x: 0, y: 0, z: 16.0, rotY: Math.PI },
       arrivalSpawn: { x: 0, y: 0, z: 28.0, rotY: Math.PI },
-      fogNear: 58,
-      fogFar: 185
+      fogNear: 72,
+      fogFar: 225
     },
     kyoto: {
       id: 'kyoto',
@@ -36,13 +36,13 @@ window.LailaSalma = window.LailaSalma || {};
       collectibleTotal: 5,
       destinationName: 'Tokyo',
       destinationId: 'tokyo',
-      description: 'Cross the arched cedar bridge over the koi lake! Walk through vermilion torii gates, explore the Arashiyama Bamboo Grove, feed koi & ducks, visit Kyoto Pocket Park, Gachapon & Matcha Tea House, decorate inside your 3D Ryokan Suite, and find 5 hiding kitsune foxes!',
-      bounds: { minX: -58, maxX: 42, minZ: -54, maxZ: 36 },
-      mapBounds: { minX: -60, maxX: 44, minZ: -56, maxZ: 40 },
+      description: 'Cross the arched cedar bridge over the koi lake! Walk through vermilion torii gates, explore the Arashiyama Bamboo Grove, Zen Rock Garden, Momiji Craft Village, Kyoto Pocket Park & Gachapon, decorate your 3D Ryokan Suite, and find 5 hiding kitsune foxes!',
+      bounds: { minX: -68, maxX: 56, minZ: -62, maxZ: 46 },
+      mapBounds: { minX: -70, maxX: 58, minZ: -64, maxZ: 48 },
       spawn: { x: 0, y: 0, z: 15.0, rotY: Math.PI },
-      arrivalSpawn: { x: 0, y: 0, z: 24.5, rotY: Math.PI },
-      fogNear: 60,
-      fogFar: 195
+      arrivalSpawn: { x: 0, y: 0, z: 25.0, rotY: Math.PI },
+      fogNear: 74,
+      fogFar: 230
     },
     tokyo_room: {
       id: 'tokyo_room',

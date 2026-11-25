@@ -213,6 +213,89 @@ window.LailaSalma = window.LailaSalma || {};
     return tex;
   };
 
+  LS.createGrassTexture = function (style) {
+    const key = 'grass_' + (style || 'tokyo');
+    if (texCache[key]) return texCache[key];
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+    const isKyoto = style === 'kyoto';
+    ctx.fillStyle = isKyoto ? '#5e884d' : '#6ea858';
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Soft painterly Ghibli meadow/moss patches (zero harsh grid!)
+    const tones = isKyoto
+      ? ['rgba(78,118,62,0.34)', 'rgba(116,148,82,0.28)', 'rgba(84,96,54,0.22)', 'rgba(138,162,92,0.2)']
+      : ['rgba(94,152,72,0.34)', 'rgba(132,182,92,0.28)', 'rgba(84,134,64,0.24)', 'rgba(164,196,104,0.2)'];
+    for (let i = 0; i < 360; i++) {
+      ctx.fillStyle = tones[i % tones.length];
+      const rx = ((i * 73) % 256);
+      const ry = ((i * 137) % 256);
+      const r = 8 + (i % 14);
+      ctx.beginPath();
+      ctx.arc(rx, ry, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Delicate grass blades & occasional tiny wild clover specks
+    for (let i = 0; i < 520; i++) {
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(220,235,175,0.22)' : 'rgba(46,78,38,0.22)';
+      const gx = (i * 59 + 11) % 256;
+      const gy = (i * 97 + 23) % 256;
+      ctx.fillRect(gx, gy, 2, 5);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(28, 28);
+    texCache[key] = tex;
+    return tex;
+  };
+
+  LS.createGravelPathTexture = function () {
+    if (texCache.gravel_path) return texCache.gravel_path;
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#c8b89a';
+    ctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 900; i++) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(145,126,96,0.28)' : 'rgba(240,232,212,0.3)';
+      ctx.fillRect((i * 47) % 256, (i * 83) % 256, 4, 3);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(4, 4);
+    texCache.gravel_path = tex;
+    return tex;
+  };
+
+  LS.createZenGravelTexture = function () {
+    if (texCache.zen_gravel) return texCache.zen_gravel;
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#d4cec0';
+    ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = 'rgba(130, 124, 112, 0.38)';
+    ctx.lineWidth = 4;
+    for (let y = 10; y < 256; y += 16) {
+      ctx.beginPath();
+      for (let x = 0; x <= 256; x += 16) {
+        const wy = y + Math.sin((x / 256) * Math.PI * 2) * 4;
+        if (x === 0) ctx.moveTo(x, wy);
+        else ctx.lineTo(x, wy);
+      }
+      ctx.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(3, 3);
+    texCache.zen_gravel = tex;
+    return tex;
+  };
+
   LS.createWaterTexture = function () {
     if (texCache.water_teal) return texCache.water_teal;
     const c = document.createElement('canvas');
@@ -546,5 +629,179 @@ window.LailaSalma = window.LailaSalma || {};
     sprite.scale.set(3.45, worldHeight, 1);
     sprite.visible = false;
     return sprite;
+  };
+
+  // Shared Natural Neighborhood Scenery Builders (zero extra lights, mobile-safe geometry)
+  LS.scenery = {
+    addCurvedPath: function (parent, points, width, style) {
+      const mat = style === 'stone'
+        ? new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() })
+        : new THREE.MeshLambertMaterial({ map: LS.createGravelPathTexture() });
+      const w = width || 2.4;
+      for (let i = 0; i < points.length - 1; i++) {
+        const a = points[i], b = points[i + 1];
+        const dx = b[0] - a[0], dz = b[1] - a[1];
+        const len = Math.hypot(dx, dz);
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, len + w * 0.45), mat);
+        seg.position.set((a[0] + b[0]) / 2, 0.025, (a[1] + b[1]) / 2);
+        seg.rotation.y = Math.atan2(dx, dz);
+        seg.receiveShadow = true;
+        parent.add(seg);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.5, w * 0.5, 0.05, 10), mat);
+        cap.position.set(a[0], 0.025, a[1]);
+        cap.receiveShadow = true;
+        parent.add(cap);
+      }
+    },
+
+    addFlowerPatch: function (parent, x, z, palette) {
+      const g = new THREE.Group();
+      g.position.set(x, 0.04, z);
+      const cols = palette || [0xff8fab, 0xffd166, 0xffffff, 0x90e0ef];
+      const stemMat = LS.makeToonMat(0x4c9a42);
+      for (let i = 0; i < 7; i++) {
+        const ang = (i / 7) * Math.PI * 2 + (x + z) * 0.3;
+        const r = 0.25 + (i % 3) * 0.32;
+        const fx = Math.cos(ang) * r, fz = Math.sin(ang) * r;
+        const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.22, 5), stemMat);
+        tuft.position.set(fx, 0.08, fz);
+        g.add(tuft);
+        const bloom = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), LS.makeToonMat(cols[i % cols.length]));
+        bloom.position.set(fx, 0.2, fz);
+        g.add(bloom);
+      }
+      parent.add(g);
+    },
+
+    addShrub: function (parent, x, z, scale, flowerHex) {
+      const s = scale || 1;
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      g.scale.setScalar(s);
+      const leafMat = LS.makeToonMat(0x448543);
+      [[0, 0.45, 0, 0.58], [-0.42, 0.35, 0.2, 0.42], [0.42, 0.36, -0.18, 0.44]].forEach(p => {
+        const m = new THREE.Mesh(new THREE.DodecahedronGeometry(p[3], 0), leafMat);
+        m.position.set(p[0], p[1], p[2]);
+        m.castShadow = true;
+        g.add(m);
+      });
+      if (flowerHex) {
+        const fMat = LS.makeToonMat(flowerHex);
+        [[-0.25, 0.68, 0.28], [0.22, 0.72, 0.22], [0.0, 0.85, -0.15]].forEach(fp => {
+          const b = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 5), fMat);
+          b.position.set(fp[0], fp[1], fp[2]);
+          g.add(b);
+        });
+      }
+      parent.add(g);
+    },
+
+    addBoulder: function (parent, x, z, scale, mossy) {
+      const s = scale || 1;
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.68 * s, 0), LS.makeToonMat(0x7c7b74));
+      rock.scale.set(1.25, 0.72, 1.0);
+      rock.position.y = 0.36 * s;
+      rock.rotation.y = (x * 0.7 + z * 0.4);
+      rock.castShadow = true;
+      rock.receiveShadow = true;
+      g.add(rock);
+      if (mossy) {
+        const moss = new THREE.Mesh(new THREE.SphereGeometry(0.45 * s, 7, 5), LS.makeToonMat(0x528a48));
+        moss.scale.set(1.2, 0.35, 1.0);
+        moss.position.set(0.05, 0.66 * s, 0);
+        g.add(moss);
+      }
+      parent.add(g);
+    },
+
+    addBench: function (parent, x, z, rotY) {
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY || 0;
+      const wood = LS.makeToonMat(0x8c5e35);
+      const legMat = LS.makeToonMat(0x3a3d42);
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 0.55), wood);
+      seat.position.y = 0.48; seat.castShadow = true; g.add(seat);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.42, 0.08), wood);
+      back.position.set(0, 0.78, -0.24); back.rotation.x = -0.15; g.add(back);
+      [-0.68, 0.68].forEach(lx => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.46, 0.48), legMat);
+        leg.position.set(lx, 0.23, 0); g.add(leg);
+      });
+      parent.add(g);
+    },
+
+    addPicnicBlanket: function (parent, x, z, rotY) {
+      const g = new THREE.Group();
+      g.position.set(x, 0.03, z);
+      g.rotation.y = rotY || 0;
+      const cloth = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.03, 2.2), LS.makeToonMat(0xf4a261));
+      g.add(cloth);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.035, 0.55), LS.makeToonMat(0xfff5e4));
+      g.add(stripe);
+      const basket = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.38, 0.4), LS.makeToonMat(0xa67342));
+      basket.position.set(0.65, 0.2, -0.45); basket.castShadow = true; g.add(basket);
+      parent.add(g);
+    },
+
+    addFenceRun: function (parent, x1, z1, x2, z2, style) {
+      const dx = x2 - x1, dz = z2 - z1;
+      const len = Math.hypot(dx, dz);
+      const g = new THREE.Group();
+      g.position.set((x1 + x2) / 2, 0, (z1 + z2) / 2);
+      g.rotation.y = Math.atan2(dx, dz);
+      if (style === 'hedge') {
+        const hedge = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.95, len), LS.makeToonMat(0x3f7d40));
+        hedge.position.y = 0.48; hedge.castShadow = true; hedge.receiveShadow = true; g.add(hedge);
+      } else if (style === 'bamboo') {
+        const bMat = LS.makeToonMat(0x8ba35c);
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.05, len), bMat);
+        rail.position.y = 0.52; rail.castShadow = true; g.add(rail);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, len + 0.1), LS.makeToonMat(0x526b36));
+        cap.position.y = 1.08; g.add(cap);
+      } else {
+        const wMat = LS.makeToonMat(0x8c6239);
+        [0.32, 0.72].forEach(ry => {
+          const bar = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, len), wMat);
+          bar.position.y = ry; g.add(bar);
+        });
+        const posts = Math.max(2, Math.round(len / 2.2));
+        for (let i = 0; i <= posts; i++) {
+          const pz = -len / 2 + (i / posts) * len;
+          const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.95, 0.14), wMat);
+          post.position.set(0, 0.47, pz); g.add(post);
+        }
+      }
+      parent.add(g);
+    },
+
+    addGrassMound: function (parent, x, z, radius, height, colorHex) {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 14, 10),
+        LS.makeToonMat(colorHex || 0x629950)
+      );
+      m.scale.set(1.25, height / radius, 1.0);
+      m.position.set(x, -height * 0.35, z);
+      m.receiveShadow = true;
+      parent.add(m);
+    },
+
+    addBike: function (parent, x, z, rotY, colorHex) {
+      const bike = new THREE.Group();
+      bike.position.set(x, 0, z);
+      bike.rotation.y = rotY || 0;
+      const wheelMat = LS.makeToonMat(0x2c2c2c);
+      [-0.48, 0.48].forEach(wz => {
+        const w = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.04, 7, 14), wheelMat);
+        w.position.set(0, 0.32, wz); w.rotation.y = Math.PI / 2; bike.add(w);
+      });
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.98), LS.makeToonMat(colorHex || 0x52a69a));
+      frame.position.set(0, 0.52, 0); bike.add(frame);
+      const basket = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.24), LS.makeToonMat(0x9a6d40));
+      basket.position.set(0, 0.74, -0.48); bike.add(basket);
+      parent.add(bike);
+    }
   };
 })(window.LailaSalma);

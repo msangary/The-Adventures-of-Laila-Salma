@@ -1,22 +1,18 @@
 {
   "worldId": "tokyo",
-  "name": "Tokyo — Expanded Sakura-cho & Haneda Airport",
-  "version": "2.1.0-jubilife-scale",
+  "name": "Tokyo — Natural Expanded Sakura-cho, Creek & Haneda Airport",
+  "version": "2.2.0-natural-expanded",
   "engine": { "threeVersion": "r128", "maxLights": 4, "shadowMapSize": 1024, "maxPixelRatio": 1.5, "textureSize": 256, "villageFloorSnow": false },
-  "bounds": { "minX": -48.0, "maxX": 52.0, "minZ": -50.0, "maxZ": 40.0 },
+  "bounds": { "minX": -62.0, "maxX": 66.0, "minZ": -62.0, "maxZ": 50.0 },
   "spawn": { "x": 0.0, "y": 0.0, "z": 16.0, "rotY": 3.14159 },
-  "landmarks": {
-    "sakuraSchool": { "x": 0.0, "z": -42.0 },
-    "ichibanRamen": { "x": 11.2, "z": -5.5 },
-    "tokyoBoutique": { "x": -8.6, "z": -10.8 },
-    "enterableSistersRoom": { "x": -11.8, "z": -1.5 },
-    "westSakuraPlaza": { "x": -28.0, "z": -1.5 },
-    "pocketPark": { "x": 24.8, "z": -10.5 },
-    "hanedaAirportTerminal": { "x": 29.0, "z": 24.5 },
-    "hanedaRunwayX": 44.0,
-    "shinkansenStation": { "x": 0.0, "z": 38.5 },
-    "tokyoTowerDistant": { "x": 58.0, "z": -90.0 }
-  },
+  "districts": [
+    "Main Sakura Boulevard & Enterable Sisters' Room",
+    "West Sakura Fountain Plaza, Sakura Creek & Flower Meadow",
+    "East Shōtengai Mini-Alley (Bakery, Florist, Bookshop)",
+    "Sakura Pocket Park & Picnic Clearing",
+    "North Sakura Elementary & Orchard",
+    "Haneda-Tokyo International Airport & South Shinkansen Station"
+  ],
   "catHideResetHours": 2,
-  "catHidingSpotPoolSize": 15
+  "catHidingSpotPoolSize": 20
 }

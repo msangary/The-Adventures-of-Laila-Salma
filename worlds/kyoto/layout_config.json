@@ -1,27 +1,18 @@
 {
   "worldId": "kyoto",
-  "name": "Kyoto — Expanded Sakurako, Bamboo & Park",
-  "version": "1.1.0-jubilife-scale",
+  "name": "Kyoto — Natural Expanded Sakurako, Zen Garden, Bamboo & Hamlet",
+  "version": "1.2.0-natural-expanded",
   "engine": { "threeVersion": "r128", "maxLights": 4, "shadowMapSize": 1024, "maxPixelRatio": 1.5, "textureSize": 256, "villageFloorSnow": false },
-  "bounds": { "minX": -58.0, "maxX": 42.0, "minZ": -54.0, "maxZ": 36.0 },
+  "bounds": { "minX": -68.0, "maxX": 56.0, "minZ": -62.0, "maxZ": 46.0 },
   "spawn": { "x": 0.0, "y": 0.0, "z": 15.0, "rotY": 3.14159 },
-  "ground": { "villageY": 0.0, "waterY": -0.44, "shrineCourtyardY": 0.75 },
-  "lake": { "xBounds": [-30.2, -14.8], "zBounds": [-37.5, -17.5], "feedingDock": { "x": -14.2, "z": -22.2 } },
-  "bridge": { "orientation": "east_west", "z": -27.5, "xBounds": [-30.5, -13.5], "bridgeLightX": -22.0 },
-  "shrine": { "name": "Sakurako Shrine (桜湖神社)", "xBounds": [-56.0, -30.5], "zBounds": [-39.0, -16.0], "courtyardY": 0.75 },
-  "bambooGrove": { "xBounds": [-48.0, -15.0], "zBounds": [-51.0, -39.5] },
-  "landmarks": {
-    "kyotoShinkansen": { "x": 0.0, "z": 34.5 },
-    "enterableKyotoRyokan": { "x": -10.5, "z": -12.5 },
-    "kimonoBoutique": { "x": -10.5, "z": 2.0 },
-    "southwestMapleGazebo": { "x": -32.0, "z": 7.8 },
-    "matchaTeaHouse": { "x": 10.2, "z": -5.0 },
-    "terakoyaAcademy": { "x": 10.2, "z": -21.0 },
-    "eastCanalX": 16.2,
-    "eastCanalBridgesZ": [-13.0, 3.0],
-    "kyotoGachaponAndDrinkPlaza": { "x": 22.0, "z": -15.8 },
-    "kyotoPocketPark": { "x": 29.5, "z": -1.0 }
-  },
+  "districts": [
+    "Kyoto Old Machiya Street, Kimono Shop & Enterable 3D Ryokan Suite",
+    "Excavated Koi Lake, Arched Cedar Bridge, Feeding Dock & Sakura Sushi",
+    "Sakurako Shrine, 6-Gate Senbon Torii Tunnel, Omikuji & Ema Wishes",
+    "Expanded Arashiyama Bamboo Woods & Hillside Rest Trail",
+    "Southwest Momiji Craft Village (Pottery, Fan Atelier) & Raked Zen Rock Garden",
+    "East Yousuiro Willow Canal (3 Footbridges), Kyoto Blossom Park, Gachapon & Foothill Hamlet"
+  ],
   "kitsuneHideResetHours": 2,
-  "kitsuneHidingSpotPoolSize": 15
+  "kitsuneHidingSpotPoolSize": 20
 }
