@@ -351,6 +351,9 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.mochiGame = null;
     LS.runtime.parkActivity = null;
     LS.runtime.safariRide = null;
+    LS.runtime.bikeRide = null;
+    const bikeBan = document.getElementById('bike-banner');
+    if (bikeBan) bikeBan.classList.add('hidden');
     LS.runtime.nearZone = null;
     LS.runtime.piggybackUntil = 0;
     LS.closeAllModals();
@@ -537,7 +540,87 @@ window.LailaSalma = window.LailaSalma || {};
     return 0;
   }
 
+  LS.ringBikeBell = function () {
+    LS.playTone(1567.98, 0.14, 'sine', 0.16);
+    setTimeout(() => LS.playTone(1975.53, 0.18, 'sine', 0.16), 95);
+    LS.showToast('🔔 Ring-ring! Coming through, Tokyo!');
+  };
+
+  LS.mountYellowBike = function () {
+    if (LS.runtime.bikeRide || LS.runtime.modalOpen || LS.runtime.eating || LS.runtime.traveling) return;
+    if (!LS.activeWorld || !LS.activeWorld.rideableBike || !LS.chars.laila) return;
+    const bike = LS.activeWorld.rideableBike;
+    const laila = LS.chars.laila;
+    LS.runtime.bikeRide = { bike, speed: 0, pedalPhase: 0, lean: 0 };
+    LS.runtime.nearZone = null;
+    laila.root.position.set(bike.position.x, getGroundH(bike.position.x, bike.position.z) + 0.34, bike.position.z);
+    laila.root.rotation.y = bike.rotation.y;
+    const bBeacon = zoneBeacons.find(b => b.id === 'tokyo_yellow_bike');
+    if (bBeacon) bBeacon.group.visible = false;
+    const prompt = document.getElementById('interact-prompt');
+    const mobBtn = document.getElementById('btn-interact-mobile');
+    if (prompt) prompt.classList.add('hidden');
+    if (mobBtn) mobBtn.classList.add('hidden');
+    const bikeBan = document.getElementById('bike-banner');
+    if (bikeBan) bikeBan.classList.remove('hidden');
+    LS.ringBikeBell();
+    LS.setSalmaBubbleText('Wheee!! I love riding on the back of your yellow bike, Laila! 🚲💛', 3800);
+    LS.showToast('🚲 Hopped on the Yellow Bicycle! Use WASD/Arrows to ride, Space for bell, E to park!');
+  };
+
+  LS.dismountYellowBike = function () {
+    if (!LS.runtime.bikeRide || !LS.chars.laila) return;
+    const bike = LS.runtime.bikeRide.bike;
+    const laila = LS.chars.laila;
+    const salma = LS.chars.salma;
+    const yaw = bike.rotation.y;
+    bike.rotation.z = 0;
+    const gy = getGroundH(bike.position.x, bike.position.z);
+    bike.position.y = gy;
+
+    // Step Laila & Salma smoothly to the side of the parked bicycle
+    const sideX = Math.cos(yaw), sideZ = -Math.sin(yaw);
+    laila.root.position.set(bike.position.x + sideX * 0.95, gy, bike.position.z + sideZ * 0.95);
+    resolveCollisions(laila.root.position, 0.45);
+    laila.root.position.y = getGroundH(laila.root.position.x, laila.root.position.z);
+    laila.leftLeg.rotation.x = 0; laila.rightLeg.rotation.x = 0;
+    laila.leftArm.rotation.x = 0; laila.rightArm.rotation.x = 0; laila.rightArm.rotation.z = 0;
+    laila.bodyPivot.rotation.z = 0;
+
+    if (salma) {
+      salma.root.position.set(bike.position.x - sideX * 0.95, gy, bike.position.z - sideZ * 0.95);
+      resolveCollisions(salma.root.position, 0.4);
+      salma.root.position.y = getGroundH(salma.root.position.x, salma.root.position.z);
+      salma.leftLeg.rotation.x = 0; salma.rightLeg.rotation.x = 0;
+      salma.leftArm.rotation.x = 0; salma.rightArm.rotation.x = 0; salma.rightArm.rotation.z = 0;
+      salma.bodyPivot.rotation.z = 0;
+    }
+
+    // Move the interactive zone & golden welcome ring right to the new parked spot!
+    if (LS.activeWorld && LS.activeWorld.zones) {
+      const bz = LS.activeWorld.zones.find(z => z.id === 'tokyo_yellow_bike');
+      if (bz) bz.pos.set(bike.position.x, gy, bike.position.z);
+    }
+    const bBeacon = zoneBeacons.find(b => b.id === 'tokyo_yellow_bike');
+    if (bBeacon) {
+      bBeacon.group.position.set(bike.position.x, gy + 0.048, bike.position.z);
+      bBeacon.group.visible = true;
+    }
+
+    LS.runtime.bikeRide = null;
+    grounded = true;
+    salmaGrounded = true;
+    const bikeBan = document.getElementById('bike-banner');
+    if (bikeBan) bikeBan.classList.add('hidden');
+    LS.playSFX('jump');
+    LS.showToast('🅿️ Parked the yellow bicycle! Press E near it anytime to ride again!');
+  };
+
   function triggerJump() {
+    if (LS.runtime.bikeRide) {
+      LS.ringBikeBell();
+      return;
+    }
     if (grounded && !LS.runtime.eating && !LS.runtime.modalOpen && !LS.runtime.traveling && !LS.runtime.parkActivity) {
       const superJump = LS.runtime.superJumpUntil && Date.now() < LS.runtime.superJumpUntil;
       velY = superJump ? 10.2 : 6.4;
@@ -556,6 +639,10 @@ window.LailaSalma = window.LailaSalma || {};
 
   function triggerSisterPose() {
     if (LS.runtime.eating || LS.runtime.modalOpen || LS.runtime.traveling) return;
+    if (LS.runtime.bikeRide) {
+      LS.ringBikeBell();
+      return;
+    }
     LS.runtime.poseTimer = 2.4;
     const nearSalma = LS.chars.salma &&
       LS.chars.laila.root.position.distanceTo(LS.chars.salma.root.position) < 4.0;
@@ -630,6 +717,10 @@ window.LailaSalma = window.LailaSalma || {};
 
   function triggerInteract() {
     if (LS.runtime.modalOpen || LS.runtime.eating || LS.runtime.traveling) return;
+    if (LS.runtime.bikeRide) {
+      LS.dismountYellowBike();
+      return;
+    }
     if (!LS.runtime.nearZone && LS.chars.mochi &&
         LS.chars.laila.root.position.distanceTo(LS.chars.mochi.position) < 2.6) {
       LS.openMochiModal();
@@ -637,7 +728,8 @@ window.LailaSalma = window.LailaSalma || {};
     }
     if (!LS.runtime.nearZone) return;
     const zid = LS.runtime.nearZone.id;
-    if (zid === 'school') LS.openSchoolModal('tokyo');
+    if (zid === 'tokyo_yellow_bike') LS.mountYellowBike();
+    else if (zid === 'school') LS.openSchoolModal('tokyo');
     else if (zid === 'kyoto_academy') LS.openSchoolModal('kyoto');
     else if (zid === 'ramen') LS.openRamenModal();
     else if (zid === 'sushi_stand') LS.openSushiModal();
@@ -846,6 +938,10 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('btn-jump').addEventListener('click', triggerJump);
     document.getElementById('interact-prompt').addEventListener('click', triggerInteract);
     document.getElementById('btn-interact-mobile').addEventListener('click', triggerInteract);
+    const bikeBellBtn = document.getElementById('btn-bike-bell');
+    if (bikeBellBtn) bikeBellBtn.addEventListener('click', () => LS.ringBikeBell());
+    const bikeDismountBtn = document.getElementById('btn-bike-dismount');
+    if (bikeDismountBtn) bikeDismountBtn.addEventListener('click', () => LS.dismountYellowBike());
 
     const jZone = document.getElementById('joystick-zone');
     const jKnob = document.getElementById('joystick-knob');
@@ -1124,6 +1220,101 @@ window.LailaSalma = window.LailaSalma || {};
           salma.rightLeg.rotation.x = 0;
         }
         LS.runtime.parkActivity = null;
+      }
+      return;
+    }
+
+    // Free-roam Yellow Bicycle riding around Tokyo (Laila pedals, Salma cheers on the rear rack!)
+    if (LS.runtime.bikeRide && LS.runtime.bikeRide.bike) {
+      const br = LS.runtime.bikeRide;
+      const bike = br.bike;
+
+      let inX = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0);
+      let inZ = (keys['s'] || keys['arrowdown'] ? 1 : 0) - (keys['w'] || keys['arrowup'] ? 1 : 0);
+      if (joy.active) { inX = joy.x; inZ = joy.y; }
+
+      const moving = Math.hypot(inX, inZ) > 0.08;
+      lastMoveInput.x = inX;
+      lastMoveInput.z = inZ;
+      lastMoveInput.moving = moving;
+
+      // Pedaling restores stamina & gives a breezy cycling pace!
+      LS.runtime.stamina = Math.min(100, LS.runtime.stamina + dt * 22);
+      const wantsBoost = (keys['shift'] || LS.runtime.runToggle) && moving;
+      const buffMult = (LS.runtime.buff && Date.now() < LS.runtime.buff.expiresAt) ? LS.runtime.buff.speedMult : 1.0;
+      const targetSpeed = moving ? (wantsBoost ? 13.8 : 10.2) * buffMult : 0;
+      br.speed += (targetSpeed - br.speed) * Math.min(1, dt * (moving ? 5.5 : 7.5));
+
+      let turnDelta = 0;
+      if (moving) {
+        const len = Math.hypot(inX, inZ);
+        inX /= len; inZ /= len;
+        _fwd.set(Math.sin(camYaw), 0, Math.cos(camYaw));
+        _right.set(-_fwd.z, 0, _fwd.x);
+        _moveVec.set(0, 0, 0)
+          .addScaledVector(_fwd, -inZ)
+          .addScaledVector(_right, inX)
+          .normalize();
+
+        const targetRot = Math.atan2(_moveVec.x, _moveVec.z);
+        turnDelta = wrapAngleDelta(bike.rotation.y, targetRot);
+        bike.rotation.y += turnDelta * Math.min(1, dt * 7.5);
+      }
+
+      if (br.speed > 0.08) {
+        const bx = Math.sin(bike.rotation.y);
+        const bz = Math.cos(bike.rotation.y);
+        bike.position.x += bx * br.speed * dt;
+        bike.position.z += bz * br.speed * dt;
+        resolveCollisions(bike.position, 0.58);
+        br.pedalPhase += dt * (4.5 + br.speed * 0.72);
+      }
+
+      // Gentle lean into curves & bridge ground height tracking
+      const targetLean = Math.max(-0.24, Math.min(0.24, -turnDelta * 0.28));
+      br.lean += (targetLean - br.lean) * Math.min(1, dt * 8.0);
+      const gy = getGroundH(bike.position.x, bike.position.z);
+      bike.position.y += (gy - bike.position.y) * Math.min(1, dt * 14);
+      bike.rotation.z = br.lean;
+
+      const sinY = Math.sin(bike.rotation.y);
+      const cosY = Math.cos(bike.rotation.y);
+      const bounce = br.speed > 0.5 ? Math.sin(br.pedalPhase * 2) * 0.022 : 0;
+
+      // Seat Laila right on the saddle (-0.18m back) holding the handlebars & pedaling!
+      laila.root.position.set(
+        bike.position.x - sinY * 0.16,
+        bike.position.y + 0.34 + bounce,
+        bike.position.z - cosY * 0.16
+      );
+      laila.root.rotation.y = bike.rotation.y;
+      laila.bodyPivot.rotation.z = br.lean * 0.85;
+      laila.leftArm.rotation.x = -1.06;
+      laila.rightArm.rotation.x = -1.06;
+      laila.rightArm.rotation.z = 0;
+      const pSin = Math.sin(br.pedalPhase);
+      laila.leftLeg.rotation.x = -0.68 + pSin * 0.48;
+      laila.rightLeg.rotation.x = -0.68 - pSin * 0.48;
+
+      // Seat Salma happily on the rear carrier rack (-0.56m back) cheering & waving!
+      if (salma) {
+        salma.root.position.set(
+          bike.position.x - sinY * 0.56,
+          bike.position.y + 0.26 + bounce * 1.15,
+          bike.position.z - cosY * 0.56
+        );
+        salma.root.rotation.y = bike.rotation.y;
+        salma.bodyPivot.rotation.z = br.lean * 0.85;
+        salma.leftLeg.rotation.x = -1.08 + Math.sin(elapsed * 5.0) * 0.14;
+        salma.rightLeg.rotation.x = -1.08 - Math.sin(elapsed * 5.0) * 0.14;
+        salma.leftArm.rotation.x = -0.92;
+        salma.rightArm.rotation.x = -0.36;
+        salma.rightArm.rotation.z = br.speed > 1.5 ? (2.05 + Math.sin(elapsed * 7.5) * 0.26) : 0.35;
+      }
+
+      const zoneEl = document.getElementById('compass-zone');
+      if (zoneEl && LS.activeWorld.getZoneLabel) {
+        zoneEl.textContent = LS.activeWorld.getZoneLabel(bike.position.x, bike.position.z);
       }
       return;
     }
@@ -1500,6 +1691,17 @@ window.LailaSalma = window.LailaSalma || {};
         ctx.lineWidth = 1.2;
         ctx.stroke();
       });
+    }
+
+    if (LS.activeWorld.rideableBike && !LS.runtime.bikeRide) {
+      const bp = LS.activeWorld.rideableBike.position;
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(toMapX(bp.x), toMapY(bp.z), 4.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
     }
 
     if (LS.chars.salma) {

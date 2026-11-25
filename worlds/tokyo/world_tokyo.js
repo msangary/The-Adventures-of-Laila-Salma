@@ -476,7 +476,8 @@ window.LailaSalma = window.LailaSalma || {};
       SC.addFenceRun(worldGroup, 12.2, 19.5, 17.5, 18.2, 'hedge');
       SC.addBike(worldGroup, -5.6, 4.8, 0.42, 0x52a69a);
       SC.addBike(worldGroup, 17.5, -24.5, 1.15, 0xe05780);
-      SC.addBike(worldGroup, -22.5, 2.8, -0.55, 0xf59e0b);
+      W.rideableBike = SC.addBike(worldGroup, -22.5, 2.8, -0.55, 0xf59e0b);
+      W.zones.push({ id: 'tokyo_yellow_bike', label: 'Ride Yellow Bicycle around Tokyo! 🚲', pos: new THREE.Vector3(-22.5, 0, 2.8), radius: 2.6 });
 
       [
         [-8.2, 3.2, 0x90e0ef], [-18.5, -6.5, 0xff8fab], [-33.5, 8.5, 0xc084fc],

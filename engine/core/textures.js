@@ -1408,7 +1408,7 @@ window.LailaSalma = window.LailaSalma || {};
         m.position.set(x, 0, z);
         m.rotation.y = rotY || 0;
         parent.add(m);
-        return;
+        return m;
       }
       const bike = new THREE.Group();
       bike.position.set(x, 0, z);
@@ -1441,6 +1441,7 @@ window.LailaSalma = window.LailaSalma || {};
       const basket = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.22, 0.24), LS.makeToonMat(0x9a6d40));
       basket.position.set(0, 0.82, 0.54); bike.add(basket);
       parent.add(bike);
+      return bike;
     },
 
     buildShinkansenTrackAndTrain: function (stationGroup, trackZ) {

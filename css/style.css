@@ -381,7 +381,7 @@ html, body {
   border-color: #d97706;
 }
 
-#front-view-banner, #eating-banner, #mochi-game-banner {
+#front-view-banner, #eating-banner, #mochi-game-banner, #bike-banner {
   position: fixed;
   top: 68px;
   left: 50%;
@@ -389,7 +389,7 @@ html, body {
   z-index: 25;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 #mochi-game-banner {
@@ -399,9 +399,16 @@ html, body {
   font-weight: 800;
 }
 
-#eating-banner {
+#eating-banner, #bike-banner {
   top: auto;
   bottom: 84px;
+}
+
+#bike-banner {
+  background: rgba(254, 243, 199, 0.94);
+  border-color: #f59e0b;
+  color: #78350f;
+  font-weight: 800;
 }
 
 #interact-prompt {
