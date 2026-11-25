@@ -5,6 +5,7 @@ window.LailaSalma = window.LailaSalma || {};
   let worldGroup = null;
   let hdCloudsGroup = null;
   let hdMotes = null;
+  let hdPetals = null;
   let sparkleSystem = null;
   let sparkleIdx = 0;
   let starBurstGroup = null;
@@ -120,6 +121,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (hdCloudsGroup) hdCloudsGroup.visible = !meta.isInterior;
     if (hdMotes) hdMotes.visible = !meta.isInterior;
+    if (hdPetals) hdPetals.visible = !meta.isInterior && (wid === 'tokyo' || wid === 'kyoto');
 
     if (meta.isInterior) {
       scene.fog.color.setHex(wid === 'kyoto_room' ? 0x3b2c26 : 0xffeef4);
@@ -163,8 +165,13 @@ window.LailaSalma = window.LailaSalma || {};
     if (LS.hdPost && LS.hdPost.setTimeMode) LS.hdPost.setTimeMode(mode);
 
     if (hdCloudsGroup) {
-      const cCol = mode === 1 ? 0xffd7b0 : (mode === 2 ? 0x5c6f9c : 0xfffdf8);
-      hdCloudsGroup.traverse(o => { if (o.isMesh && o.material) o.material.color.setHex(cCol); });
+      const topCol = mode === 1 ? 0xffe0b8 : (mode === 2 ? 0x6b80b0 : 0xfffdf8);
+      const botCol = mode === 1 ? 0xc97b74 : (mode === 2 ? 0x384972 : 0xb8cee8);
+      hdCloudsGroup.traverse(o => {
+        if (o.isMesh && o.material) {
+          o.material.color.setHex(o.userData && o.userData.isCloudShadow ? botCol : topCol);
+        }
+      });
     }
     if (hdMotes && hdMotes.material) {
       hdMotes.material.color.setHex(mode === 2 ? 0xd9ff70 : (mode === 1 ? 0xffdf80 : 0xfff8cc));
@@ -1764,9 +1771,10 @@ window.LailaSalma = window.LailaSalma || {};
       console.warn('[HD PMREM]', e);
     }
 
-    // 2. Volumetric 3D Fluffy Ghibli Clouds drifting lazily across the valley sky
+    // 2. Two-Tone Volumetric Shinkai Cumulus Clouds (sunlit cream crown + cool sky-lavender underside!)
     hdCloudsGroup = new THREE.Group();
-    const cloudMat = new THREE.MeshLambertMaterial({ color: 0xfffdf8, transparent: true, opacity: 0.88 });
+    const cloudTopMat = new THREE.MeshBasicMaterial({ color: 0xfffdf8, transparent: true, opacity: 0.90 });
+    const cloudBotMat = new THREE.MeshBasicMaterial({ color: 0xb8cee8, transparent: true, opacity: 0.84 });
     const cloudLayout = [
       [-65, 42, -78, 1.35], [22, 46, -92, 1.65], [88, 39, -58, 1.25],
       [-92, 37, 10, 1.2], [75, 43, 35, 1.45], [-25, 48, 62, 1.3], [10, 44, -22, 1.1]
@@ -1775,9 +1783,18 @@ window.LailaSalma = window.LailaSalma || {};
       const cg = new THREE.Group();
       cg.position.set(c[0], c[1], c[2]);
       cg.scale.setScalar(c[3]);
-      [[0, 0, 0, 5.2], [-4.5, -0.8, 0.8, 3.8], [4.6, -0.6, -0.5, 4.0], [-1.8, 2.2, -0.4, 3.5], [2.4, 1.8, 0.6, 3.2]].forEach(p => {
-        const puff = new THREE.Mesh(new THREE.SphereGeometry(p[3], 12, 10), cloudMat);
-        puff.scale.set(1.3, 0.72, 1.0);
+      // Soft shaded cloud underside puffs
+      [[-3.8, -1.6, 0.5, 3.8], [0.2, -1.5, 0.2, 4.7], [4.0, -1.4, -0.3, 3.8]].forEach(p => {
+        const sp = new THREE.Mesh(new THREE.SphereGeometry(p[3], 12, 8), cloudBotMat);
+        sp.scale.set(1.38, 0.54, 1.05);
+        sp.position.set(p[0], p[1], p[2]);
+        sp.userData.isCloudShadow = true;
+        cg.add(sp);
+      });
+      // Sunlit billowing cream tops
+      [[0, 0.4, 0, 5.2], [-4.4, -0.2, 0.7, 3.7], [4.5, -0.1, -0.4, 3.9], [-1.7, 2.5, -0.3, 3.6], [2.4, 2.1, 0.5, 3.3]].forEach(p => {
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(p[3], 12, 10), cloudTopMat);
+        puff.scale.set(1.28, 0.74, 1.0);
         puff.position.set(p[0], p[1], p[2]);
         cg.add(puff);
       });
@@ -1811,7 +1828,34 @@ window.LailaSalma = window.LailaSalma || {};
     });
     hdMotes = new THREE.Points(mGeo, mMat);
     scene.add(hdMotes);
+
+    // 4. Gently Fluttering Sakura Cherry Blossom Petals drifting across Tokyo & Kyoto!
+    const pCount = 72;
+    const pGeo = new THREE.PlaneGeometry(0.16, 0.11);
+    const pMat = new THREE.MeshBasicMaterial({ color: 0xffc8dc, side: THREE.DoubleSide, transparent: true, opacity: 0.86 });
+    hdPetals = new THREE.InstancedMesh(pGeo, pMat, pCount);
+    hdPetals.userData.items = [];
+    const pDummy = new THREE.Object3D();
+    for (let i = 0; i < pCount; i++) {
+      const it = {
+        x: -48 + Math.random() * 96,
+        y: 1.2 + Math.random() * 8.5,
+        z: -44 + Math.random() * 88,
+        speedY: 0.42 + Math.random() * 0.38,
+        driftX: 0.55 + Math.random() * 0.45,
+        phase: Math.random() * Math.PI * 2
+      };
+      hdPetals.userData.items.push(it);
+      pDummy.position.set(it.x, it.y, it.z);
+      pDummy.updateMatrix();
+      hdPetals.setMatrixAt(i, pDummy.matrix);
+    }
+    hdPetals.instanceMatrix.needsUpdate = true;
+    hdPetals.frustumCulled = false;
+    scene.add(hdPetals);
   }
+
+  const _petalDummy = new THREE.Object3D();
 
   function updateHDAtmosphere(dt, elapsed) {
     if (!LS.isHD) return;
@@ -1834,6 +1878,26 @@ window.LailaSalma = window.LailaSalma || {};
         pos.setXY(i, x, y);
       }
       pos.needsUpdate = true;
+    }
+    // Gently flutter 3D sakura petals on the breeze in Tokyo & Kyoto
+    if (hdPetals && hdPetals.visible && hdPetals.userData.items) {
+      const items = hdPetals.userData.items;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        it.x += (it.driftX + Math.sin(elapsed * 1.1 + it.phase) * 0.45) * dt;
+        it.y -= it.speedY * dt;
+        it.z += Math.cos(elapsed * 0.9 + it.phase) * 0.32 * dt;
+        if (it.y < 0.15) {
+          it.y = 8.8 + (i % 4) * 0.6;
+          it.x = -46 + ((i * 19.3) % 92);
+        }
+        if (it.x > 52) it.x = -52;
+        _petalDummy.position.set(it.x, it.y, it.z);
+        _petalDummy.rotation.set(elapsed * 1.4 + it.phase, elapsed * 1.1 + it.phase, Math.sin(elapsed * 2.0 + it.phase) * 0.8);
+        _petalDummy.updateMatrix();
+        hdPetals.setMatrixAt(i, _petalDummy.matrix);
+      }
+      hdPetals.instanceMatrix.needsUpdate = true;
     }
     // Gently scroll flowing stream & lake water ripples
     const wTex = LS.getWaterTexture ? LS.getWaterTexture() : null;
@@ -1879,8 +1943,8 @@ window.LailaSalma = window.LailaSalma || {};
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if (LS.isHD) {
-      renderer.toneMapping = THREE.LinearToneMapping;
-      renderer.toneMappingExposure = 1.02;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 0.98;
       LS.maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 4);
     }
     document.getElementById('game-container').appendChild(renderer.domElement);
@@ -1896,8 +1960,8 @@ window.LailaSalma = window.LailaSalma || {};
     dirLight.shadow.mapSize.width = shadowRes;
     dirLight.shadow.mapSize.height = shadowRes;
     if (LS.isHD) {
-      dirLight.shadow.bias = -0.0004;
-      dirLight.shadow.normalBias = 0.03;
+      dirLight.shadow.bias = -0.00028;
+      dirLight.shadow.normalBias = 0.025;
     }
     scene.add(dirLight);
 

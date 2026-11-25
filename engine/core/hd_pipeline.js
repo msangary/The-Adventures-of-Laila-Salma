@@ -718,22 +718,25 @@ window.LailaSalma = window.LailaSalma || {};
       'void main() {',
       '  vec4 tex = texture2D(tDiffuse, vUv);',
       '  vec3 col = tex.rgb;',
+      '  // Preserve rich midtones & crisp readability; gently roll off only extreme highlights (> 0.82)',
+      '  vec3 over = max(col - vec3(0.82), vec3(0.0));',
+      '  col = min(col, vec3(0.82)) + over / (1.0 + over * 2.2);',
       '  float lum = dot(col, vec3(0.299, 0.587, 0.114));',
       '  // Makoto Shinkai warm-gold afternoon sunlight vs cool slate-indigo shadows!',
-      '  vec3 coolTint = vec3(0.90, 0.95, 1.14);',
-      '  vec3 warmTint = mix(vec3(1.08, 1.03, 0.92), vec3(1.16, 0.97, 0.82), clamp(uTimeMode, 0.0, 1.0));',
-      '  col *= mix(coolTint, warmTint, smoothstep(0.16, 0.80, lum));',
+      '  vec3 coolTint = vec3(0.90, 0.95, 1.13);',
+      '  vec3 warmTint = mix(vec3(1.04, 1.01, 0.94), vec3(1.14, 0.96, 0.82), clamp(uTimeMode, 0.0, 1.0));',
+      '  col *= mix(coolTint, warmTint, smoothstep(0.14, 0.78, lum));',
       '  // Soft atmospheric afternoon sun-shaft glow descending from upper horizon',
       '  float sunDist = distance(vUv, vec2(0.56, 0.78));',
-      '  float sunGlow = exp(-sunDist * 3.8) * (uTimeMode > 1.5 ? 0.02 : (uTimeMode > 0.5 ? 0.11 : 0.055));',
-      '  col += vec3(1.0, 0.88, 0.68) * sunGlow;',
-      '  // Filmic anime vibrance & crisp contrast',
+      '  float sunGlow = exp(-sunDist * 4.2) * (uTimeMode > 1.5 ? 0.015 : (uTimeMode > 0.5 ? 0.09 : 0.036));',
+      '  col += vec3(1.0, 0.89, 0.70) * sunGlow;',
+      '  // Lush anime vibrance & clean contrast',
       '  float avg = (col.r + col.g + col.b) / 3.0;',
-      '  col = mix(vec3(avg), col, 1.15);',
+      '  col = mix(vec3(avg), col, 1.18);',
       '  col = (col - 0.5) * 1.06 + 0.5;',
       '  // Subtle cinematic edge framing',
       '  float dist = distance(vUv, vec2(0.5));',
-      '  col *= smoothstep(1.02, 0.36, dist * 0.56);',
+      '  col *= smoothstep(1.06, 0.38, dist * 0.50);',
       '  gl_FragColor = vec4(clamp(col, 0.0, 1.0), tex.a);',
       '}'
     ].join('\n')
@@ -754,7 +757,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (typeof THREE.UnrealBloomPass !== 'undefined') {
           const bloom = new THREE.UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            0.18, 0.52, 0.88
+            0.14, 0.48, 0.90
           );
           composer.addPass(bloom);
           LS.hdPost.bloomPass = bloom;
@@ -795,8 +798,8 @@ window.LailaSalma = window.LailaSalma || {};
         LS.hdPost.gradePass.uniforms.uTimeMode.value = mode;
       }
       if (LS.hdPost.bloomPass) {
-        LS.hdPost.bloomPass.strength = mode === 1 ? 0.30 : (mode === 2 ? 0.38 : 0.18);
-        LS.hdPost.bloomPass.threshold = mode === 2 ? 0.72 : (mode === 1 ? 0.84 : 0.88);
+        LS.hdPost.bloomPass.strength = mode === 1 ? 0.26 : (mode === 2 ? 0.36 : 0.14);
+        LS.hdPost.bloomPass.threshold = mode === 2 ? 0.74 : (mode === 1 ? 0.86 : 0.90);
       }
       animatedUniforms.forEach(u => {
         if (u.uTimeMode) u.uTimeMode.value = mode;

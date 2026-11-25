@@ -321,6 +321,18 @@ window.LailaSalma = window.LailaSalma || {};
     hairTop.rotation.x = -0.34;
     headGroup.add(hairTop);
 
+    // Subtle glossy anime angel-ring hair shine band in HD mode!
+    if (hd) {
+      const shineRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.255, 0.018, 6, 22, Math.PI * 1.15),
+        new THREE.MeshBasicMaterial({ color: 0xfff6e8, transparent: true, opacity: 0.24, depthWrite: false })
+      );
+      shineRing.rotation.set(Math.PI / 2 - 0.34, 0, -0.2);
+      shineRing.position.set(0, 0.195, -0.04);
+      shineRing.userData.noOutline = true;
+      headGroup.add(shineRing);
+    }
+
     // Sculpted layered anime forehead bangs framing the brow cleanly ABOVE the eyes!
     [
       [-0.165, 0.178, 0.205, 0.062, 0.115, 0.34],
@@ -383,6 +395,19 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (hd && LS.hdAssets && LS.hdAssets.addAnimeOutline) {
       LS.hdAssets.addAnimeOutline(bodyPivot, 0.042, 0x2b1e1a);
+    }
+
+    // Soft grounded ambient-occlusion contact shadow disc beneath feet!
+    if (LS.createContactShadowTexture) {
+      const shadowDisc = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.95, 0.95),
+        new THREE.MeshBasicMaterial({ map: LS.createContactShadowTexture(), transparent: true, depthWrite: false })
+      );
+      shadowDisc.rotation.x = -Math.PI / 2;
+      shadowDisc.position.y = 0.024;
+      shadowDisc.userData.noOutline = true;
+      shadowDisc.userData.noCamClip = true;
+      root.add(shadowDisc);
     }
 
     const hatSlot = new THREE.Group();

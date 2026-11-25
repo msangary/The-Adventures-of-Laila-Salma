@@ -24,6 +24,7 @@ window.LailaSalma = window.LailaSalma || {};
       }
       return new THREE.MeshStandardMaterial(std);
     }
+    delete cfg.roughness; delete cfg.metalness; delete cfg.bumpMap; delete cfg.bumpScale; delete cfg.envMapIntensity;
     return new THREE.MeshLambertMaterial(cfg);
   };
 
@@ -39,6 +40,7 @@ window.LailaSalma = window.LailaSalma || {};
       }, cfg);
       return new THREE.MeshStandardMaterial(std);
     }
+    delete cfg.roughness; delete cfg.metalness; delete cfg.bumpMap; delete cfg.bumpScale; delete cfg.envMapIntensity;
     return new THREE.MeshLambertMaterial(cfg);
   };
 
@@ -1565,5 +1567,106 @@ window.LailaSalma = window.LailaSalma || {};
     _zebraHideTex = new THREE.CanvasTexture(c);
     _zebraHideTex.wrapS = _zebraHideTex.wrapT = THREE.RepeatWrapping;
     return _zebraHideTex;
+  };
+
+  LS.createSandstoneTexture = function () {
+    if (texCache.sandstone) return texCache.sandstone;
+    const S = LS.isHD ? 256 : 128;
+    const c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#b98d5c';
+    ctx.fillRect(0, 0, S, S);
+    // Painterly striated African kopje granite & sandstone rock strata
+    const bands = ['#a37648', '#c89e6b', '#8d643d', '#d4ae7a', '#996f45'];
+    for (let y = 0; y < S; y += 12) {
+      ctx.fillStyle = bands[(y / 12) % bands.length];
+      ctx.globalAlpha = 0.52;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= S; x += 16) {
+        ctx.lineTo(x, y + Math.sin(x * 0.06 + y * 0.15) * 4);
+      }
+      ctx.lineTo(S, y + 14);
+      ctx.lineTo(0, y + 14);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Weathered rock fissures & sunlit warm mineral flecks
+    for (let i = 0; i < 180; i++) {
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(72,46,24,0.28)' : 'rgba(246,222,182,0.22)';
+      ctx.fillRect((i * 37) % S, (i * 71) % S, 4 + (i % 6), 2);
+    }
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 2);
+    texCache.sandstone = tex;
+    return tex;
+  };
+
+  LS.createThatchTexture = function () {
+    if (texCache.thatch) return texCache.thatch;
+    const S = LS.isHD ? 256 : 128;
+    const c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#cfa154';
+    ctx.fillRect(0, 0, S, S);
+    // Layered bundled golden straw thatch rows
+    for (let row = 0; row < S; row += 16) {
+      ctx.fillStyle = 'rgba(116, 76, 28, 0.34)';
+      ctx.fillRect(0, row + 13, S, 3);
+      for (let x = 0; x < S; x += 3) {
+        const shade = ((x * 13 + row * 7) % 3);
+        ctx.fillStyle = shade === 0 ? '#e6be72' : (shade === 1 ? '#b8863c' : '#d9aa58');
+        ctx.fillRect(x, row, 2, 14 + ((x + row) % 3));
+      }
+    }
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(3, 2);
+    texCache.thatch = tex;
+    return tex;
+  };
+
+  LS.createTermiteClayTexture = function () {
+    if (texCache.termiteClay) return texCache.termiteClay;
+    const S = 128;
+    const c = document.createElement('canvas');
+    c.width = S; c.height = S;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#b65b36';
+    ctx.fillRect(0, 0, S, S);
+    for (let x = 0; x < S; x += 6) {
+      ctx.fillStyle = x % 12 === 0 ? 'rgba(138,56,28,0.42)' : 'rgba(222,138,88,0.28)';
+      ctx.fillRect(x, 0, 3, S);
+    }
+    for (let i = 0; i < 120; i++) {
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(92,38,18,0.24)' : 'rgba(242,172,118,0.22)';
+      ctx.beginPath();
+      ctx.arc((i * 29) % S, (i * 53) % S, 2 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+    const tex = finalizeTex(new THREE.CanvasTexture(c));
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    texCache.termiteClay = tex;
+    return tex;
+  };
+
+  LS.createContactShadowTexture = function () {
+    if (texCache.contactShadow) return texCache.contactShadow;
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(32, 32, 4, 32, 32, 30);
+    g.addColorStop(0, 'rgba(28, 24, 36, 0.36)');
+    g.addColorStop(0.55, 'rgba(28, 24, 36, 0.16)');
+    g.addColorStop(1, 'rgba(28, 24, 36, 0.0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 64, 64);
+    const tex = new THREE.CanvasTexture(c);
+    texCache.contactShadow = tex;
+    return tex;
   };
 })(window.LailaSalma);

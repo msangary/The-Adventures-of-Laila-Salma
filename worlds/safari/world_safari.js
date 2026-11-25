@@ -196,7 +196,10 @@ window.LailaSalma = window.LailaSalma || {};
 
       // 2. Safari Base Camp (Welcome Arch, Outfitter Boutique, Ranger Academy, Photo Sticker Booth, Mango Cafe, Safari Jeep)
       safeRun('base_camp', () => {
-        const timber = LS.makeToonMat(0x6e472c), thatch = LS.makeToonMat(0xd4a95e), canvas = LS.makeToonMat(0xf4ead3), mud = LS.makeToonMat(0xe5c394);
+        const timber = LS.makeSurfaceMat(LS.createCedarPlankTexture(), { roughness: 0.78 });
+        const thatch = LS.makeSurfaceMat(LS.createThatchTexture(), { roughness: 0.88, bumpScale: 0.09 });
+        const canvas = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture('#f4ead3') });
+        const mud = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture('#e4c08e') });
 
         // Grand Timber Savanna Welcome Arch (X=0, Z=12.0)
         const arch = new THREE.Group(); arch.position.set(0, 0, 12.0);
@@ -536,7 +539,10 @@ window.LailaSalma = window.LailaSalma || {};
 
       // 5. Pride Rock Kopje & Resting King Lion / Lioness (North: X=-6..14, Z=-48..-32)
       safeRun('pride_rock', () => {
-        const rockA = LS.makeToonMat(0xb68d5c), rockB = LS.makeToonMat(0x8e6942), rockC = LS.makeToonMat(0xc9a36f);
+        const sandTex = LS.createSandstoneTexture();
+        const rockA = LS.makeSurfaceMat(sandTex, { color: 0xe6cca8, roughness: 0.88, bumpScale: 0.09 });
+        const rockB = LS.makeSurfaceMat(sandTex, { color: 0xc4a078, roughness: 0.90, bumpScale: 0.10 });
+        const rockC = LS.makeSurfaceMat(sandTex, { color: 0xf4dcba, roughness: 0.85, bumpScale: 0.08 });
         const kopje = new THREE.Group(); kopje.position.set(3.0, 0, -40.5);
         // Sculpted angular granite kopje crags + iconic jutting Pride Rock promontory!
         [
@@ -662,13 +668,25 @@ window.LailaSalma = window.LailaSalma || {};
           W.zebras.push({ root: zg, inner, neck: neckPivot, baseRot: zc[2], phase: idx * 1.3 });
         });
 
-        // Sculpted red-ochre Savanna Termite Mounds
-        const moundM = LS.makeToonMat(0xb85d38);
-        [[28.5, -22.5, 1.2], [44.0, -12.0, 1.45], [37.5, 4.5, 1.05]].forEach(tm => {
-          const mg = new THREE.Group(); mg.position.set(tm[0], 0, tm[1]);
-          const main = new THREE.Mesh(new THREE.ConeGeometry(0.95 * tm[2], 2.5 * tm[2], 9), moundM); main.position.y = 1.25 * tm[2]; main.castShadow = true; mg.add(main);
-          const side = new THREE.Mesh(new THREE.ConeGeometry(0.55 * tm[2], 1.6 * tm[2], 7), moundM); side.position.set(0.55 * tm[2], 0.8 * tm[2], 0.25); mg.add(side);
-          worldGroup.add(mg); addCollider(tm[0], tm[1], 0.9 * tm[2], 0.9 * tm[2]);
+        // Sculpted organic red-ochre multi-chimney Savanna Termite Mounds (textured terracotta clay!)
+        const moundM = LS.makeSurfaceMat(LS.createTermiteClayTexture(), { roughness: 0.90, bumpScale: 0.08 });
+        [[28.5, -22.5, 1.2], [44.0, -12.0, 1.45], [37.5, 4.5, 1.05]].forEach((tm, idx) => {
+          const mg = new THREE.Group(); mg.position.set(tm[0], 0, tm[1]); mg.rotation.y = idx * 1.1;
+          const s = tm[2];
+          // Broad lumpy earthen base + stacked irregular ventilation chimneys
+          const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95 * s, 1), moundM);
+          base.scale.set(1.15, 0.72, 1.05); base.position.y = 0.45 * s; base.castShadow = true; base.receiveShadow = true; mg.add(base);
+          const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * s, 0.54 * s, 2.05 * s, 9), moundM);
+          spire.position.set(-0.08 * s, 1.15 * s, 0.04 * s); spire.castShadow = true; mg.add(spire);
+          const cap = new THREE.Mesh(new THREE.SphereGeometry(0.24 * s, 8, 6), moundM);
+          cap.scale.set(1.0, 1.25, 1.0); cap.position.set(-0.08 * s, 2.18 * s, 0.04 * s); mg.add(cap);
+          [[0.46, 0.75, 0.22, 0.34, 1.35], [-0.42, 0.58, -0.25, 0.28, 1.05], [0.18, 0.48, -0.42, 0.24, 0.88]].forEach(ch => {
+            const cMesh = new THREE.Mesh(new THREE.CylinderGeometry(ch[3] * 0.45 * s, ch[3] * s, ch[4] * s, 8), moundM);
+            cMesh.position.set(ch[0] * s, ch[1] * s, ch[2] * s); cMesh.castShadow = true; mg.add(cMesh);
+            const cTop = new THREE.Mesh(new THREE.SphereGeometry(ch[3] * 0.48 * s, 7, 6), moundM);
+            cTop.position.set(ch[0] * s, (ch[1] + ch[4] * 0.5) * s, ch[2] * s); mg.add(cTop);
+          });
+          worldGroup.add(mg); addCollider(tm[0], tm[1], 1.0 * s, 1.0 * s);
         });
       });
 
