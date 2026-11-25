@@ -1733,22 +1733,28 @@ window.LailaSalma = window.LailaSalma || {};
     const cfg = Object.assign({
       skinHex: 0xf4c4a2,
       hairHex: 0x3b251b,
-      eyeColor: '#4e2e1a',
-      eyeHighlight: '#966238',
-      blush: 'rgba(220, 118, 112, 0.24)',
+      eyeColor: '#3a2216',
+      eyeHighlight: '#8d5d3b',
+      blush: 'rgba(228, 118, 108, 0.34)',
+      portrait: null,
+      smileTeeth: false,
       blink: false,
       happy: false,
       elder: false,
       mustache: false
     }, opts || {});
 
-    const S = 512;
+    const S = 1024;
     const c = document.createElement('canvas');
     c.width = S; c.height = S;
     const ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, S, S);
+    ctx.scale(2, 2); // Crisp 1024x1024 supersampled rendering in 512x512 virtual space!
+    ctx.clearRect(0, 0, 512, 512);
 
-    // Derive natural shadow, blush & lip palette harmonized with the character's skin tone
+    const isLaila = cfg.portrait === 'laila';
+    const isSalma = cfg.portrait === 'salma';
+    const isGirlPortrait = isLaila || isSalma;
+
     const r = (cfg.skinHex >> 16) & 255;
     const g = (cfg.skinHex >> 8) & 255;
     const b = cfg.skinHex & 255;
@@ -1758,14 +1764,15 @@ window.LailaSalma = window.LailaSalma || {};
     const hr = (cfg.hairHex >> 16) & 255;
     const hg = (cfg.hairHex >> 8) & 255;
     const hb = cfg.hairHex & 255;
-    const browCol = cfg.elder ? '#a8a8ad' : ('rgb(' + Math.max(22, Math.round(hr * 0.80)) + ',' + Math.max(16, Math.round(hg * 0.80)) + ',' + Math.max(14, Math.round(hb * 0.80)) + ')');
+    const browCol = cfg.elder ? '#a8a8ad'
+      : (isLaila ? '#261812' : (isSalma ? '#352118'
+        : ('rgb(' + Math.max(20, Math.round(hr * 0.78)) + ',' + Math.max(14, Math.round(hg * 0.78)) + ',' + Math.max(12, Math.round(hb * 0.78)) + ')')));
 
-    // 1. Subtle natural orbital eye-socket & nose-bridge soft shading
     function drawSoftShade(x, y, rx, ry, color) {
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(1, ry / rx);
-      const gr = ctx.createRadialGradient(0, 0, rx * 0.08, 0, 0, rx);
+      const gr = ctx.createRadialGradient(0, 0, rx * 0.06, 0, 0, rx);
       gr.addColorStop(0, color);
       gr.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gr;
@@ -1774,42 +1781,83 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fill();
       ctx.restore();
     }
-    const socketTint = isDarkSkin ? 'rgba(42, 22, 14, 0.20)' : 'rgba(176, 118, 96, 0.16)';
-    drawSoftShade(178, 250, 48, 28, socketTint);
-    drawSoftShade(334, 250, 48, 28, socketTint);
-    // Subtle nose tip highlight & under-nose soft shadow
-    drawSoftShade(256, 294, 16, 12, isDarkSkin ? 'rgba(255, 224, 198, 0.14)' : 'rgba(255, 248, 240, 0.24)');
-    drawSoftShade(256, 312, 20, 9, isDarkSkin ? 'rgba(34, 18, 12, 0.26)' : 'rgba(156, 98, 76, 0.22)');
 
-    // 2. Warm natural rosy cheek glow (blended smoothly, no cartoon stickers!)
-    const cheekCol = isDarkSkin ? 'rgba(192, 86, 70, 0.26)' : 'rgba(232, 118, 112, 0.26)';
-    drawSoftShade(148, 304, 48, 28, cheekCol);
-    drawSoftShade(364, 304, 48, 28, cheekCol);
+    // 1. Sculpted Soft Portrait Skin Shading (orbital depth, bridge glow, nostrils & warm cheeks)
+    const eyeCXLeft = isGirlPortrait ? 154 : 166;
+    const eyeCXRight = 512 - eyeCXLeft;
+    const eyeCY = isSalma ? 256 : 248;
 
-    // 3. Natural feathered eyebrows (well above eyes, crisp tapered arch)
+    const socketTint = isDarkSkin ? 'rgba(38, 18, 10, 0.22)' : 'rgba(176, 110, 82, 0.16)';
+    drawSoftShade(eyeCXLeft, eyeCY - 6, 68, 42, socketTint);
+    drawSoftShade(eyeCXRight, eyeCY - 6, 68, 42, socketTint);
+
+    // Subtle nose-bridge glow, petite button-nose shadow & delicate nostril crescents
+    drawSoftShade(256, 294, 14, 24, isDarkSkin ? 'rgba(255, 224, 198, 0.16)' : 'rgba(255, 250, 245, 0.32)');
+    drawSoftShade(256, 314, 16, 10, isDarkSkin ? 'rgba(255, 224, 198, 0.18)' : 'rgba(255, 252, 248, 0.42)');
+    drawSoftShade(256, 326, 22, 8, isDarkSkin ? 'rgba(36, 16, 10, 0.32)' : 'rgba(160, 92, 66, 0.28)');
+    ctx.strokeStyle = isDarkSkin ? 'rgba(42, 18, 10, 0.52)' : 'rgba(146, 82, 60, 0.52)';
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(244, 322, 4.4, 0.2 * Math.PI, 0.9 * Math.PI);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(268, 322, 4.4, 0.1 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+
+    // Rich Warm Portrait Cheek Blush + signature delicate blush wisps for Laila & Salma!
+    const cheekCol = isLaila ? 'rgba(222, 104, 78, 0.44)'
+      : (isSalma ? 'rgba(244, 122, 138, 0.48)'
+        : (isDarkSkin ? 'rgba(192, 86, 70, 0.30)' : 'rgba(232, 114, 108, 0.32)'));
+    const cheekY = isSalma ? 320 : 314;
+    drawSoftShade(116, cheekY, 64, 34, cheekCol);
+    drawSoftShade(396, cheekY, 64, 34, cheekCol);
+
+    if (isGirlPortrait) {
+      ctx.strokeStyle = isSalma ? 'rgba(232, 106, 124, 0.55)' : 'rgba(198, 86, 66, 0.48)';
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      [-1, 1].forEach(side => {
+        const bx = side < 0 ? 112 : 400;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(bx + i * 11 - 2, cheekY - 12);
+          ctx.lineTo(bx + i * 11 + 4, cheekY + 1);
+          ctx.stroke();
+        }
+      });
+    }
+
+    // 2. Bold Sculpted Portrait Eyebrows (confident clean arched shape + fine hair feathering!)
     function drawBrow(side) {
       ctx.save();
-      ctx.strokeStyle = browCol;
-      ctx.lineCap = 'round';
-      const x0 = side < 0 ? 138 : 374;
-      const x1 = side < 0 ? 178 : 334;
-      const x2 = side < 0 ? 220 : 292;
-      const y0 = 208, y1 = 195, y2 = 204;
-      ctx.lineWidth = cfg.elder ? 8.5 : 7.0;
-      ctx.globalAlpha = 0.72;
+      const innerX = side < 0 ? (eyeCXLeft + 56) : (eyeCXRight - 56);
+      const midX = side < 0 ? (eyeCXLeft + 2) : (eyeCXRight - 2);
+      const outerX = side < 0 ? (eyeCXLeft - 62) : (eyeCXRight + 62);
+      const baseY = isSalma ? 186 : 176;
+      const archLift = isLaila ? 22 : (isSalma ? 15 : 16);
+      const thick = isLaila ? 13.5 : (isSalma ? 14.0 : (cfg.elder ? 11.5 : 10.0));
+
+      ctx.fillStyle = browCol;
+      ctx.globalAlpha = 0.94;
       ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.quadraticCurveTo(x1, y1, x2, y2);
-      ctx.stroke();
-      ctx.globalAlpha = 0.90;
-      ctx.lineWidth = 2.4;
-      for (let i = 0; i < 12; i++) {
-        const t = i / 11;
-        const bx = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * x1 + t * t * x2;
-        const by = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * y1 + t * t * y2;
+      ctx.moveTo(innerX, baseY + thick * 0.45);
+      ctx.quadraticCurveTo(midX, baseY - archLift - thick * 0.52, outerX, baseY + 6);
+      ctx.quadraticCurveTo(midX, baseY - archLift + thick * 0.58, innerX, baseY + thick * 0.45);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = browCol;
+      ctx.globalAlpha = 0.96;
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 16; i++) {
+        const t = i / 15;
+        const bx = (1 - t) * (1 - t) * innerX + 2 * (1 - t) * t * midX + t * t * outerX;
+        const by = (1 - t) * (1 - t) * (baseY + 2) + 2 * (1 - t) * t * (baseY - archLift) + t * t * (baseY + 6);
         ctx.beginPath();
-        ctx.moveTo(bx, by + 3);
-        ctx.lineTo(bx - side * 5, by - 3.5);
+        ctx.moveTo(bx, by + 4);
+        ctx.lineTo(bx + side * 6.5, by - 4.5);
         ctx.stroke();
       }
       ctx.restore();
@@ -1817,207 +1865,283 @@ window.LailaSalma = window.LailaSalma || {};
     drawBrow(-1);
     drawBrow(1);
 
-    // 4. Expressive Realistic Human Eyes (68x34px almond, rich layered iris, crisp lashes & specular glint)
+    // 3. Portrait-Inspired High-Detail Luminous Eyes (big expressive warm brown eyes, double eyelid crease, lush lashes & dual catchlights!)
     function drawEye(cx, side) {
-      const cy = 250;
-      // Subtle upper eyelid crease fold
-      ctx.strokeStyle = isDarkSkin ? 'rgba(42, 20, 12, 0.44)' : 'rgba(148, 94, 76, 0.44)';
-      ctx.lineWidth = 2.8;
+      const cy = eyeCY;
+      const ew = isSalma ? 63 : (isLaila ? 61 : 46);
+      const ehTop = isSalma ? 44 : (isLaila ? 41 : 28);
+      const ehBot = isSalma ? 35 : (isLaila ? 32 : 22);
+
+      // Crisp double-eyelid crease fold above eye
+      ctx.strokeStyle = isDarkSkin ? 'rgba(38, 18, 10, 0.58)' : 'rgba(116, 62, 44, 0.64)';
+      ctx.lineWidth = isGirlPortrait ? 3.8 : 3.0;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(cx - 34, cy - 13);
-      ctx.quadraticCurveTo(cx, cy - 27, cx + 34, cy - 12);
+      ctx.moveTo(cx - ew * 0.88, cy - ehTop * 0.54);
+      ctx.quadraticCurveTo(cx, cy - ehTop * 1.42, cx + ew * 0.90, cy - ehTop * 0.46);
       ctx.stroke();
 
       if (cfg.blink || cfg.happy) {
-        ctx.strokeStyle = '#24150f';
-        ctx.lineWidth = 6.2;
+        ctx.strokeStyle = '#1b0d08';
+        ctx.lineWidth = isGirlPortrait ? 9.5 : 7.5;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         if (cfg.happy) {
-          ctx.moveTo(cx - 32, cy + 5);
-          ctx.quadraticCurveTo(cx, cy - 16, cx + 32, cy + 5);
+          ctx.moveTo(cx - ew * 0.90, cy + 10);
+          ctx.quadraticCurveTo(cx, cy - ehTop * 0.82, cx + ew * 0.90, cy + 10);
         } else {
-          ctx.moveTo(cx - 32, cy + 1);
-          ctx.quadraticCurveTo(cx, cy + 13, cx + 32, cy + 1);
+          ctx.moveTo(cx - ew * 0.90, cy + 2);
+          ctx.quadraticCurveTo(cx, cy + ehBot * 0.72, cx + ew * 0.90, cy + 2);
         }
         ctx.stroke();
-        ctx.lineWidth = 3.0;
+        ctx.lineWidth = 4.6;
         ctx.beginPath();
-        ctx.moveTo(cx + side * 29, cy + 2);
-        ctx.lineTo(cx + side * 37, cfg.happy ? cy - 3 : cy + 6);
+        ctx.moveTo(cx + side * (ew * 0.80), cy + 4);
+        ctx.lineTo(cx + side * (ew * 1.08), cfg.happy ? cy - 8 : cy + 9);
         ctx.stroke();
         return;
       }
 
-      // Almond sclera clip shape
+      // Expressive Almond-Round Sclera Clip Shape
       ctx.save();
       ctx.beginPath();
-      ctx.moveTo(cx - 35, cy + 1);
-      ctx.bezierCurveTo(cx - 22, cy - 21, cx + 22, cy - 21, cx + 35, cy + 1);
-      ctx.bezierCurveTo(cx + 22, cy + 17, cx - 22, cy + 17, cx - 35, cy + 1);
+      ctx.moveTo(cx - ew, cy + 3);
+      ctx.bezierCurveTo(cx - ew * 0.68, cy - ehTop, cx + ew * 0.68, cy - ehTop, cx + ew, cy + 3);
+      ctx.bezierCurveTo(cx + ew * 0.65, cy + ehBot, cx - ew * 0.65, cy + ehBot, cx - ew, cy + 3);
       ctx.closePath();
-      ctx.fillStyle = '#fcfaf7';
+      ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.clip();
 
-      // Inner tear-duct caruncle subtle warmth
-      const innerX = cx - side * 31;
-      ctx.fillStyle = 'rgba(218, 134, 126, 0.45)';
+      // Subtle warm inner tear-duct caruncle
+      const innerX = cx - side * (ew * 0.88);
+      ctx.fillStyle = 'rgba(232, 138, 130, 0.52)';
       ctx.beginPath();
-      ctx.arc(innerX, cy + 1, 6.5, 0, Math.PI * 2);
+      ctx.arc(innerX, cy + 3, 9.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Soft upper sclera shadow from eyelashes
-      const scGrad = ctx.createLinearGradient(cx, cy - 21, cx, cy);
-      scGrad.addColorStop(0, 'rgba(84, 92, 122, 0.36)');
-      scGrad.addColorStop(1, 'rgba(84, 92, 122, 0)');
+      // Soft cool-lilac upper eyelid shadow across sclera
+      const scGrad = ctx.createLinearGradient(cx, cy - ehTop, cx, cy + 2);
+      scGrad.addColorStop(0, 'rgba(68, 70, 108, 0.34)');
+      scGrad.addColorStop(0.75, 'rgba(68, 70, 108, 0.08)');
+      scGrad.addColorStop(1, 'rgba(68, 70, 108, 0)');
       ctx.fillStyle = scGrad;
-      ctx.fillRect(cx - 38, cy - 24, 76, 26);
+      ctx.fillRect(cx - ew - 4, cy - ehTop - 4, ew * 2 + 8, ehTop + 8);
 
-      // Detailed natural iris (radial depth + fibrous glow)
-      const ix = cx - side * 1.4;
-      const iy = cy + 0.5;
-      const ir = 17.5;
-      const irisGrad = ctx.createRadialGradient(ix, iy + 3, 3.5, ix, iy, ir);
-      irisGrad.addColorStop(0.0, '#160d09');
-      irisGrad.addColorStop(0.34, cfg.eyeColor);
-      irisGrad.addColorStop(0.75, cfg.eyeHighlight);
-      irisGrad.addColorStop(0.91, cfg.eyeColor);
-      irisGrad.addColorStop(1.0, '#120a07');
+      // Rich Portrait Layered Iris (velvety deep espresso top + luminous warm amber-brown lower crescent!)
+      const ix = cx - side * 2.0;
+      const iy = cy + 1.0;
+      const ir = isSalma ? 35.0 : (isLaila ? 33.5 : 23.0);
+      const irisGrad = ctx.createLinearGradient(ix, iy - ir, ix, iy + ir);
+      irisGrad.addColorStop(0.0, '#140906');
+      irisGrad.addColorStop(0.32, cfg.eyeColor);
+      irisGrad.addColorStop(0.72, cfg.eyeHighlight);
+      irisGrad.addColorStop(1.0, '#d29a64');
       ctx.fillStyle = irisGrad;
       ctx.beginPath();
       ctx.arc(ix, iy, ir, 0, Math.PI * 2);
       ctx.fill();
 
-      // Fine iris radial fibers
-      ctx.strokeStyle = 'rgba(255, 240, 210, 0.22)';
-      ctx.lineWidth = 1.2;
-      for (let a = 0; a < 20; a++) {
-        const ang = (a / 20) * Math.PI * 2;
+      // Luminous lower-iris warm honey crescent glow (signature life-spark from the portraits!)
+      const glowGrad = ctx.createRadialGradient(ix, iy + ir * 0.44, 3, ix, iy + ir * 0.44, ir * 0.72);
+      glowGrad.addColorStop(0.0, 'rgba(250, 214, 160, 0.82)');
+      glowGrad.addColorStop(0.55, 'rgba(202, 140, 82, 0.35)');
+      glowGrad.addColorStop(1.0, 'rgba(202, 140, 82, 0.0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(ix, iy, ir * 0.92, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 24 fine radial iris texture fibers
+      ctx.strokeStyle = 'rgba(255, 240, 210, 0.24)';
+      ctx.lineWidth = 1.6;
+      for (let a = 0; a < 24; a++) {
+        const ang = (a / 24) * Math.PI * 2;
         ctx.beginPath();
-        ctx.moveTo(ix + Math.cos(ang) * 6.5, iy + Math.sin(ang) * 6.5);
-        ctx.lineTo(ix + Math.cos(ang) * 15.5, iy + Math.sin(ang) * 15.5);
+        ctx.moveTo(ix + Math.cos(ang) * (ir * 0.42), iy + Math.sin(ang) * (ir * 0.42));
+        ctx.lineTo(ix + Math.cos(ang) * (ir * 0.88), iy + Math.sin(ang) * (ir * 0.88));
         ctx.stroke();
       }
 
-      // Deep black centered pupil
-      ctx.fillStyle = '#0c0807';
+      // Crisp dark outer limbal ring
+      ctx.strokeStyle = '#140905';
+      ctx.lineWidth = 4.5;
       ctx.beginPath();
-      ctx.arc(ix, iy, 7.6, 0, Math.PI * 2);
+      ctx.arc(ix, iy, ir - 1.5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Deep jet-black centered pupil
+      ctx.fillStyle = '#080504';
+      ctx.beginPath();
+      ctx.arc(ix, iy, ir * 0.44, 0, Math.PI * 2);
       ctx.fill();
 
-      // Crisp corneal sky catchlight + secondary soft glint
-      ctx.fillStyle = 'rgba(255, 255, 252, 0.96)';
+      // Signature Dual Luminous Portrait Corneal Catchlights!
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.ellipse(ix - 5.4, iy - 5.2, 4.2, 3.2, -0.35, 0, Math.PI * 2);
+      ctx.ellipse(ix - ir * 0.33, iy - ir * 0.29, ir * 0.30, ir * 0.24, -0.35, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = 'rgba(255, 250, 240, 0.68)';
+      ctx.fillStyle = 'rgba(255, 253, 248, 0.96)';
       ctx.beginPath();
-      ctx.arc(ix + 5.8, iy + 5.2, 2.2, 0, Math.PI * 2);
+      ctx.arc(ix + ir * 0.34, iy + ir * 0.29, ir * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+      ctx.beginPath();
+      ctx.arc(ix + ir * 0.16, iy - ir * 0.44, ir * 0.09, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
 
-      // Crisp natural upper eyelash line
-      ctx.strokeStyle = '#1b100b';
-      ctx.lineWidth = 5.4;
+      // Lush Bold Tapered Upper Eyelash Band (filled curved lash line, thicker toward outer wing!)
+      ctx.fillStyle = '#180b07';
+      ctx.beginPath();
+      ctx.moveTo(cx - ew * 1.00, cy + 3);
+      ctx.bezierCurveTo(cx - ew * 0.66, cy - ehTop * 1.24, cx + ew * 0.68, cy - ehTop * 1.26, cx + ew * 1.06, cy + 2);
+      ctx.bezierCurveTo(cx + ew * 0.66, cy - ehTop * 0.78, cx - ew * 0.64, cy - ehTop * 0.80, cx - ew * 1.00, cy + 3);
+      ctx.closePath();
+      ctx.fill();
+
+      // Delicate Curved Outer Eyelash Flicks (matching Laila & Salma's expressive portrait lashes!)
+      ctx.strokeStyle = '#180b07';
       ctx.lineCap = 'round';
+      const lashCount = isGirlPortrait ? 3 : 1;
+      for (let li = 0; li < lashCount; li++) {
+        ctx.lineWidth = (isGirlPortrait ? 4.6 : 3.2) - li * 0.8;
+        const lx = cx + side * (ew * (0.86 - li * 0.12));
+        const ly = cy - 3 - li * 8.5;
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.quadraticCurveTo(lx + side * 9, ly - 4.5, lx + side * (16 - li * 2.0), ly - (10 - li * 1.6));
+        ctx.stroke();
+      }
+
+      // Soft lower lash contour & subtle lower eyelid rim
+      ctx.strokeStyle = isDarkSkin ? 'rgba(34, 16, 10, 0.62)' : 'rgba(64, 34, 24, 0.56)';
+      ctx.lineWidth = isGirlPortrait ? 3.2 : 2.6;
       ctx.beginPath();
-      ctx.moveTo(cx - 34, cy + 1);
-      ctx.bezierCurveTo(cx - 21, cy - 21, cx + 21, cy - 21, cx + 35, cy + 0.5);
-      ctx.stroke();
-      ctx.lineWidth = 2.8;
-      ctx.beginPath();
-      ctx.moveTo(cx + side * 32, cy - 1);
-      ctx.lineTo(cx + side * 39, cy - 5);
-      ctx.stroke();
-      // Delicate lower lash waterline
-      ctx.strokeStyle = 'rgba(62, 38, 28, 0.36)';
-      ctx.lineWidth = 2.0;
-      ctx.beginPath();
-      ctx.moveTo(cx - 26, cy + 9);
-      ctx.quadraticCurveTo(cx, cy + 18, cx + 26, cy + 9);
+      ctx.moveTo(cx - ew * 0.72, cy + ehBot * 0.54);
+      ctx.quadraticCurveTo(cx, cy + ehBot * 1.08, cx + ew * 0.74, cy + ehBot * 0.52);
       ctx.stroke();
 
       if (cfg.elder) {
-        ctx.strokeStyle = isDarkSkin ? 'rgba(42, 20, 12, 0.38)' : 'rgba(136, 94, 76, 0.36)';
-        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = isDarkSkin ? 'rgba(42, 20, 12, 0.44)' : 'rgba(128, 86, 68, 0.44)';
+        ctx.lineWidth = 2.8;
         ctx.beginPath();
-        ctx.moveTo(cx + side * 36, cy + 2);
-        ctx.lineTo(cx + side * 48, cy + 6);
-        ctx.moveTo(cx + side * 34, cy + 8);
-        ctx.lineTo(cx + side * 44, cy + 15);
+        ctx.moveTo(cx + side * (ew + 2), cy + 3);
+        ctx.lineTo(cx + side * (ew + 16), cy + 7);
+        ctx.moveTo(cx + side * (ew + 1), cy + 10);
+        ctx.lineTo(cx + side * (ew + 13), cy + 17);
         ctx.stroke();
       }
     }
-    drawEye(178, -1);
-    drawEye(334, 1);
+    drawEye(eyeCXLeft, -1);
+    drawEye(eyeCXRight, 1);
 
-    // 5. Realistic Soft-Shaded Lips & Friendly Expression
-    const my = 352;
-    const lipUpperCol = isDarkSkin ? 'rgba(116, 56, 48, 0.72)' : 'rgba(196, 108, 104, 0.62)';
-    const lipLowerCol = isDarkSkin ? 'rgba(146, 76, 66, 0.66)' : 'rgba(218, 126, 122, 0.58)';
-    const lipLineCol = isDarkSkin ? 'rgba(54, 24, 18, 0.72)' : 'rgba(128, 62, 58, 0.64)';
+    // 4. Expressive Portrait Mouth, Warm Pearly Smile & Soft Shaded Lips
+    const my = isSalma ? 378 : 374;
+    const lipUpperCol = isLaila ? 'rgba(196, 98, 80, 0.86)'
+      : (isSalma ? 'rgba(226, 114, 124, 0.84)'
+        : (isDarkSkin ? 'rgba(116, 56, 48, 0.82)' : 'rgba(196, 104, 98, 0.76)'));
+    const lipLowerCol = isLaila ? 'rgba(218, 114, 96, 0.88)'
+      : (isSalma ? 'rgba(244, 130, 142, 0.88)'
+        : (isDarkSkin ? 'rgba(146, 76, 66, 0.78)' : 'rgba(218, 122, 118, 0.74)'));
+    const lipLineCol = isDarkSkin ? 'rgba(44, 18, 12, 0.88)' : 'rgba(104, 44, 38, 0.86)';
 
-    if (cfg.happy) {
-      // Warm open laughing smile showing crisp pearly teeth
-      ctx.fillStyle = '#a8424a';
+    if (cfg.happy || cfg.smileTeeth) {
+      const mw = cfg.happy ? 58 : (isSalma ? 52 : 54);
+      const mh = cfg.happy ? 38 : (isSalma ? 27 : 28);
+
+      // Warm interior mouth cavity
+      ctx.fillStyle = '#c4525c';
       ctx.beginPath();
-      ctx.moveTo(222, my - 4);
-      ctx.quadraticCurveTo(256, my + 4, 290, my - 4);
-      ctx.quadraticCurveTo(256, my + 30, 222, my - 4);
+      ctx.moveTo(256 - mw, my - 4);
+      ctx.quadraticCurveTo(256, my + 7, 256 + mw, my - 4);
+      ctx.quadraticCurveTo(256, my + mh + 9, 256 - mw, my - 4);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#fffbf6';
+
+      // Clean bright pearly upper teeth (matching Laila & Salma's warm beaming portrait smiles!)
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.moveTo(228, my - 2);
-      ctx.quadraticCurveTo(256, my + 4, 284, my - 2);
-      ctx.quadraticCurveTo(256, my + 12, 228, my - 2);
+      ctx.moveTo(256 - mw * 0.84, my - 1);
+      ctx.quadraticCurveTo(256, my + 7, 256 + mw * 0.84, my - 1);
+      ctx.quadraticCurveTo(256, my + mh * 0.80, 256 - mw * 0.84, my - 1);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = lipLineCol;
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.moveTo(220, my - 4);
-      ctx.quadraticCurveTo(256, my + 4, 292, my - 4);
-      ctx.stroke();
-    } else {
-      // Soft cupid's bow upper lip
+
+      // Subtle upper lip cupid's bow contour
       ctx.fillStyle = lipUpperCol;
       ctx.beginPath();
-      ctx.moveTo(225, my + 1);
-      ctx.quadraticCurveTo(242, my - 8, 256, my - 4);
-      ctx.quadraticCurveTo(270, my - 8, 287, my + 1);
-      ctx.quadraticCurveTo(256, my + 6, 225, my + 1);
+      ctx.moveTo(256 - mw, my - 3);
+      ctx.quadraticCurveTo(256 - mw * 0.40, my - 13, 256, my - 7);
+      ctx.quadraticCurveTo(256 + mw * 0.40, my - 13, 256 + mw, my - 3);
+      ctx.quadraticCurveTo(256, my + 5, 256 - mw, my - 3);
       ctx.closePath();
       ctx.fill();
 
-      // Fuller soft lower lip
+      // Soft rosy lower lip cushion below smile + glossy highlight
       ctx.fillStyle = lipLowerCol;
       ctx.beginPath();
-      ctx.moveTo(228, my + 2);
-      ctx.quadraticCurveTo(256, my + 18, 284, my + 2);
-      ctx.quadraticCurveTo(256, my + 7, 228, my + 2);
+      ctx.moveTo(256 - mw * 0.78, my + mh * 0.46);
+      ctx.quadraticCurveTo(256, my + mh + 22, 256 + mw * 0.78, my + mh * 0.46);
+      ctx.quadraticCurveTo(256, my + mh + 7, 256 - mw * 0.78, my + mh * 0.46);
       ctx.closePath();
       ctx.fill();
 
-      // Subtle glossy lower-lip specular sheen
-      ctx.fillStyle = 'rgba(255, 246, 242, 0.28)';
+      ctx.fillStyle = 'rgba(255, 250, 246, 0.56)';
       ctx.beginPath();
-      ctx.ellipse(256, my + 8.5, 11, 2.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(256, my + mh + 8, 16, 4.0, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Crisp gentle smile line & subtle mouth corner dimples
+      // Crisp smile outline & cute corner dimples
       ctx.strokeStyle = lipLineCol;
-      ctx.lineWidth = 2.4;
+      ctx.lineWidth = 3.4;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(224, my);
-      ctx.quadraticCurveTo(256, my + 8, 288, my);
+      ctx.moveTo(256 - mw - 3, my - 5);
+      ctx.quadraticCurveTo(256, my + 7, 256 + mw + 3, my - 5);
+      ctx.stroke();
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(256 - mw * 0.88, my + 2);
+      ctx.quadraticCurveTo(256, my + mh + 9, 256 + mw * 0.88, my + 2);
       ctx.stroke();
 
-      // Subtle under-lip chin shadow
-      drawSoftShade(256, my + 20, 18, 6, isDarkSkin ? 'rgba(34, 16, 10, 0.22)' : 'rgba(148, 100, 84, 0.18)');
+      // Subtle under-lip chin dimple shadow
+      drawSoftShade(256, my + mh + 26, 22, 8, isDarkSkin ? 'rgba(34, 16, 10, 0.28)' : 'rgba(148, 86, 68, 0.24)');
+    } else {
+      // Closed realistic friendly smile for NPCs
+      ctx.fillStyle = lipUpperCol;
+      ctx.beginPath();
+      ctx.moveTo(214, my + 1);
+      ctx.quadraticCurveTo(236, my - 11, 256, my - 6);
+      ctx.quadraticCurveTo(276, my - 11, 298, my + 1);
+      ctx.quadraticCurveTo(256, my + 8, 214, my + 1);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = lipLowerCol;
+      ctx.beginPath();
+      ctx.moveTo(220, my + 2);
+      ctx.quadraticCurveTo(256, my + 24, 292, my + 2);
+      ctx.quadraticCurveTo(256, my + 9, 220, my + 2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255, 248, 244, 0.42)';
+      ctx.beginPath();
+      ctx.ellipse(256, my + 11, 14, 3.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = lipLineCol;
+      ctx.lineWidth = 3.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(212, my);
+      ctx.quadraticCurveTo(256, my + 11, 300, my);
+      ctx.stroke();
+
+      drawSoftShade(256, my + 26, 20, 7, isDarkSkin ? 'rgba(34, 16, 10, 0.26)' : 'rgba(148, 92, 74, 0.22)');
     }
 
     const tex = finalizeTex(new THREE.CanvasTexture(c));
