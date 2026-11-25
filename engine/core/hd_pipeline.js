@@ -5,9 +5,13 @@ window.LailaSalma = window.LailaSalma || {};
     tokyo_house_2f: 'assets/hd/tokyo_house_2f.glb',
     tokyo_house_1f: 'assets/hd/tokyo_house_1f.glb',
     kyoto_machiya: 'assets/hd/kyoto_machiya.glb',
+    sakura_school: 'assets/hd/sakura_school.glb',
+    ichiban_ramen: 'assets/hd/ichiban_ramen.glb',
     anime_tree_green: 'assets/hd/anime_tree_green.glb',
     anime_tree_sakura: 'assets/hd/anime_tree_sakura.glb',
     anime_tree_maple: 'assets/hd/anime_tree_maple.glb',
+    anime_tree_willow: 'assets/hd/anime_tree_willow.glb',
+    anime_tree_cedar: 'assets/hd/anime_tree_cedar.glb',
     anime_shrub: 'assets/hd/anime_shrub.glb',
     utility_pole: 'assets/hd/utility_pole.glb',
     anime_vending: 'assets/hd/anime_vending.glb',
@@ -15,17 +19,23 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   const cache = {};
+  const animatedUniforms = [];
   let toonGradientMap = null;
+
+  function hash01(n) {
+    const v = Math.sin(n * 127.1 + 311.7) * 43758.5453123;
+    return v - Math.floor(v);
+  }
 
   function getAnimeGradientMap() {
     if (toonGradientMap) return toonGradientMap;
-    // Soft 5-band Makoto Shinkai / Studio Ghibli painterly toon ramp
+    // Rich 5-band Makoto Shinkai / Genshin Impact cel-toon ramp
     const data = new Uint8Array([
-      118, 128, 162, 255,   // Cool indigo-blue shadow band
-      152, 158, 184, 255,   // Soft cool mid-shadow
-      204, 204, 210, 255,   // Neutral daylight midtone
-      238, 236, 228, 255,   // Warm sunlit band
-      255, 252, 240, 255    // Creamy golden highlight
+      108, 120, 158, 255,   // Deep cool indigo-violet shadow band
+      146, 154, 182, 255,   // Soft cool mid-shadow
+      202, 204, 212, 255,   // Crisp daylight midtone
+      240, 238, 228, 255,   // Warm sunlit afternoon band
+      255, 252, 238, 255    // Creamy golden highlight
     ]);
     const tex = new THREE.DataTexture(data, 5, 1, THREE.RGBAFormat);
     tex.minFilter = THREE.LinearFilter;
@@ -43,15 +53,13 @@ window.LailaSalma = window.LailaSalma || {};
       const oldMat = obj.material;
       if (!oldMat) return;
       const mName = (oldMat.name || '').toLowerCase();
-      const isAlphaLeaf = oldMat.alphaTest > 0 || mName.indexOf('leaf') >= 0 || mName.indexOf('foliage') >= 0;
-      const isGlossy = mName.indexOf('glass') >= 0 || mName.indexOf('chrome') >= 0 || mName.indexOf('metal') >= 0 || mName.indexOf('ac_') >= 0;
+      const isAlphaLeaf = oldMat.alphaTest > 0 || mName.indexOf('leaf') >= 0 || mName.indexOf('foliage') >= 0 || mName.indexOf('willow_crown') >= 0 || mName.indexOf('willow_vines') >= 0 || mName.indexOf('cedar_needles') >= 0;
+      const isGlossy = mName.indexOf('glass') >= 0 || mName.indexOf('chrome') >= 0 || mName.indexOf('metal') >= 0 || mName.indexOf('ac_') >= 0 || mName.indexOf('vent') >= 0;
 
-      if (oldMat.map) {
-        oldMat.map.anisotropy = aniso;
-      }
+      if (oldMat.map) oldMat.map.anisotropy = aniso;
+      if (oldMat.normalMap) oldMat.normalMap.anisotropy = aniso;
 
       if (isAlphaLeaf) {
-        // Soft anime leaf-card shading: translucent warm sunlit crown + cool blue-green shadow
         const leafMat = new THREE.MeshToonMaterial({
           map: oldMat.map,
           color: oldMat.color ? oldMat.color.clone() : new THREE.Color(0xffffff),
@@ -65,9 +73,11 @@ window.LailaSalma = window.LailaSalma || {};
         obj.castShadow = true;
         obj.receiveShadow = true;
       } else if (!isGlossy) {
-        // Painterly Shinkai/Ghibli cel-toon material with baked vertex AO!
+        // Cel-toon + embedded tangent-space Normal Map + baked Vertex AO!
         const toon = new THREE.MeshToonMaterial({
           map: oldMat.map || null,
+          normalMap: oldMat.normalMap || null,
+          normalScale: new THREE.Vector2(0.85, 0.85),
           color: oldMat.color ? oldMat.color.clone() : new THREE.Color(0xffffff),
           emissive: oldMat.emissive ? oldMat.emissive.clone() : new THREE.Color(0x000000),
           emissiveIntensity: oldMat.emissiveIntensity || 1.0,
@@ -80,8 +90,7 @@ window.LailaSalma = window.LailaSalma || {};
         obj.castShadow = true;
         obj.receiveShadow = true;
       } else {
-        // Keep crisp PBR reflections on glass windows, AC units & chrome
-        oldMat.envMapIntensity = 1.2;
+        oldMat.envMapIntensity = 1.35;
         oldMat.needsUpdate = true;
         obj.castShadow = true;
         obj.receiveShadow = true;
@@ -89,6 +98,148 @@ window.LailaSalma = window.LailaSalma || {};
     });
   }
 
+  // -------------------------------------------------------------------------
+  // 1. AAA GLSL Custom Shimmering Anime Water Shader (Fresnel + Caustics + Flow)
+  // -------------------------------------------------------------------------
+  LS.createAAAWaterMaterial = function (opacity, side) {
+    const uniforms = {
+      uTime: { value: 0.0 },
+      uTimeMode: { value: LS.state ? LS.state.timeMode : 0.0 },
+      uOpacity: { value: opacity !== undefined ? opacity : 0.92 }
+    };
+    animatedUniforms.push(uniforms);
+
+    return new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      transparent: true,
+      side: side || THREE.DoubleSide,
+      vertexShader: [
+        'varying vec2 vUv;',
+        'varying vec3 vWorldPos;',
+        'void main() {',
+        '  vUv = uv;',
+        '  vec4 wp = modelMatrix * vec4(position, 1.0);',
+        '  vWorldPos = wp.xyz;',
+        '  gl_Position = projectionMatrix * viewMatrix * wp;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform float uTime;',
+        'uniform float uTimeMode;',
+        'uniform float uOpacity;',
+        'varying vec2 vUv;',
+        'varying vec3 vWorldPos;',
+        'float wave(vec2 p) {',
+        '  return sin(p.x * 1.6 + uTime * 1.35) * cos(p.y * 1.4 - uTime * 1.05)',
+        '       + 0.5 * sin(p.x * 3.1 - p.y * 2.4 + uTime * 1.9);',
+        '}',
+        'void main() {',
+        '  vec2 p = vWorldPos.xz * 0.55;',
+        '  float w1 = wave(p + vec2(0.0, uTime * 0.45));',
+        '  float w2 = wave(p * 1.65 - vec2(uTime * 0.3, -uTime * 0.6));',
+        '  vec3 N = normalize(vec3((w1 - w2) * 0.14, 1.0, (w1 + w2) * 0.14));',
+        '  vec3 V = normalize(cameraPosition - vWorldPos);',
+        '  float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.6);',
+        '  vec3 deepCol = uTimeMode > 1.5 ? vec3(0.06, 0.14, 0.24) : (uTimeMode > 0.5 ? vec3(0.14, 0.28, 0.36) : vec3(0.09, 0.36, 0.45));',
+        '  vec3 shallowCol = uTimeMode > 1.5 ? vec3(0.12, 0.25, 0.40) : (uTimeMode > 0.5 ? vec3(0.28, 0.48, 0.54) : vec3(0.18, 0.58, 0.68));',
+        '  vec3 skyCol = uTimeMode > 1.5 ? vec3(0.24, 0.36, 0.58) : (uTimeMode > 0.5 ? vec3(1.0, 0.68, 0.42) : vec3(0.68, 0.88, 1.0));',
+        '  vec3 col = mix(deepCol, shallowCol, clamp(0.45 + w1 * 0.25, 0.0, 1.0));',
+        '  // Sunlit shimmer caustics + Fresnel sky reflection (clamped to avoid bloom blowout!)',
+        '  float caust = smoothstep(0.68, 1.18, w1 * 0.6 + w2 * 0.55);',
+        '  vec3 L = normalize(vec3(0.65, 0.55, 0.45));',
+        '  vec3 H = normalize(L + V);',
+        '  float spec = pow(max(dot(N, H), 0.0), 96.0) * (uTimeMode > 1.5 ? 0.25 : (uTimeMode > 0.5 ? 0.44 : 0.52));',
+        '  col = mix(col, skyCol, clamp(fresnel * 0.66, 0.0, 0.72));',
+        '  col += mix(vec3(0.55, 0.86, 0.96), vec3(0.98, 0.84, 0.62), clamp(uTimeMode, 0.0, 1.0)) * (caust * 0.16 + spec);',
+        '  // Soft animated white edge ripple foam along banks (UV.x near 0 or 1)',
+        '  float edge = smoothstep(0.08, 0.0, min(vUv.x, 1.0 - vUv.x));',
+        '  col = mix(col, vec3(0.90, 0.95, 0.96), edge * (0.42 + 0.18 * sin(vWorldPos.z * 2.5 + uTime * 2.0)));',
+        '  gl_FragColor = vec4(clamp(col, 0.0, 0.92), uOpacity);',
+        '}'
+      ].join('\n')
+    });
+  };
+
+  // -------------------------------------------------------------------------
+  // 2. AAA Weathered Japanese Neighborhood Street Texture (Reference-Matched!)
+  // -------------------------------------------------------------------------
+  LS.createAAAStreetTexture = function (style) {
+    const isKyoto = style === 'kyoto';
+    const W = 512;
+    const H = isKyoto ? 512 : 1024;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+
+    if (isKyoto) {
+      // Rich weathered Kyoto moss-edged granite flagstones
+      ctx.fillStyle = '#5e5a53';
+      ctx.fillRect(0, 0, W, H);
+      for (let r = 0; r < 8; r++) {
+        for (let col = 0; col < 6; col++) {
+          const x = col * 86 + (r % 2) * 32 - 16;
+          const y = r * 64;
+          const v = Math.floor((hash01(r * 7.3 + col * 3.1) - 0.5) * 24);
+          ctx.fillStyle = 'rgb(' + (112 + v) + ',' + (108 + v) + ',' + (100 + v) + ')';
+          ctx.fillRect(x + 3, y + 3, 80, 58);
+          ctx.fillStyle = 'rgba(255,250,235,0.09)';
+          ctx.fillRect(x + 3, y + 3, 80, 5);
+        }
+      }
+      // Mossy stone verges
+      const gL = ctx.createLinearGradient(0, 0, 52, 0);
+      gL.addColorStop(0, 'rgba(68,104,54,0.85)'); gL.addColorStop(1, 'rgba(68,104,54,0)');
+      ctx.fillStyle = gL; ctx.fillRect(0, 0, 52, H);
+      const gR = ctx.createLinearGradient(W, 0, W - 52, 0);
+      gR.addColorStop(0, 'rgba(68,104,54,0.85)'); gR.addColorStop(1, 'rgba(68,104,54,0)');
+      ctx.fillStyle = gR; ctx.fillRect(W - 52, 0, 52, H);
+    } else {
+      // Authentic Makoto Shinkai weathered slate-grey Japanese neighborhood asphalt!
+      ctx.fillStyle = '#585d66';
+      ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 7200; i++) {
+        const px = hash01(i * 3.7 + 1.1) * W;
+        const py = hash01(i * 7.9 + 4.3) * H;
+        const v = 74 + Math.floor(hash01(i * 2.1) * 34);
+        ctx.fillStyle = 'rgba(' + v + ',' + (v + 2) + ',' + (v + 8) + ',0.35)';
+        ctx.fillRect(px, py, 3, 3);
+      }
+      // Subtle weathered asphalt patches & tire tracks
+      ctx.fillStyle = 'rgba(42, 46, 54, 0.16)';
+      ctx.fillRect(145, 0, 62, H);
+      ctx.fillRect(305, 0, 62, H);
+      // Subtle cast-iron Japanese round street manhole cover
+      ctx.fillStyle = 'rgba(44, 48, 56, 0.55)';
+      ctx.beginPath(); ctx.arc(365, 760, 24, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(98, 102, 110, 0.45)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(365, 760, 17, 0, Math.PI * 2); ctx.stroke();
+      // Crisp white Japanese pedestrian shoulder edge lines + concrete gutter curb!
+      ctx.fillStyle = '#8b8e92';
+      ctx.fillRect(0, 0, 26, H);
+      ctx.fillRect(W - 26, 0, 26, H);
+      ctx.fillStyle = 'rgba(244, 242, 232, 0.84)';
+      ctx.fillRect(34, 0, 12, H);
+      ctx.fillRect(W - 46, 0, 12, H);
+      // Iconic Japanese crosswalk-ahead diamond (◇) spaced naturally along the lane!
+      ctx.strokeStyle = 'rgba(242, 240, 232, 0.72)';
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.moveTo(256, 170); ctx.lineTo(310, 300); ctx.lineTo(256, 430); ctx.lineTo(202, 300);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    if (!isKyoto) tex.repeat.set(1, 0.45);
+    tex.anisotropy = LS.maxAnisotropy || 8;
+    return tex;
+  };
+
+  // -------------------------------------------------------------------------
+  // 3. AAA Assets, Instanced Swaying 3D Grass, Sculpted Mountain Ridges & Wires
+  // -------------------------------------------------------------------------
   LS.hdAssets = {
     ready: false,
 
@@ -149,14 +300,155 @@ window.LailaSalma = window.LailaSalma || {};
       return cloned;
     },
 
-    // Iconic Makoto Shinkai sagging overhead catenary power lines between concrete utility poles!
+    // 16,000+ Slender Wind-Swept 3D Grass Blade Clusters in 1 GPU Draw Call (Breath of the Wild / Genshin trick!)
+    addInstancedGrass: function (parent, bounds, isClearFn, style) {
+      const count = 16000;
+      const isKyoto = style === 'kyoto';
+      // Delicate 4-blade fanning grass tuft (slender blades, natural uneven heights & lean!)
+      const positions = [
+        -0.036, 0, -0.02,   0.036, 0, -0.02,  -0.06, 0.34, -0.05,
+        -0.028, 0,  0.03,   0.034, 0,  0.03,   0.07, 0.31,  0.06,
+         0.01,  0, -0.035,  0.01,  0,  0.035,  0.04, 0.27, -0.06,
+        -0.02,  0, -0.03,  -0.02,  0,  0.03,  -0.05, 0.24,  0.07
+      ];
+      const uvs = [
+        0, 0, 1, 0, 0.5, 1,
+        0, 0, 1, 0, 0.5, 1,
+        0, 0, 1, 0, 0.5, 1,
+        0, 0, 1, 0, 0.5, 1
+      ];
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geo.computeVertexNormals();
+
+      const uniforms = {
+        uTime: { value: 0.0 },
+        uTimeMode: { value: LS.state ? LS.state.timeMode : 0.0 },
+        // Seamlessly blended root-to-meadow color -> sunlit golden-green tips!
+        uRootCol: { value: new THREE.Color(isKyoto ? 0x4b773c : 0x5c9648) },
+        uTipCol: { value: new THREE.Color(isKyoto ? 0x86ba5c : 0x98d062) }
+      };
+      animatedUniforms.push(uniforms);
+
+      const mat = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        side: THREE.DoubleSide,
+        vertexShader: [
+          'uniform float uTime;',
+          'varying float vH;',
+          'varying float vVar;',
+          'void main() {',
+          '  vH = uv.y;',
+          '  vec4 worldBase = modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);',
+          '  vVar = fract(sin(dot(worldBase.xz, vec2(12.9898, 78.233))) * 43758.5453);',
+          '  vec3 pos = position;',
+          '  // Rolling Ghibli meadow wind wave!',
+          '  float sway = sin(uTime * 1.9 + worldBase.x * 0.24 + worldBase.z * 0.20 + vVar * 4.0) * 0.11;',
+          '  pos.x += sway * vH * vH;',
+          '  pos.z += sway * 0.55 * vH * vH;',
+          '  gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(pos, 1.0);',
+          '}'
+        ].join('\n'),
+        fragmentShader: [
+          'uniform vec3 uRootCol;',
+          'uniform vec3 uTipCol;',
+          'uniform float uTimeMode;',
+          'varying float vH;',
+          'varying float vVar;',
+          'void main() {',
+          '  vec3 tip = mix(uTipCol, uTipCol * vec3(1.10, 1.03, 0.80), vVar * 0.55);',
+          '  vec3 col = mix(uRootCol, tip, pow(vH, 0.65));',
+          '  if (uTimeMode > 1.5) col *= vec3(0.42, 0.54, 0.78);',
+          '  else if (uTimeMode > 0.5) col *= vec3(1.10, 0.84, 0.62);',
+          '  gl_FragColor = vec4(col, 1.0);',
+          '}'
+        ].join('\n')
+      });
+
+      const mesh = new THREE.InstancedMesh(geo, mat, count);
+      const dummy = new THREE.Object3D();
+      let placed = 0;
+      const minX = bounds.minX, maxX = bounds.maxX, minZ = bounds.minZ, maxZ = bounds.maxZ;
+      for (let attempt = 0; attempt < count * 3 && placed < count; attempt++) {
+        const x = minX + hash01(attempt * 3.17 + 1.1) * (maxX - minX);
+        const z = minZ + hash01(attempt * 5.73 + 2.9) * (maxZ - minZ);
+        if (isClearFn && !isClearFn(x, z)) continue;
+        dummy.position.set(x, 0.0, z);
+        dummy.rotation.set(0, hash01(attempt * 7.1) * Math.PI * 2, 0);
+        const sc = 0.72 + hash01(attempt * 9.3) * 0.75;
+        dummy.scale.set(sc, sc * (0.68 + hash01(attempt * 2.3) * 0.65), sc);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(placed++, dummy.matrix);
+      }
+      mesh.count = placed;
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.frustumCulled = false;
+      parent.add(mesh);
+      return mesh;
+    },
+
+    // Sculpted 360-degree Multi-Ridge Forested Mountain Horizon (replaces smooth green spheres!)
+    addMountainRange: function (parent, style) {
+      const isKyoto = style === 'kyoto';
+      const segs = 128;
+      const rInner = 92, rOuter = 175;
+      const positions = [];
+      const colors = [];
+      const indices = [];
+
+      function ridgeH(ang, t) {
+        const n = Math.sin(ang * 3.0 + 0.5) * 0.42
+                + Math.sin(ang * 7.0 - 1.2) * 0.28
+                + Math.cos(ang * 13.0 + 2.1) * 0.16
+                + Math.sin(ang * 23.0) * 0.08;
+        const crest = Math.sin(t * Math.PI);
+        return Math.max(0, crest * (22.0 + n * 16.0));
+      }
+
+      const rings = 10;
+      for (let r = 0; r <= rings; r++) {
+        const t = r / rings;
+        const rad = rInner + t * (rOuter - rInner);
+        for (let i = 0; i <= segs; i++) {
+          const ang = (i / segs) * Math.PI * 2;
+          const h = ridgeH(ang, t) - (r === 0 ? 1.5 : 0);
+          positions.push(Math.cos(ang) * rad, h, Math.sin(ang) * rad);
+          // Forested shading: cool deep valley pines -> sunlit emerald slopes -> misty blue peak haze!
+          const sunLit = 0.5 + 0.5 * Math.cos(ang - 0.6);
+          const mist = Math.min(1, t * 0.85);
+          const baseR = (isKyoto ? 0.22 : 0.25) + sunLit * 0.14;
+          const baseG = (isKyoto ? 0.44 : 0.48) + sunLit * 0.18;
+          const baseB = (isKyoto ? 0.30 : 0.28) + sunLit * 0.08;
+          colors.push(
+            baseR * (1 - mist * 0.42) + 0.54 * mist * 0.42,
+            baseG * (1 - mist * 0.35) + 0.68 * mist * 0.35,
+            baseB * (1 - mist * 0.45) + 0.82 * mist * 0.45
+          );
+        }
+      }
+      const stride = segs + 1;
+      for (let r = 0; r < rings; r++) {
+        for (let i = 0; i < segs; i++) {
+          const a = r * stride + i, b = a + 1, c = (r + 1) * stride + i, d = c + 1;
+          indices.push(a, c, b, b, c, d);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      const mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: getAnimeGradientMap() });
+      const m = new THREE.Mesh(geo, mat);
+      parent.add(m);
+      return m;
+    },
+
     addPowerLines: function (parent, poles) {
       if (!poles || poles.length < 2) return;
-      const wireMat = new THREE.MeshBasicMaterial({ color: 0x262830 });
-      const offsets = [
-        [-0.72, 7.66], [0.0, 7.66], [0.72, 7.66],
-        [-0.58, 6.86], [0.58, 6.86]
-      ];
+      const wireMat = new THREE.MeshBasicMaterial({ color: 0x24262e });
+      const offsets = [[-0.72, 7.66], [0.0, 7.66], [0.72, 7.66], [-0.58, 6.86], [0.58, 6.86]];
       for (let i = 0; i < poles.length - 1; i++) {
         const a = poles[i], b = poles[i + 1];
         const dist = Math.hypot(b.x - a.x, b.z - a.z);
@@ -164,32 +456,28 @@ window.LailaSalma = window.LailaSalma || {};
         const sag = Math.min(1.15, dist * 0.042);
         const cosA = Math.cos(a.rotY || 0), sinA = Math.sin(a.rotY || 0);
         const cosB = Math.cos(b.rotY || 0), sinB = Math.sin(b.rotY || 0);
-
         offsets.forEach((off, wi) => {
           const ax = a.x + cosA * off[0], az = a.z - sinA * off[0];
           const bx = b.x + cosB * off[0], bz = b.z - sinB * off[0];
-          const p0 = new THREE.Vector3(ax, off[1], az);
-          const p2 = new THREE.Vector3(bx, off[1], bz);
-          const pm = new THREE.Vector3((ax + bx) * 0.5, off[1] - sag - (wi % 2) * 0.14, (az + bz) * 0.5);
-          const curve = new THREE.QuadraticBezierCurve3(p0, pm, p2);
-          const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.022, 4, false), wireMat);
-          parent.add(tube);
+          const curve = new THREE.QuadraticBezierCurve3(
+            new THREE.Vector3(ax, off[1], az),
+            new THREE.Vector3((ax + bx) * 0.5, off[1] - sag - (wi % 2) * 0.14, (az + bz) * 0.5),
+            new THREE.Vector3(bx, off[1], bz)
+          );
+          parent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.022, 4, false), wireMat));
         });
       }
     },
 
-    // Distant red-and-white mountain ridge radio towers (directly inspired by reference image!)
     addRidgeTowers: function (parent, coords) {
       const redMat = new THREE.MeshBasicMaterial({ color: 0xc94a44 });
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xf4ece4 });
-      (coords || [[-28, 17, -112], [26, 15, -108]]).forEach(pt => {
+      (coords || [[-28, 19, -112], [26, 17, -108]]).forEach(pt => {
         const tg = new THREE.Group();
         tg.position.set(pt[0], pt[1], pt[2]);
         for (let tier = 0; tier < 5; tier++) {
-          const rBot = 1.6 - tier * 0.25;
-          const rTop = 1.35 - tier * 0.24;
           const seg = new THREE.Mesh(
-            new THREE.CylinderGeometry(rTop, rBot, 3.0, 4, 1, true),
+            new THREE.CylinderGeometry(1.35 - tier * 0.24, 1.6 - tier * 0.25, 3.0, 4, 1, true),
             tier % 2 === 0 ? redMat : whiteMat
           );
           seg.material.wireframe = true;
@@ -201,88 +489,94 @@ window.LailaSalma = window.LailaSalma || {};
         tg.add(mast);
         parent.add(tg);
       });
+    },
+
+    // Inverted-hull subtle anime ink outline on hero characters (Genshin Impact / Ni no Kuni look!)
+    addAnimeOutline: function (group, thickness, hexColor) {
+      const outMat = new THREE.MeshBasicMaterial({ color: hexColor || 0x2b1e1a, side: THREE.BackSide });
+      const meshes = [];
+      group.traverse(o => {
+        if (o.isMesh && o.geometry && o.material && !o.material.transparent) meshes.push(o);
+      });
+      const sc = 1.0 + (thickness || 0.048);
+      meshes.forEach(m => {
+        const om = new THREE.Mesh(m.geometry, outMat);
+        om.position.copy(m.position);
+        om.rotation.copy(m.rotation);
+        om.scale.copy(m.scale).multiplyScalar(sc);
+        if (m.parent) m.parent.add(om);
+      });
     }
   };
 
-  // Towering Painterly Makoto Shinkai Anime Cumulus Sky Dome (2048x1024!)
-  LS.createShinkaiSkyTexture = function (mode, worldId) {
+  // Towering 2048x1024 Shinkai Anime Cumulus Sky Dome
+  LS.createShinkaiSkyTexture = function (mode) {
     const c = document.createElement('canvas');
     c.width = 2048; c.height = 1024;
     const ctx = c.getContext('2d');
 
     const grad = ctx.createLinearGradient(0, 0, 0, 1024);
     if (mode === 1) {
-      // Dramatic Shinkai golden-hour sunset
-      grad.addColorStop(0.0, '#1f2d5a');
-      grad.addColorStop(0.32, '#5c4b78');
-      grad.addColorStop(0.58, '#df7d55');
-      grad.addColorStop(0.78, '#ffbe6b');
+      grad.addColorStop(0.0, '#1c2854');
+      grad.addColorStop(0.32, '#5a4876');
+      grad.addColorStop(0.58, '#df7a52');
+      grad.addColorStop(0.78, '#ffbc68');
       grad.addColorStop(1.0, '#fff0c4');
     } else if (mode === 2) {
-      grad.addColorStop(0.0, '#0a1026');
-      grad.addColorStop(0.5, '#1c2d58');
+      grad.addColorStop(0.0, '#090f24');
+      grad.addColorStop(0.5, '#1a2c56');
       grad.addColorStop(1.0, '#445882');
     } else {
-      // Crisp Makoto Shinkai late-afternoon cobalt sky fading to warm creamy horizon!
-      grad.addColorStop(0.0, '#2a72c4');
-      grad.addColorStop(0.36, '#5ca4e6');
-      grad.addColorStop(0.64, '#a8d5f5');
+      grad.addColorStop(0.0, '#2368be');
+      grad.addColorStop(0.36, '#56a0e4');
+      grad.addColorStop(0.64, '#a6d4f6');
       grad.addColorStop(0.84, '#e6eef7');
-      grad.addColorStop(1.0, '#fff2d2');
+      grad.addColorStop(1.0, '#fff2d0');
     }
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 2048, 1024);
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 2048, 1024);
 
     if (mode === 2) {
       ctx.fillStyle = 'rgba(255, 250, 224, 0.9)';
       for (let i = 0; i < 240; i++) {
-        const sx = ((Math.sin(i * 91.7) * 43758.5) % 1 + 1) % 1 * 2048;
-        const sy = ((Math.sin(i * 47.3) * 19381.1) % 1 + 1) % 1 * 480;
-        ctx.beginPath(); ctx.arc(sx, sy, (i % 5 === 0) ? 2.6 : 1.3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.arc(hash01(i * 9.1) * 2048, hash01(i * 4.7) * 480, (i % 5 === 0) ? 2.6 : 1.3, 0, Math.PI * 2);
+        ctx.fill();
       }
     } else {
-      // Soft golden sun radiance
-      const sx = mode === 1 ? 1320 : 1460;
-      const sy = mode === 1 ? 520 : 310;
-      const sg = ctx.createRadialGradient(sx, sy, 12, sx, sy, 280);
-      sg.addColorStop(0, 'rgba(255, 250, 224, 0.96)');
-      sg.addColorStop(0.28, mode === 1 ? 'rgba(255, 186, 104, 0.55)' : 'rgba(255, 245, 206, 0.35)');
+      const sx = mode === 1 ? 1320 : 1460, sy = mode === 1 ? 520 : 300;
+      const sg = ctx.createRadialGradient(sx, sy, 14, sx, sy, 310);
+      sg.addColorStop(0, 'rgba(255, 252, 228, 0.98)');
+      sg.addColorStop(0.30, mode === 1 ? 'rgba(255, 186, 104, 0.58)' : 'rgba(255, 245, 206, 0.38)');
       sg.addColorStop(1, 'rgba(255, 232, 180, 0)');
-      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 280, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 310, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Towering sculpted anime cumulus banks (warm cream tops + cool periwinkle undersides!)
     function drawCumulus(cx, cy, scale) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.scale(scale, scale);
+      ctx.save(); ctx.translate(cx, cy); ctx.scale(scale, scale);
       const puffs = [
         [-130, 52, 68], [-65, 24, 88], [0, -18, 104], [75, 16, 86], [140, 48, 64],
         [-35, -72, 74], [38, -68, 72], [4, -124, 58], [-92, -16, 56], [96, -12, 54],
         [-180, 74, 48], [185, 72, 46]
       ];
-      const deepShadow = mode === 1 ? 'rgba(176, 98, 92, 0.85)' : (mode === 2 ? 'rgba(32, 46, 84, 0.85)' : 'rgba(138, 168, 208, 0.88)');
-      const midShadow = mode === 1 ? 'rgba(222, 146, 114, 0.88)' : (mode === 2 ? 'rgba(56, 74, 118, 0.85)' : 'rgba(192, 212, 236, 0.90)');
+      const deepShadow = mode === 1 ? 'rgba(176, 98, 92, 0.85)' : (mode === 2 ? 'rgba(32, 46, 84, 0.85)' : 'rgba(134, 166, 208, 0.88)');
+      const midShadow = mode === 1 ? 'rgba(222, 146, 114, 0.88)' : (mode === 2 ? 'rgba(56, 74, 118, 0.85)' : 'rgba(190, 212, 236, 0.90)');
       const sunlitTop = mode === 1 ? 'rgba(255, 234, 198, 0.96)' : (mode === 2 ? 'rgba(102, 122, 168, 0.88)' : 'rgba(255, 253, 246, 0.98)');
-
       puffs.forEach(p => { ctx.fillStyle = deepShadow; ctx.beginPath(); ctx.arc(p[0] - 8, p[1] + 22, p[2] * 1.02, 0, Math.PI * 2); ctx.fill(); });
       puffs.forEach(p => { ctx.fillStyle = midShadow; ctx.beginPath(); ctx.arc(p[0] - 3, p[1] + 10, p[2] * 0.96, 0, Math.PI * 2); ctx.fill(); });
       puffs.forEach(p => { ctx.fillStyle = sunlitTop; ctx.beginPath(); ctx.arc(p[0] + 6, p[1] - 4, p[2] * 0.88, 0, Math.PI * 2); ctx.fill(); });
       ctx.restore();
     }
-
-    drawCumulus(420, 450, 1.35);
-    drawCumulus(1060, 415, 1.65);
-    drawCumulus(1660, 465, 1.30);
-    drawCumulus(120, 500, 0.95);
-    drawCumulus(1960, 495, 1.0);
+    drawCumulus(420, 445, 1.38); drawCumulus(1060, 410, 1.68);
+    drawCumulus(1660, 460, 1.32); drawCumulus(120, 495, 0.98); drawCumulus(1960, 490, 1.02);
 
     const tex = new THREE.CanvasTexture(c);
     tex.anisotropy = LS.maxAnisotropy || 8;
     return tex;
   };
 
-  // Makoto Shinkai Post-Processing Pipeline (EffectComposer + UnrealBloomPass + Warm/Cool Film Grade!)
+  // -------------------------------------------------------------------------
+  // 4. AAA Post-Processing Stack (RenderPass + UnrealBloom + Shinkai Sun-Glow Grade + FXAA!)
+  // -------------------------------------------------------------------------
   const ShinkaiGradeShader = {
     uniforms: {
       tDiffuse: { value: null },
@@ -303,17 +597,21 @@ window.LailaSalma = window.LailaSalma || {};
       '  vec4 tex = texture2D(tDiffuse, vUv);',
       '  vec3 col = tex.rgb;',
       '  float lum = dot(col, vec3(0.299, 0.587, 0.114));',
-      '  // Classic Makoto Shinkai warm-gold highlights + cool slate-blue shadows!',
-      '  vec3 coolTint = vec3(0.92, 0.96, 1.12);',
-      '  vec3 warmTint = mix(vec3(1.07, 1.02, 0.93), vec3(1.14, 0.98, 0.84), clamp(uTimeMode, 0.0, 1.0));',
-      '  col *= mix(coolTint, warmTint, smoothstep(0.18, 0.82, lum));',
-      '  // Gentle anime vibrance & crisp contrast',
+      '  // Makoto Shinkai warm-gold afternoon sunlight vs cool slate-indigo shadows!',
+      '  vec3 coolTint = vec3(0.90, 0.95, 1.14);',
+      '  vec3 warmTint = mix(vec3(1.08, 1.03, 0.92), vec3(1.16, 0.97, 0.82), clamp(uTimeMode, 0.0, 1.0));',
+      '  col *= mix(coolTint, warmTint, smoothstep(0.16, 0.80, lum));',
+      '  // Soft atmospheric afternoon sun-shaft glow descending from upper horizon',
+      '  float sunDist = distance(vUv, vec2(0.56, 0.78));',
+      '  float sunGlow = exp(-sunDist * 3.8) * (uTimeMode > 1.5 ? 0.02 : (uTimeMode > 0.5 ? 0.11 : 0.055));',
+      '  col += vec3(1.0, 0.88, 0.68) * sunGlow;',
+      '  // Filmic anime vibrance & crisp contrast',
       '  float avg = (col.r + col.g + col.b) / 3.0;',
-      '  col = mix(vec3(avg), col, 1.14);',
-      '  col = (col - 0.5) * 1.05 + 0.5;',
-      '  // Very subtle dreamy atmospheric vignette',
+      '  col = mix(vec3(avg), col, 1.15);',
+      '  col = (col - 0.5) * 1.06 + 0.5;',
+      '  // Subtle cinematic edge framing',
       '  float dist = distance(vUv, vec2(0.5));',
-      '  col *= smoothstep(0.98, 0.36, dist * 0.58);',
+      '  col *= smoothstep(1.02, 0.36, dist * 0.56);',
       '  gl_FragColor = vec4(clamp(col, 0.0, 1.0), tex.a);',
       '}'
     ].join('\n')
@@ -323,20 +621,18 @@ window.LailaSalma = window.LailaSalma || {};
     composer: null,
     bloomPass: null,
     gradePass: null,
+    fxaaPass: null,
 
     init: function (renderer, scene, camera) {
       if (!LS.isHD || typeof THREE.EffectComposer === 'undefined') return false;
       try {
         const composer = new THREE.EffectComposer(renderer);
-        const renderPass = new THREE.RenderPass(scene, camera);
-        composer.addPass(renderPass);
+        composer.addPass(new THREE.RenderPass(scene, camera));
 
         if (typeof THREE.UnrealBloomPass !== 'undefined') {
           const bloom = new THREE.UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            0.18,  // crisp dreamy Shinkai sunlight bloom in daylight
-            0.52,  // smooth halo radius
-            0.88   // high threshold: keeps signs & stucco razor-sharp while sky, clouds & lanterns glow!
+            0.18, 0.52, 0.88
           );
           composer.addPass(bloom);
           LS.hdPost.bloomPass = bloom;
@@ -346,6 +642,14 @@ window.LailaSalma = window.LailaSalma || {};
           const grade = new THREE.ShaderPass(ShinkaiGradeShader);
           composer.addPass(grade);
           LS.hdPost.gradePass = grade;
+
+          if (typeof THREE.FXAAShader !== 'undefined') {
+            const fxaa = new THREE.ShaderPass(THREE.FXAAShader);
+            const pr = renderer.getPixelRatio ? renderer.getPixelRatio() : 1;
+            fxaa.material.uniforms.resolution.value.set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+            composer.addPass(fxaa);
+            LS.hdPost.fxaaPass = fxaa;
+          }
         }
 
         LS.hdPost.composer = composer;
@@ -356,18 +660,35 @@ window.LailaSalma = window.LailaSalma || {};
       }
     },
 
-    setSize: function (w, h) {
+    setSize: function (w, h, pr) {
       if (LS.hdPost.composer) LS.hdPost.composer.setSize(w, h);
+      if (LS.hdPost.fxaaPass) {
+        const dpr = pr || Math.min(window.devicePixelRatio || 1, 2.0);
+        LS.hdPost.fxaaPass.material.uniforms.resolution.value.set(1 / (w * dpr), 1 / (h * dpr));
+      }
     },
 
     setTimeMode: function (mode) {
       if (LS.hdPost.gradePass) {
-        LS.hdPost.gradePass.uniforms.uTimeMode.value = mode === 1 ? 1.0 : 0.0;
+        LS.hdPost.gradePass.uniforms.uTimeMode.value = mode;
       }
       if (LS.hdPost.bloomPass) {
         LS.hdPost.bloomPass.strength = mode === 1 ? 0.30 : (mode === 2 ? 0.38 : 0.18);
         LS.hdPost.bloomPass.threshold = mode === 2 ? 0.72 : (mode === 1 ? 0.84 : 0.88);
       }
+      animatedUniforms.forEach(u => {
+        if (u.uTimeMode) u.uTimeMode.value = mode;
+      });
+    },
+
+    update: function (elapsed) {
+      for (let i = 0; i < animatedUniforms.length; i++) {
+        if (animatedUniforms[i].uTime) animatedUniforms[i].uTime.value = elapsed;
+      }
+    },
+
+    clearAnimatedUniforms: function () {
+      animatedUniforms.length = 0;
     },
 
     render: function () {

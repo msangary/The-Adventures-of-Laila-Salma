@@ -142,6 +142,9 @@ window.LailaSalma = window.LailaSalma || {};
       maskG.add(mark);
       group.add(maskG);
     }
+    if (LS.isHD && LS.hdAssets && LS.hdAssets.addAnimeOutline) {
+      LS.hdAssets.addAnimeOutline(group, 0.036, 0x2b1e1a);
+    }
     return group;
   }
 
@@ -306,12 +309,6 @@ window.LailaSalma = window.LailaSalma || {};
       });
     }
 
-    const hatSlot = new THREE.Group();
-    if (cfg.hatType && cfg.hatType !== 'none') {
-      hatSlot.add(buildHatMeshes(cfg.hatType, cfg.hatColor));
-    }
-    headGroup.add(hatSlot);
-
     if (cfg.hairBun) {
       const bun = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), hairMat);
       bun.position.set(0, 0.24, -0.2);
@@ -323,6 +320,16 @@ window.LailaSalma = window.LailaSalma || {};
       band.position.y = 0.14;
       headGroup.add(band);
     }
+
+    if (hd && LS.hdAssets && LS.hdAssets.addAnimeOutline) {
+      LS.hdAssets.addAnimeOutline(bodyPivot, 0.042, 0x2b1e1a);
+    }
+
+    const hatSlot = new THREE.Group();
+    if (cfg.hatType && cfg.hatType !== 'none') {
+      hatSlot.add(buildHatMeshes(cfg.hatType, cfg.hatColor));
+    }
+    headGroup.add(hatSlot);
 
     root.scale.setScalar(s);
 

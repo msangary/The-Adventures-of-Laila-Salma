@@ -173,8 +173,10 @@ window.LailaSalma = window.LailaSalma || {};
 
     function buildTree(x, z, kind, scale, noCol) {
       const s = scale || 1;
-      const hdKey = kind === 'sakura' ? 'anime_tree_sakura' : (kind === 'gold' ? 'anime_tree_maple' : 'anime_tree_green');
-      if (LS.isHD && kind !== 'willow' && LS.hdAssets && LS.hdAssets.has(hdKey)) {
+      const hdKey = kind === 'sakura' ? 'anime_tree_sakura'
+        : (kind === 'gold' ? 'anime_tree_maple'
+          : (kind === 'willow' ? 'anime_tree_willow' : 'anime_tree_green'));
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has(hdKey)) {
         const m = LS.hdAssets.clone(hdKey);
         m.position.set(x, 0, z);
         m.rotation.y = x * 0.73 + z * 0.41;
@@ -295,12 +297,16 @@ window.LailaSalma = window.LailaSalma || {};
         [64, -18, 16, 4.6], [62, 36, 17, 4.8], [-29, -39, 9.5, 1.9], [16, 4.5, 6.5, 1.25]
       ].forEach(m => SC.addGrassMound(worldGroup, m[0], m[1], m[2], m[3], 0x5d964d));
 
-      // Distant hills wrapping all 4 horizons naturally
-      const hillMat = LS.makeToonMat(0x558f5f);
-      [[-92, -112, 48, 24], [-15, -124, 56, 28], [76, -108, 50, 24], [-118, -12, 46, 20], [116, -8, 48, 22], [-96, 86, 44, 18], [86, 92, 46, 19]].forEach(h => {
-        const hill = new THREE.Mesh(new THREE.SphereGeometry(h[2], 16, 12), hillMat);
-        hill.scale.set(1.4, h[3] / h[2], 1.0); hill.position.set(h[0], -2, h[1]); worldGroup.add(hill);
-      });
+      // Distant hills wrapping all 4 horizons naturally (360° sculpted forested mountain ridges in HD!)
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.addMountainRange) {
+        LS.hdAssets.addMountainRange(worldGroup, 'tokyo');
+      } else {
+        const hillMat = LS.makeToonMat(0x558f5f);
+        [[-92, -112, 48, 24], [-15, -124, 56, 28], [76, -108, 50, 24], [-118, -12, 46, 20], [116, -8, 48, 22], [-96, 86, 44, 18], [86, 92, 46, 19]].forEach(h => {
+          const hill = new THREE.Mesh(new THREE.SphereGeometry(h[2], 16, 12), hillMat);
+          hill.scale.set(1.4, h[3] / h[2], 1.0); hill.position.set(h[0], -2, h[1]); worldGroup.add(hill);
+        });
+      }
 
       // Distant Mt. Fuji (snow strictly restricted to far peak)
       const fujiG = new THREE.Group(); fujiG.position.set(-88, 0, -142);
@@ -412,11 +418,15 @@ window.LailaSalma = window.LailaSalma || {};
     // 4. Ichiban Ramen
     safeRun('ichiban_ramen', () => {
       const g = new THREE.Group(); g.position.set(11.2, 0, -5.5);
-      const woodDark = LS.makeToonMat(0x5a3921), plaster = LS.makeToonMat(0xf4ead3);
-      const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#3d434f') });
-      const body = new THREE.Mesh(new THREE.BoxGeometry(6.6, 4.2, 7.2), plaster); body.position.y = 2.1; body.castShadow = true; body.receiveShadow = true; g.add(body);
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(5.6, 1.8, 4), roofMat); roof.position.y = 5.0; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
-      const awning = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 6.2), woodDark); awning.position.set(-3.9, 2.8, 0); awning.rotation.z = 0.22; g.add(awning);
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('ichiban_ramen')) {
+        g.add(LS.hdAssets.clone('ichiban_ramen'));
+      } else {
+        const woodDark = LS.makeToonMat(0x5a3921), plaster = LS.makeToonMat(0xf4ead3);
+        const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#3d434f') });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(6.6, 4.2, 7.2), plaster); body.position.y = 2.1; body.castShadow = true; body.receiveShadow = true; g.add(body);
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(5.6, 1.8, 4), roofMat); roof.position.y = 5.0; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
+        const awning = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.16, 6.2), woodDark); awning.position.set(-3.9, 2.8, 0); awning.rotation.z = 0.22; g.add(awning);
+      }
       const norenMat = LS.makeToonMat(0xc9302c, { side: THREE.DoubleSide });
       for (let i = -2; i <= 2; i++) {
         const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.88, 0.92), norenMat); cloth.position.set(-4.45, 2.25, i * 1.05); g.add(cloth);
@@ -425,12 +435,16 @@ window.LailaSalma = window.LailaSalma || {};
       [-2.7, 2.7].forEach(lz => {
         const l = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffd27d }));
         l.scale.set(1, 1.35, 1); l.position.set(-4.5, 2.35, lz); g.add(l);
+        if (LS.isHD && LS.createGlowSprite) {
+          const halo = LS.createGlowSprite(0xffc970, 1.85);
+          halo.position.copy(l.position); g.add(halo);
+        }
       });
       const sign = new THREE.Mesh(
         new THREE.BoxGeometry(0.18, 0.95, 3.8),
         new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🍜 ICHIBAN RAMEN', { bg: '#3b2414', border: '#e5a94c', color: '#fff5dc', font: 'bold 44px sans-serif' }) })
       );
-      sign.position.set(-3.42, 3.5, 0); g.add(sign);
+      sign.position.set(-3.46, 3.55, 0); g.add(sign);
       worldGroup.add(g); addCollider(11.2, -5.5, 3.5, 3.7);
 
       const tableG = new THREE.Group(); tableG.position.copy(W.ramenTablePos);
@@ -473,22 +487,27 @@ window.LailaSalma = window.LailaSalma || {};
     // 6. Sakura Elementary School (North Academic Hill: X=0, Z=-42)
     safeRun('school', () => {
       const g = new THREE.Group(); g.position.set(0, 0, -42);
-      const main = new THREE.Mesh(new THREE.BoxGeometry(18, 6.6, 7.8), LS.makeToonMat(0xf7efe0)); main.position.y = 3.3; main.castShadow = true; main.receiveShadow = true; g.add(main);
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(19.2, 1.1, 8.8), LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#8a3e3b') })); roof.position.y = 7.1; g.add(roof);
-      const clock = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 16), LS.makeToonMat(0xffffff)); clock.rotation.x = Math.PI / 2; clock.position.set(0, 5.4, 3.98); g.add(clock);
-      const winMat = LS.makeEmissiveMat(0x8ec9ed, 0xffe4a0, 0.25);
-      for (let x = -6.5; x <= 6.5; x += 2.6) {
-        if (Math.abs(x) < 1.2) continue;
-        const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.14), winMat); w1.position.set(x, 2.0, 3.94); g.add(w1);
-        const w2 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.14), winMat); w2.position.set(x, 4.3, 3.94); g.add(w2);
+      const useHDSchool = LS.isHD && LS.hdAssets && LS.hdAssets.has('sakura_school');
+      if (useHDSchool) {
+        g.add(LS.hdAssets.clone('sakura_school'));
+      } else {
+        const main = new THREE.Mesh(new THREE.BoxGeometry(18, 6.6, 7.8), LS.makeToonMat(0xf7efe0)); main.position.y = 3.3; main.castShadow = true; main.receiveShadow = true; g.add(main);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(19.2, 1.1, 8.8), LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#8a3e3b') })); roof.position.y = 7.1; g.add(roof);
+        const clock = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 16), LS.makeToonMat(0xffffff)); clock.rotation.x = Math.PI / 2; clock.position.set(0, 5.4, 3.98); g.add(clock);
+        const winMat = LS.makeEmissiveMat(0x8ec9ed, 0xffe4a0, 0.25);
+        for (let x = -6.5; x <= 6.5; x += 2.6) {
+          if (Math.abs(x) < 1.2) continue;
+          const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.14), winMat); w1.position.set(x, 2.0, 3.94); g.add(w1);
+          const w2 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.14), winMat); w2.position.set(x, 4.3, 3.94); g.add(w2);
+        }
+        const entrance = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 0.3), LS.makeToonMat(0x7c5333)); entrance.position.set(0, 1.3, 3.92); g.add(entrance);
       }
-      const entrance = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 0.3), LS.makeToonMat(0x7c5333)); entrance.position.set(0, 1.3, 3.92); g.add(entrance);
       [-3.8, 3.8].forEach(px => { const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.5, 0.85), LS.makeToonMat(0xd4ccb8)); pillar.position.set(px, 1.25, 8.2); pillar.castShadow = true; g.add(pillar); });
       const sign = new THREE.Mesh(
         new THREE.BoxGeometry(5.2, 0.95, 0.18),
         new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🏫 SAKURA ELEMENTARY', { bg: '#fdf6e7', border: '#8a3e3b', color: '#3d2c1e', font: 'bold 34px sans-serif' }) })
       );
-      sign.position.set(0, 3.2, 4.05); g.add(sign);
+      sign.position.set(0, 3.25, useHDSchool ? 6.02 : 4.05); g.add(sign);
       worldGroup.add(g); addCollider(0, -42, 9.2, 4.2);
       W.zones.push({ id: 'school', label: 'Enter Sakura Elementary Quiz', pos: new THREE.Vector3(0, 0, -34.0), radius: 4.2 });
     });
@@ -791,6 +810,43 @@ window.LailaSalma = window.LailaSalma || {};
           line: 'Welcome to Haneda International Airport! Check our departures board for Safari, Egypt, Paris & Outer Space!',
           char: { scale: 1.0, hairColor: 0x24262b, topColor: 0x1d3557, bottomColor: 0x16243b, pants: true, hatType: 'cap', hatColor: 0x1d3557 } }
       ]);
+
+      // AAA 6,500 wind-swept 3D instanced grass tufts across Tokyo open meadows (1 GPU draw call!)
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.addInstancedGrass) {
+        const laneSp = SC.sampleSpline(MAIN_LANE_PTS, 5);
+        const creekSp = SC.sampleSpline(CREEK_PTS, 5);
+        const trailsSp = [
+          SC.sampleSpline(TRAIL_WEST_PTS, 4),
+          SC.sampleSpline(TRAIL_MEADOW_PTS, 4),
+          SC.sampleSpline(TRAIL_WEST_FAR_PTS, 4),
+          SC.sampleSpline(TRAIL_EAST_PTS, 4),
+          SC.sampleSpline(TRAIL_NORTH_PTS, 4)
+        ];
+        const nearSp = (sp, x, z, r2) => {
+          for (let i = 0; i < sp.length; i++) {
+            const dx = x - sp[i][0], dz = z - sp[i][1];
+            if (dx * dx + dz * dz < r2) return true;
+          }
+          return false;
+        };
+        LS.hdAssets.addInstancedGrass(worldGroup, { minX: -58, maxX: 41, minZ: -48, maxZ: 36 }, (x, z) => {
+          if (z > 35.0) return false;
+          if (x > 42.0 || (x > 25.5 && z > 12.5)) return false; // Haneda Airport apron & runway
+          if (Math.hypot(x + 27.5, z + 2.5) < 7.3) return false; // West Fountain Plaza
+          if (Math.abs(x) < 11.5 && z < -31.5 && z > -47.5) return false; // Sakura Elementary yard
+          if (Math.hypot(x - 21.4, z + 9.2) < 2.4) return false; // Hopscotch
+          if (nearSp(laneSp, x, z, 4.1 * 4.1)) return false;
+          if (nearSp(creekSp, x, z, 3.6 * 3.6)) return false;
+          for (let t = 0; t < trailsSp.length; t++) {
+            if (nearSp(trailsSp[t], x, z, 1.9 * 1.9)) return false;
+          }
+          for (let c = 0; c < W.colliders.length; c++) {
+            const b = W.colliders[c];
+            if (x > b.minX - 0.65 && x < b.maxX + 0.65 && z > b.minZ - 0.65 && z < b.maxZ + 0.65) return false;
+          }
+          return true;
+        }, 'tokyo');
+      }
     });
 
     W.ramenDiningConfig = {

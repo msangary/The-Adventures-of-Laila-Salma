@@ -63,8 +63,11 @@ window.LailaSalma = window.LailaSalma || {};
 
     function buildKyotoTree(x, z, kind, scale, baseY, noCol) {
       const s = scale || 1;
-      const hdKey = kind === 'maple' ? 'anime_tree_maple' : (kind === 'sakura' ? 'anime_tree_sakura' : 'anime_tree_green');
-      if (LS.isHD && kind !== 'cedar' && kind !== 'willow' && LS.hdAssets && LS.hdAssets.has(hdKey)) {
+      const hdKey = kind === 'maple' ? 'anime_tree_maple'
+        : (kind === 'sakura' ? 'anime_tree_sakura'
+          : (kind === 'willow' ? 'anime_tree_willow'
+            : (kind === 'cedar' ? 'anime_tree_cedar' : 'anime_tree_green')));
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has(hdKey)) {
         const m = LS.hdAssets.clone(hdKey);
         m.position.set(x, baseY || 0, z);
         m.rotation.y = x * 0.67 + z * 0.39;
@@ -301,12 +304,16 @@ window.LailaSalma = window.LailaSalma || {};
         [-18, -62, 19, 5.2], [-48, 29, 8.5, 1.8], [32, -37, 9.0, 2.0]
       ].forEach(m => SC.addGrassMound(worldGroup, m[0], m[1], m[2], m[3], 0x4f7d45));
 
-      // Misty Kyoto Mountains & Distant 5-Story Pagoda
-      const hillMat = LS.makeToonMat(0x4b775b);
-      [[-100, -112, 48, 26], [-24, -124, 54, 29], [64, -110, 50, 25], [-122, -16, 44, 22], [108, -14, 46, 24], [-96, 86, 44, 20], [88, 86, 46, 20]].forEach(h => {
-        const hill = new THREE.Mesh(new THREE.SphereGeometry(h[2], 16, 12), hillMat);
-        hill.scale.set(1.4, h[3] / h[2], 1.0); hill.position.set(h[0], -2, h[1]); worldGroup.add(hill);
-      });
+      // Misty Kyoto Mountains & Distant 5-Story Pagoda (360° sculpted ridges in HD!)
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.addMountainRange) {
+        LS.hdAssets.addMountainRange(worldGroup, 'kyoto');
+      } else {
+        const hillMat = LS.makeToonMat(0x4b775b);
+        [[-100, -112, 48, 26], [-24, -124, 54, 29], [64, -110, 50, 25], [-122, -16, 44, 22], [108, -14, 46, 24], [-96, 86, 44, 20], [88, 86, 46, 20]].forEach(h => {
+          const hill = new THREE.Mesh(new THREE.SphereGeometry(h[2], 16, 12), hillMat);
+          hill.scale.set(1.4, h[3] / h[2], 1.0); hill.position.set(h[0], -2, h[1]); worldGroup.add(hill);
+        });
+      }
 
       const pag = new THREE.Group(); pag.position.set(66, 12, -92);
       const pWood = LS.makeToonMat(0x523626), pRoof = LS.makeToonMat(0x2d333b);
@@ -835,6 +842,43 @@ window.LailaSalma = window.LailaSalma || {};
           line: '5 kitsune hide across 20 natural Kyoto spots — and 2 hours after you find them all, they hide in brand-new places!',
           char: { scale: 0.88, hairColor: 0x382820, topColor: 0x2a9d8f, bottomColor: 0x264653, pants: true, backpackColor: 0xe9c46a } }
       ]);
+
+      // AAA 6,500 wind-swept 3D instanced grass tufts across Kyoto open meadows (1 GPU draw call!)
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.addInstancedGrass) {
+        const laneSp = SC.sampleSpline(KYOTO_LANE_PTS, 5);
+        const streamSp = SC.sampleSpline(KYOTO_STREAM_PTS, 5);
+        const trailsSp = [
+          SC.sampleSpline(KYOTO_SW_TRAIL_PTS, 4),
+          SC.sampleSpline(KYOTO_EAST_LOOP_PTS, 4),
+          SC.sampleSpline(KYOTO_PARK_TRAIL_PTS, 4)
+        ];
+        const nearSp = (sp, x, z, r2) => {
+          for (let i = 0; i < sp.length; i++) {
+            const dx = x - sp[i][0], dz = z - sp[i][1];
+            if (dx * dx + dz * dz < r2) return true;
+          }
+          return false;
+        };
+        LS.hdAssets.addInstancedGrass(worldGroup, { minX: -58, maxX: 52, minZ: -50, maxZ: 32 }, (x, z) => {
+          if (z > 31.5) return false;
+          if (x < -12.5 && x > -32.8 && z < -15.2 && z > -39.8) return false; // Koi Lake
+          if (x < -2.2 && x > -14.8 && Math.abs(z + 27.5) < 3.2) return false; // Stone path to bridge
+          if (x < -40.2 && z < -17.2 && z > -37.8) return false; // Sakurako Shrine Courtyard
+          const zx = (x + 35.5) / 10.6, zz = (z - 18.0) / 6.9;
+          if (zx * zx + zz * zz < 1.0) return false; // Oval Zen Rock Garden
+          if (Math.hypot(x - 25.2, z - 1.2) < 2.4) return false; // Hopscotch
+          if (nearSp(laneSp, x, z, 3.8 * 3.8)) return false;
+          if (nearSp(streamSp, x, z, 3.3 * 3.3)) return false;
+          for (let t = 0; t < trailsSp.length; t++) {
+            if (nearSp(trailsSp[t], x, z, 1.9 * 1.9)) return false;
+          }
+          for (let c = 0; c < W.colliders.length; c++) {
+            const b = W.colliders[c];
+            if (x > b.minX - 0.65 && x < b.maxX + 0.65 && z > b.minZ - 0.65 && z < b.maxZ + 0.65) return false;
+          }
+          return true;
+        }, 'kyoto');
+      }
     });
 
     W.getMochiIdleAnchor = function () { return { pos: new THREE.Vector3(-3.6, 0, -18.5), rotY: Math.PI / 3 }; };

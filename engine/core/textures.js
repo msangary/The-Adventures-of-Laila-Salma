@@ -43,8 +43,11 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   LS.makeWaterMat = function (opacity, side) {
-    const tex = LS.createWaterTexture();
     const op = opacity !== undefined ? opacity : 0.9;
+    if (LS.isHD && LS.createAAAWaterMaterial) {
+      return LS.createAAAWaterMaterial(op, side || THREE.DoubleSide);
+    }
+    const tex = LS.createWaterTexture();
     if (LS.isHD) {
       return new THREE.MeshStandardMaterial({
         map: tex,
@@ -378,6 +381,11 @@ window.LailaSalma = window.LailaSalma || {};
   LS.createVillageLaneTexture = function (style) {
     const key = 'village_lane_' + (style || 'tokyo');
     if (texCache[key]) return texCache[key];
+    if (LS.isHD && LS.createAAAStreetTexture) {
+      const aaaTex = LS.createAAAStreetTexture(style || 'tokyo');
+      texCache[key] = aaaTex;
+      return aaaTex;
+    }
     const S = LS.isHD ? 512 : 256;
     const sc = S / 256;
     const c = document.createElement('canvas');

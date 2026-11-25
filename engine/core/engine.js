@@ -193,6 +193,9 @@ window.LailaSalma = window.LailaSalma || {};
   }
 
   function clearWorldGroup() {
+    if (LS.hdPost && LS.hdPost.clearAnimatedUniforms) {
+      LS.hdPost.clearAnimatedUniforms();
+    }
     if (!worldGroup) return;
     while (worldGroup.children.length > 0) {
       worldGroup.remove(worldGroup.children[0]);
@@ -1302,6 +1305,7 @@ window.LailaSalma = window.LailaSalma || {};
           LS.activeWorld.update(dt, elapsed);
         }
         updateHDAtmosphere(dt, elapsed);
+        if (LS.hdPost && LS.hdPost.update) LS.hdPost.update(elapsed);
         updateSparklesAndStars(dt);
         updateCamera(dt);
         LS.updateHUD();
@@ -1330,7 +1334,7 @@ window.LailaSalma = window.LailaSalma || {};
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (LS.hdPost) LS.hdPost.setSize(window.innerWidth, window.innerHeight);
+      if (LS.hdPost) LS.hdPost.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
     });
 
     if (LS.isHD && LS.hdAssets && LS.hdAssets.preloadAll) {
