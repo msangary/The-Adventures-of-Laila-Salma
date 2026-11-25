@@ -114,7 +114,7 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     if (mode === 1) {
-      scene.fog.color.setHex(wid === 'kyoto' ? 0xeb9b6c : 0xf2a772);
+      scene.fog.color.setHex(wid === 'safari' ? 0xe88b4f : (wid === 'kyoto' ? 0xeb9b6c : 0xf2a772));
       dirLight.color.setHex(0xffa054);
       dirLight.intensity = LS.isHD ? 1.28 : 1.05;
       hemiLight.color.setHex(0xffc99e);
@@ -132,11 +132,11 @@ window.LailaSalma = window.LailaSalma || {};
       accentLight.intensity = 1.15;
       if (btn) btn.textContent = '🌙';
     } else {
-      scene.fog.color.setHex(LS.isHD ? 0xd8e8f5 : (wid === 'kyoto' ? 0xc8e4f2 : 0xcbe6f7));
-      dirLight.color.setHex(LS.isHD ? 0xffe4b3 : 0xfff1d0);
-      dirLight.intensity = LS.isHD ? 1.24 : 1.12;
-      hemiLight.color.setHex(LS.isHD ? 0x9ac8ff : 0xbbe2ff);
-      hemiLight.groundColor.setHex(LS.isHD ? 0x4f637a : 0x74855c);
+      scene.fog.color.setHex(wid === 'safari' ? 0xeddcb8 : (LS.isHD ? 0xd8e8f5 : (wid === 'kyoto' ? 0xc8e4f2 : 0xcbe6f7)));
+      dirLight.color.setHex(wid === 'safari' ? 0xffe2a4 : (LS.isHD ? 0xffe4b3 : 0xfff1d0));
+      dirLight.intensity = LS.isHD ? 1.26 : 1.14;
+      hemiLight.color.setHex(wid === 'safari' ? 0xb4d8ff : (LS.isHD ? 0x9ac8ff : 0xbbe2ff));
+      hemiLight.groundColor.setHex(wid === 'safari' ? 0x8a6d3b : (LS.isHD ? 0x4f637a : 0x74855c));
       streetLight.intensity = 0.25;
       accentLight.intensity = 0.35;
       if (btn) btn.textContent = '🌤️';
@@ -259,15 +259,16 @@ window.LailaSalma = window.LailaSalma || {};
     const builder = LS.worldBuilders[worldId];
     if (!meta || !builder) return;
 
-    // Auto-check 2-hour Hide-and-Seek animal reset when entering Tokyo or Kyoto!
+    // Auto-check 2-hour Hide-and-Seek animal reset when entering Tokyo, Kyoto, or Safari!
     let didResetAnimals = false;
-    if (worldId === 'tokyo' || worldId === 'kyoto') {
+    if (worldId === 'tokyo' || worldId === 'kyoto' || worldId === 'safari') {
       didResetAnimals = LS.checkAnimalReset(worldId);
     }
 
     if (LS.runtime.eating) LS.finishEatingAnimation(scene);
     LS.runtime.mochiGame = null;
     LS.runtime.parkActivity = null;
+    LS.runtime.safariRide = null;
     LS.runtime.nearZone = null;
     LS.runtime.piggybackUntil = 0;
     LS.closeAllModals();
@@ -289,6 +290,15 @@ window.LailaSalma = window.LailaSalma || {};
       dirLight.shadow.camera.updateProjectionMatrix();
       streetLight.position.set(0, 3.8, 0);
       accentLight.position.set(-3, 2.5, -2);
+    } else if (worldId === 'safari') {
+      dirLight.position.set(LS.isHD ? 36 : 24, LS.isHD ? 28 : 40, 22);
+      dirLight.shadow.camera.left = -64;
+      dirLight.shadow.camera.right = 64;
+      dirLight.shadow.camera.top = 56;
+      dirLight.shadow.camera.bottom = -60;
+      dirLight.shadow.camera.updateProjectionMatrix();
+      streetLight.position.set(0, 5.4, 12);
+      accentLight.position.set(-24.0, 4.2, -26.0);
     } else if (worldId === 'kyoto') {
       dirLight.position.set(LS.isHD ? 28 : 16, LS.isHD ? 24 : 38, LS.isHD ? 20 : 16);
       dirLight.shadow.camera.left = -64;
@@ -345,9 +355,11 @@ window.LailaSalma = window.LailaSalma || {};
 
     const legendAnimal = document.getElementById('mm-animal-label');
     if (legendAnimal) {
-      legendAnimal.innerHTML = (worldId === 'kyoto' || worldId === 'kyoto_room')
-        ? '<i class="mm-dot mm-cat"></i>Foxes'
-        : '<i class="mm-dot mm-cat"></i>Cats';
+      legendAnimal.innerHTML = worldId === 'safari'
+        ? '<i class="mm-dot mm-cat"></i>Cubs'
+        : ((worldId === 'kyoto' || worldId === 'kyoto_room')
+          ? '<i class="mm-dot mm-cat"></i>Foxes'
+          : '<i class="mm-dot mm-cat"></i>Cats');
     }
     const mmCard = document.getElementById('minimap-card');
     if (mmCard) mmCard.title = meta.title + ' Mini-Map (M to toggle)';
@@ -355,6 +367,9 @@ window.LailaSalma = window.LailaSalma || {};
     if (meta.isInterior) {
       LS.setSalmaBubbleText('Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
       LS.unlockStamp('room_decorator');
+    } else if (worldId === 'safari') {
+      LS.setSalmaBubbleText('Whoa, African Safari!! Let us ride the Jeep, feed giraffes & elephants & find 5 lion cubs! 🦒🐘🦁', 0);
+      LS.unlockStamp('safari_arrival');
     } else if (worldId === 'kyoto') {
       LS.setSalmaBubbleText('Whoa, Kyoto! Let us cross the koi bridge, visit the park & find 5 foxes! ⛩️🦊', 0);
       LS.unlockStamp('kyoto_arrival');
@@ -367,9 +382,11 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (didResetAnimals) {
       setTimeout(() => {
-        LS.showToast(worldId === 'kyoto'
-          ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
-          : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!');
+        LS.showToast(worldId === 'safari'
+          ? '🦁 2 hours passed! All 5 Safari Lion Cubs hid in brand-new spots!'
+          : (worldId === 'kyoto'
+            ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
+            : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!'));
       }, 600);
     }
   };
@@ -401,12 +418,19 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.traveling = true;
     const fromMeta = LS.WORLDS[LS.state.currentWorld];
     const toMeta = LS.WORLDS[targetWorldId];
+    const isFlight = targetWorldId === 'safari' || LS.state.currentWorld === 'safari';
 
     const overlay = document.getElementById('travel-overlay');
     const titleEl = document.getElementById('travel-title');
     const subEl = document.getElementById('travel-sub');
-    if (titleEl) titleEl.textContent = '🚅 Shinkansen Express: ' + fromMeta.title + ' → ' + toMeta.title;
-    if (subEl) subEl.textContent = 'All aboard, Laila, Salma & Mochi! Zooming past Mt. Fuji at 300 km/h...';
+    if (titleEl) {
+      titleEl.textContent = (isFlight ? '✈️ Safari Charter Flight: ' : '🚅 Shinkansen Express: ') + fromMeta.title + ' → ' + toMeta.title;
+    }
+    if (subEl) {
+      subEl.textContent = isFlight
+        ? 'Fasten seatbelts, Laila, Salma & Mochi! Soaring above the clouds toward ' + toMeta.title + '...'
+        : 'All aboard, Laila, Salma & Mochi! Zooming past Mt. Fuji at 300 km/h...';
+    }
     if (overlay) overlay.classList.remove('hidden');
 
     LS.playSFX('train');
@@ -548,7 +572,14 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'shrine_omikuji') LS.openShrineModal();
     else if (zid === 'koi_dock') LS.feedKoiAndDucks();
     else if (zid === 'shinkansen_station') LS.openShinkansenModal();
-    else if (zid === 'airport_gate') LS.openAirportModal();
+    else if (zid === 'airport_gate' || zid === 'safari_airstrip') LS.openAirportModal();
+    else if (zid === 'safari_academy') LS.openSchoolModal('safari');
+    else if (zid === 'safari_shop') LS.openShopModal('safari');
+    else if (zid === 'safari_stickers') LS.openGachaponModal('safari');
+    else if (zid === 'safari_cafe') LS.enjoySafariSmoothie();
+    else if (zid === 'safari_jeep') LS.startSafariJeepRide();
+    else if (zid === 'safari_feed_giraffe') LS.feedSafariAnimals('giraffe');
+    else if (zid === 'safari_feed_elephant') LS.feedSafariAnimals('elephant');
     else if (zid === 'mochi') LS.openMochiModal();
     else if (zid === 'park_slide') {
       LS.runtime.parkActivity = { type: 'slide', timer: 2.4, duration: 2.4 };
@@ -862,16 +893,18 @@ window.LailaSalma = window.LailaSalma || {};
     if (resetCheckAccum > 10) {
       resetCheckAccum = 0;
       const wid = LS.state.currentWorld;
-      if ((wid === 'tokyo' || wid === 'kyoto') && LS.checkAnimalReset(wid)) {
+      if ((wid === 'tokyo' || wid === 'kyoto' || wid === 'safari') && LS.checkAnimalReset(wid)) {
         LS.loadWorld(wid, false, {
           x: laila.root.position.x,
           y: laila.root.position.y,
           z: laila.root.position.z,
           rotY: laila.root.rotation.y
         });
-        LS.showToast(wid === 'kyoto'
-          ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
-          : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!');
+        LS.showToast(wid === 'safari'
+          ? '🦁 2 hours passed! All 5 Safari Lion Cubs hid in brand-new spots!'
+          : (wid === 'kyoto'
+            ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
+            : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!'));
         return;
       }
     }
@@ -897,6 +930,49 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     if (LS.runtime.modalOpen || LS.runtime.traveling) return;
+
+    // Guided Zebra-Striped Safari Jeep Tour across the golden Savanna!
+    if (LS.runtime.safariRide && LS.activeWorld && LS.activeWorld.jeepPath && LS.activeWorld.safariJeep) {
+      const sr = LS.runtime.safariRide;
+      sr.t += dt / sr.duration;
+      const jeep = LS.activeWorld.safariJeep;
+      const curve = LS.activeWorld.jeepPath;
+      const u = Math.min(1, sr.t);
+      const pos = curve.getPointAt(u);
+      const ahead = curve.getPointAt(Math.min(1, u + 0.015));
+      const yaw = Math.atan2(ahead.x - pos.x, ahead.z - pos.z);
+      const bounce = Math.sin(elapsed * 14) * 0.035;
+      jeep.position.set(pos.x, bounce, pos.z);
+      jeep.rotation.y = yaw;
+      const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+      laila.root.position.set(pos.x + cosY * 0.34 - sinY * 0.22, 0.72 + bounce, pos.z - sinY * 0.34 - cosY * 0.22);
+      laila.root.rotation.y = yaw;
+      laila.leftLeg.rotation.x = -1.05; laila.rightLeg.rotation.x = -1.05;
+      laila.rightArm.rotation.x = -0.3; laila.rightArm.rotation.z = 1.9 + Math.sin(elapsed * 6) * 0.25;
+      if (salma) {
+        salma.root.position.set(pos.x - cosY * 0.34 - sinY * 0.22, 0.72 + bounce, pos.z + sinY * 0.34 - cosY * 0.22);
+        salma.root.rotation.y = yaw;
+        salma.leftLeg.rotation.x = -1.05; salma.rightLeg.rotation.x = -1.05;
+        salma.rightArm.rotation.x = -0.35; salma.rightArm.rotation.z = 2.0 + Math.sin(elapsed * 6.5) * 0.28;
+      }
+      if (sr.t >= 1.0) {
+        if (LS.activeWorld.jeepHome) {
+          jeep.position.copy(LS.activeWorld.jeepHome.pos);
+          jeep.rotation.y = LS.activeWorld.jeepHome.rotY;
+          laila.root.position.set(LS.activeWorld.jeepHome.exit.x, 0, LS.activeWorld.jeepHome.exit.z);
+          if (salma) salma.root.position.set(LS.activeWorld.jeepHome.exit.x - 1.0, 0, LS.activeWorld.jeepHome.exit.z + 0.4);
+        }
+        laila.leftLeg.rotation.x = 0; laila.rightLeg.rotation.x = 0; laila.rightArm.rotation.z = 0;
+        if (salma) { salma.leftLeg.rotation.x = 0; salma.rightLeg.rotation.x = 0; salma.rightArm.rotation.z = 0; }
+        LS.runtime.safariRide = null;
+        LS.addCoins(25);
+        LS.addXP(20);
+        LS.unlockStamp('safari_jeep');
+        LS.playSFX('correct');
+        LS.showToast('🚙🎉 Amazing Safari Jeep Tour! +25c & +20 XP!');
+      }
+      return;
+    }
 
     // Interactive Pocket Park Activities (Slide, Swing, Hopscotch) — works in BOTH Tokyo & Kyoto!
     if (LS.runtime.parkActivity) {
@@ -1212,6 +1288,22 @@ window.LailaSalma = window.LailaSalma || {};
     if (LS.runtime.eating && LS.runtime.eating.camPos) {
       camera.position.lerp(LS.runtime.eating.camPos, Math.min(1, dt * 8.5));
       camTarget.lerp(LS.runtime.eating.camLook, Math.min(1, dt * 10));
+      camera.lookAt(camTarget);
+      camSnapNext = false;
+      return;
+    }
+
+    if (LS.runtime.safariRide && LS.activeWorld && LS.activeWorld.safariJeep) {
+      const jp = LS.activeWorld.safariJeep.position;
+      const jy = LS.activeWorld.safariJeep.rotation.y;
+      const chasePos = new THREE.Vector3(
+        jp.x - Math.sin(jy) * 7.8 + Math.cos(jy) * 3.4,
+        jp.y + 4.2,
+        jp.z - Math.cos(jy) * 7.8 - Math.sin(jy) * 3.4
+      );
+      const chaseLook = new THREE.Vector3(jp.x + Math.sin(jy) * 2.5, jp.y + 1.5, jp.z + Math.cos(jy) * 2.5);
+      camera.position.lerp(chasePos, Math.min(1, dt * 5.0));
+      camTarget.lerp(chaseLook, Math.min(1, dt * 7.0));
       camera.lookAt(camTarget);
       camSnapNext = false;
       return;

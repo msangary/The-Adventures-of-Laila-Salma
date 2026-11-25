@@ -21,7 +21,13 @@ window.LailaSalma = window.LailaSalma || {};
     anime_duck_white: 'assets/hd/anime_duck_white.glb',
     anime_shiba: 'assets/hd/anime_shiba.glb',
     anime_cat: 'assets/hd/anime_cat.glb',
-    anime_kitsune: 'assets/hd/anime_kitsune.glb'
+    anime_kitsune: 'assets/hd/anime_kitsune.glb',
+    anime_acacia: 'assets/hd/anime_acacia.glb',
+    anime_baobab: 'assets/hd/anime_baobab.glb',
+    anime_giraffe: 'assets/hd/anime_giraffe.glb',
+    anime_elephant: 'assets/hd/anime_elephant.glb',
+    anime_lion_cub: 'assets/hd/anime_lion_cub.glb',
+    anime_safari_jeep: 'assets/hd/anime_safari_jeep.glb'
   };
 
   const cache = {};
@@ -241,7 +247,27 @@ window.LailaSalma = window.LailaSalma || {};
     c.width = W; c.height = H;
     const ctx = c.getContext('2d');
 
-    if (isKyoto) {
+    if (style === 'safari') {
+      // Sun-baked Serengeti red-ochre safari jeep dirt track with warm pebbles & golden grass verges!
+      ctx.fillStyle = '#b9824f';
+      ctx.fillRect(0, 0, W, H);
+      for (let i = 0; i < 6400; i++) {
+        const px = hash01(i * 3.7 + 1.1) * W;
+        const py = hash01(i * 7.9 + 4.3) * H;
+        ctx.fillStyle = i % 3 === 0 ? 'rgba(138,88,46,0.34)' : (i % 3 === 1 ? 'rgba(218,174,116,0.28)' : 'rgba(164,108,58,0.28)');
+        ctx.fillRect(px, py, 4, 4);
+      }
+      // Subtle safari jeep twin tire ruts
+      ctx.fillStyle = 'rgba(124, 78, 42, 0.22)';
+      ctx.fillRect(138, 0, 56, H);
+      ctx.fillRect(318, 0, 56, H);
+      const gSL = ctx.createLinearGradient(0, 0, 56, 0);
+      gSL.addColorStop(0, 'rgba(190,162,78,0.88)'); gSL.addColorStop(1, 'rgba(190,162,78,0)');
+      ctx.fillStyle = gSL; ctx.fillRect(0, 0, 56, H);
+      const gSR = ctx.createLinearGradient(W, 0, W - 56, 0);
+      gSR.addColorStop(0, 'rgba(190,162,78,0.88)'); gSR.addColorStop(1, 'rgba(190,162,78,0)');
+      ctx.fillStyle = gSR; ctx.fillRect(W - 56, 0, 56, H);
+    } else if (isKyoto) {
       // Rich weathered Kyoto moss-edged granite flagstones
       ctx.fillStyle = '#5e5a53';
       ctx.fillRect(0, 0, W, H);
@@ -386,6 +412,7 @@ window.LailaSalma = window.LailaSalma || {};
     addInstancedGrass: function (parent, bounds, isClearFn, style) {
       const count = 16000;
       const isKyoto = style === 'kyoto';
+      const isSafari = style === 'safari';
       // Delicate 4-blade fanning grass tuft (slender blades, natural uneven heights & lean!)
       const positions = [
         -0.036, 0, -0.02,   0.036, 0, -0.02,  -0.06, 0.34, -0.05,
@@ -407,9 +434,9 @@ window.LailaSalma = window.LailaSalma || {};
       const uniforms = {
         uTime: { value: 0.0 },
         uTimeMode: { value: LS.state ? LS.state.timeMode : 0.0 },
-        // Seamlessly blended root-to-meadow color -> sunlit golden-green tips!
-        uRootCol: { value: new THREE.Color(isKyoto ? 0x4b773c : 0x5c9648) },
-        uTipCol: { value: new THREE.Color(isKyoto ? 0x86ba5c : 0x98d062) }
+        // Seamlessly blended root-to-meadow color -> sunlit golden-green or amber savanna tips!
+        uRootCol: { value: new THREE.Color(isSafari ? 0x9c823c : (isKyoto ? 0x4b773c : 0x5c9648)) },
+        uTipCol: { value: new THREE.Color(isSafari ? 0xe4c25e : (isKyoto ? 0x86ba5c : 0x98d062)) }
       };
       animatedUniforms.push(uniforms);
 
@@ -458,8 +485,8 @@ window.LailaSalma = window.LailaSalma || {};
         if (isClearFn && !isClearFn(x, z)) continue;
         dummy.position.set(x, 0.0, z);
         dummy.rotation.set(0, hash01(attempt * 7.1) * Math.PI * 2, 0);
-        const sc = 0.72 + hash01(attempt * 9.3) * 0.75;
-        dummy.scale.set(sc, sc * (0.68 + hash01(attempt * 2.3) * 0.65), sc);
+        const sc = (isSafari ? 0.86 : 0.72) + hash01(attempt * 9.3) * 0.85;
+        dummy.scale.set(sc, sc * ((isSafari ? 0.82 : 0.68) + hash01(attempt * 2.3) * 0.72), sc);
         dummy.updateMatrix();
         mesh.setMatrixAt(placed++, dummy.matrix);
       }
@@ -470,9 +497,10 @@ window.LailaSalma = window.LailaSalma || {};
       return mesh;
     },
 
-    // Sculpted 360-degree Multi-Ridge Forested Mountain Horizon (replaces smooth green spheres!)
+    // Sculpted 360-degree Multi-Ridge Horizon (forested Japanese mountains or warm terracotta savanna mesas!)
     addMountainRange: function (parent, style) {
       const isKyoto = style === 'kyoto';
+      const isSafari = style === 'safari';
       const segs = 128;
       const rInner = 92, rOuter = 175;
       const positions = [];
@@ -485,7 +513,7 @@ window.LailaSalma = window.LailaSalma || {};
                 + Math.cos(ang * 13.0 + 2.1) * 0.16
                 + Math.sin(ang * 23.0) * 0.08;
         const crest = Math.sin(t * Math.PI);
-        return Math.max(0, crest * (22.0 + n * 16.0));
+        return Math.max(0, crest * ((isSafari ? 15.0 : 22.0) + n * (isSafari ? 11.0 : 16.0)));
       }
 
       const rings = 10;
@@ -496,16 +524,15 @@ window.LailaSalma = window.LailaSalma || {};
           const ang = (i / segs) * Math.PI * 2;
           const h = ridgeH(ang, t) - (r === 0 ? 1.5 : 0);
           positions.push(Math.cos(ang) * rad, h, Math.sin(ang) * rad);
-          // Forested shading: cool deep valley pines -> sunlit emerald slopes -> misty blue peak haze!
           const sunLit = 0.5 + 0.5 * Math.cos(ang - 0.6);
           const mist = Math.min(1, t * 0.85);
-          const baseR = (isKyoto ? 0.22 : 0.25) + sunLit * 0.14;
-          const baseG = (isKyoto ? 0.44 : 0.48) + sunLit * 0.18;
-          const baseB = (isKyoto ? 0.30 : 0.28) + sunLit * 0.08;
+          const baseR = isSafari ? (0.62 + sunLit * 0.18) : ((isKyoto ? 0.22 : 0.25) + sunLit * 0.14);
+          const baseG = isSafari ? (0.45 + sunLit * 0.14) : ((isKyoto ? 0.44 : 0.48) + sunLit * 0.18);
+          const baseB = isSafari ? (0.28 + sunLit * 0.08) : ((isKyoto ? 0.30 : 0.28) + sunLit * 0.08);
           colors.push(
-            baseR * (1 - mist * 0.42) + 0.54 * mist * 0.42,
-            baseG * (1 - mist * 0.35) + 0.68 * mist * 0.35,
-            baseB * (1 - mist * 0.45) + 0.82 * mist * 0.45
+            baseR * (1 - mist * 0.42) + (isSafari ? 0.78 : 0.54) * mist * 0.42,
+            baseG * (1 - mist * 0.35) + (isSafari ? 0.72 : 0.68) * mist * 0.35,
+            baseB * (1 - mist * 0.45) + (isSafari ? 0.66 : 0.82) * mist * 0.45
           );
         }
       }

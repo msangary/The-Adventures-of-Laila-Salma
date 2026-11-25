@@ -29,6 +29,19 @@ window.LailaSalma = window.LailaSalma || {};
     { q: 'Which city was Japan’s ancient imperial capital for over 1,000 years?', opts: ['Kyoto', 'Sapporo', 'Okinawa', 'Yokohama'], a: 0 }
   ];
 
+  const SAFARI_GK_POOL = [
+    { q: 'Which animal is the tallest land mammal on the African savanna?', opts: ['Elephant', 'Giraffe', 'Zebra', 'Lion'], a: 1 },
+    { q: 'What is a family group of lions called?', opts: ['A Herd', 'A Flock', 'A Pride', 'A Pack'], a: 2 },
+    { q: 'What is Africa’s tallest mountain, famous for its snowy peak?', opts: ['Mt. Fuji', 'Mt. Kilimanjaro', 'Mt. Everest', 'Mt. Blanc'], a: 1 },
+    { q: 'Which giant animal uses its long trunk to drink water and say hello?', opts: ['Hippo', 'Rhino', 'Elephant', 'Giraffe'], a: 2 },
+    { q: 'What iconic flat-topped tree shades giraffes across the savanna?', opts: ['Acacia Tree', 'Pine Tree', 'Maple Tree', 'Willow Tree'], a: 0 },
+    { q: 'Which black-and-white striped animal runs in savanna herds?', opts: ['Tiger', 'Panda', 'Zebra', 'Penguin'], a: 2 },
+    { q: 'Why are flamingos bright pink?', opts: ['From sunny weather', 'From the food they eat', 'From painted feathers', 'From swimming in mud'], a: 1 },
+    { q: 'What is the fastest land animal in Africa?', opts: ['Cheetah', 'Elephant', 'Giraffe', 'Tortoise'], a: 0 },
+    { q: 'Which ancient African tree has a huge bottle-shaped trunk that stores water?', opts: ['Cherry Tree', 'Baobab Tree', 'Bamboo', 'Cedar'], a: 1 },
+    { q: 'What do elephants flap to cool themselves down on hot savanna days?', opts: ['Their tails', 'Their big ears', 'Their tusks', 'Their hooves'], a: 1 }
+  ];
+
   // Salma-friendly Age-5 Picture Quiz Pool (big visual emojis + simple counting/matching)
   const SALMA_POOL = [
     { q: '🐱🐱 + 🐱 = How many kitties altogether?', opts: ['2 🐱', '3 🐱', '4 🐱', '5 🐱'], a: 1 },
@@ -40,7 +53,11 @@ window.LailaSalma = window.LailaSalma || {};
     { q: '🍜 Which yummy treat has hot noodles?', opts: ['🍎 Apple', '🍜 Ramen', '🍦 Ice Cream', '🧀 Cheese'], a: 1 },
     { q: '🎋 Which plant grows super tall and green?', opts: ['🎋 Bamboo', '🌷 Tulip', '🍄 Mushroom', '🌻 Sunflower'], a: 0 },
     { q: '🦆 What sound does a happy lake duck make?', opts: ['Meow!', 'Woof!', 'Quack!', 'Moo!'], a: 2 },
-    { q: '⭐ + ⭐⭐ = How many shiny stars?', opts: ['1 ⭐', '2 ⭐', '3 ⭐', '5 ⭐'], a: 2 }
+    { q: '⭐ + ⭐⭐ = How many shiny stars?', opts: ['1 ⭐', '2 ⭐', '3 ⭐', '5 ⭐'], a: 2 },
+    { q: '🦒 Which tall spotted friend eats leaves from treetops?', opts: ['🦒 Giraffe', '🐧 Penguin', '🐟 Fish', '🐢 Turtle'], a: 0 },
+    { q: '🐘🐘 + 🐘 = How many gentle elephants at the pond?', opts: ['2 🐘', '3 🐘', '4 🐘', '5 🐘'], a: 1 },
+    { q: '🦁 What sound does a playful lion cub make?', opts: ['Quack!', 'Roar!', 'Tweet!', 'Splash!'], a: 1 },
+    { q: '🦩 What color is a pretty savanna flamingo?', opts: ['🩷 Pink', '🔵 Blue', '🟢 Green', '⚫ Black'], a: 0 }
   ];
 
   const OMIKUJI_FORTUNES = [
@@ -85,8 +102,8 @@ window.LailaSalma = window.LailaSalma || {};
       return questions;
     }
 
-    const pool = (worldId === 'kyoto' ? KYOTO_GK_POOL : TOKYO_GK_POOL).slice();
-    const catName = worldId === 'kyoto' ? 'Kyoto Discovery' : 'General Knowledge';
+    const pool = (worldId === 'safari' ? SAFARI_GK_POOL : (worldId === 'kyoto' ? KYOTO_GK_POOL : TOKYO_GK_POOL)).slice();
+    const catName = worldId === 'safari' ? 'Safari Wildlife' : (worldId === 'kyoto' ? 'Kyoto Discovery' : 'General Knowledge');
     for (let i = 0; i < 3; i++) {
       const idx = Math.floor(rng() * pool.length);
       const item = pool.splice(idx, 1)[0];
@@ -148,12 +165,16 @@ window.LailaSalma = window.LailaSalma || {};
     const titleEl = document.getElementById('school-modal-title');
     const backBtn = document.getElementById('btn-school-back');
     if (titleEl) {
-      titleEl.textContent = activeQuizWorld === 'kyoto'
-        ? '📚 Kyoto Temple Academy — Quiz'
-        : '🏫 Sakura Elementary — Quiz';
+      titleEl.textContent = activeQuizWorld === 'safari'
+        ? '🦁 Savanna Ranger Academy — Wildlife Quiz'
+        : (activeQuizWorld === 'kyoto'
+          ? '📚 Kyoto Temple Academy — Quiz'
+          : '🏫 Sakura Elementary — Quiz');
     }
     if (backBtn) {
-      backBtn.textContent = activeQuizWorld === 'kyoto' ? 'Back to Kyoto' : 'Back to Tokyo';
+      backBtn.textContent = activeQuizWorld === 'safari'
+        ? 'Back to Safari'
+        : (activeQuizWorld === 'kyoto' ? 'Back to Kyoto' : 'Back to Tokyo');
     }
     document.getElementById('school-modal').classList.remove('hidden');
     document.getElementById('school-lobby').classList.remove('hidden');
@@ -251,10 +272,13 @@ window.LailaSalma = window.LailaSalma || {};
     const stampsBox = document.getElementById('passport-stamps');
     if (worldsBox) {
       worldsBox.innerHTML = '';
-      ['tokyo', 'kyoto'].forEach(wid => {
+      ['tokyo', 'kyoto', 'safari'].forEach(wid => {
         const w = LS.WORLDS[wid];
+        if (!w) return;
         const isHere = LS.state.currentWorld === wid;
-        const foundCount = wid === 'kyoto' ? LS.state.foundKitsune.length : LS.state.foundCats.length;
+        const foundCount = wid === 'safari'
+          ? (LS.state.foundLionCubs ? LS.state.foundLionCubs.length : 0)
+          : (wid === 'kyoto' ? LS.state.foundKitsune.length : LS.state.foundCats.length);
         const remMs = LS.getAnimalResetRemainingMs(wid);
         const resetHtml = foundCount >= 5
           ? ('<div class="ramen-desc" style="color:#1b7a43;font-weight:700;">✨ All 5 found! New hiding spots in ' +
@@ -278,7 +302,8 @@ window.LailaSalma = window.LailaSalma || {};
           btn.disabled = true;
         } else {
           btn.className = 'btn-primary';
-          btn.textContent = '🚅 Ride Shinkansen to ' + w.title;
+          const isFlight = wid === 'safari' || LS.state.currentWorld === 'safari';
+          btn.textContent = (isFlight ? '✈️ Fly to ' : '🚅 Ride Shinkansen to ') + w.title;
           btn.onclick = () => LS.travelToWorld(wid);
         }
         actions.appendChild(btn);
@@ -300,7 +325,7 @@ window.LailaSalma = window.LailaSalma || {};
       const airportNote = document.createElement('div');
       airportNote.className = 'passport-world-card upcoming-world';
       airportNote.innerHTML =
-        '<div class="pw-head"><div><strong>✈️ Haneda International Airport (Tokyo)</strong></div><span class="pw-soon">' + LS.UPCOMING_WORLDS.length + ' Future Worlds</span></div>' +
+        '<div class="pw-head"><div><strong>✈️ Haneda International Airport (Tokyo)</strong></div><span class="pw-soon">' + LS.UPCOMING_WORLDS.length + ' Upcoming Worlds</span></div>' +
         '<p class="ramen-desc">Upcoming flights: ' + LS.UPCOMING_WORLDS.map(u => u.emoji + ' ' + u.title).join(' • ') + '</p>';
       worldsBox.appendChild(airportNote);
     }
@@ -321,13 +346,46 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('passport-modal').classList.remove('hidden');
   };
 
-  // Haneda-Tokyo International Airport Departures Board
+  // Haneda-Tokyo International Airport & Safari Airstrip Departures Board
   LS.openAirportModal = function () {
     LS.runtime.modalOpen = true;
     LS.unlockStamp('tokyo_airport');
     const grid = document.getElementById('airport-flights-grid');
     if (grid) {
       grid.innerHTML = '';
+      const inSafari = LS.state.currentWorld === 'safari';
+      // Live Playable Flight Gate right at the top!
+      const liveHdr = document.createElement('div');
+      liveHdr.className = 'airport-section-hdr';
+      liveHdr.textContent = '✈️ Now Boarding — Live International Flights!';
+      grid.appendChild(liveHdr);
+
+      const liveFlights = inSafari
+        ? [
+          { id: 'tokyo', emoji: '🗼', title: 'Tokyo (Haneda Airport)', gate: 'Gate H1 • Live', desc: 'Fly home to Sakura-cho, Ichiban Ramen, Pocket Park, Tokyo Room & Shinkansen Station!' },
+          { id: 'kyoto', emoji: '⛩️', title: 'Kyoto (Sakurako Shrine)', gate: 'Gate H2 • Live', desc: 'Fly directly to Kyoto’s Koi Lake, Arched Cedar Bridge, Bamboo Grove & 5 Kitsune Foxes!' }
+        ]
+        : [
+          { id: 'safari', emoji: '🦁', title: 'African Safari & Wildlife Zoo', gate: 'Gate A1 • NOW OPEN!', desc: 'Ride a zebra-striped Safari Jeep, feed tall giraffes & elephants, explore Pride Rock, collect wildlife stickers & find 5 playful lion cubs!' }
+        ];
+
+      liveFlights.forEach(fl => {
+        const row = document.createElement('div');
+        row.className = 'ramen-item bonus-flight';
+        const info = document.createElement('div');
+        info.innerHTML =
+          '<strong>' + fl.emoji + ' ' + fl.title + '</strong> ' +
+          '<span class="pw-bonus">' + fl.gate + '</span>' +
+          '<div class="ramen-desc">' + fl.desc + '</div>';
+        const btn = document.createElement('button');
+        btn.className = 'btn-small';
+        btn.textContent = '✈️ Board Flight!';
+        btn.onclick = () => LS.travelToWorld(fl.id);
+        row.appendChild(info);
+        row.appendChild(btn);
+        grid.appendChild(row);
+      });
+
       let bonusHeadingAdded = false;
       LS.UPCOMING_WORLDS.forEach(uw => {
         if (uw.bonus && !bonusHeadingAdded) {
@@ -462,14 +520,18 @@ window.LailaSalma = window.LailaSalma || {};
     const titleEl = document.getElementById('shop-modal-title');
     const subEl = document.getElementById('shop-modal-sub');
     if (titleEl) {
-      titleEl.textContent = shopStyle === 'kyoto'
-        ? '👘 Kyoto Kimono & Fox Mask Boutique'
-        : '🎀 Harajuku Kiosk — Outfits & Hats';
+      titleEl.textContent = shopStyle === 'safari'
+        ? '🎒 Safari Outfitter Boutique — Explorer Gear'
+        : (shopStyle === 'kyoto'
+          ? '👘 Kyoto Kimono & Fox Mask Boutique'
+          : '🎀 Harajuku Kiosk — Outfits & Hats');
     }
     if (subEl) {
-      subEl.textContent = shopStyle === 'kyoto'
-        ? '“Irasshaimase, Laila & Salma! Try silk kimonos & festival fox masks — all outfits travel between Kyoto & Tokyo!”'
-        : '“Konnichiwa, Laila & Salma! Spend your coins on stylish outfits & hats — all outfits travel between Tokyo & Kyoto!”';
+      subEl.textContent = shopStyle === 'safari'
+        ? '“Jambo, Laila & Salma! Gear up in khaki safari vests, sun hats & cozy lion cub hoodies — all outfits travel across every world!”'
+        : (shopStyle === 'kyoto'
+          ? '“Irasshaimase, Laila & Salma! Try silk kimonos & festival fox masks — all outfits travel across every world!”'
+          : '“Konnichiwa, Laila & Salma! Spend your coins on stylish outfits & hats — all outfits travel across every world!”');
     }
     document.getElementById('shop-msg').textContent = '';
     renderShopItems();
@@ -485,7 +547,7 @@ window.LailaSalma = window.LailaSalma || {};
       const owned = LS.state.unlockedToys.includes(toy.id);
       const card = document.createElement('div');
       card.className = 'toy-slot ' + (owned ? 'owned' : 'locked');
-      const wBadge = toy.world === 'kyoto' ? '⛩️' : '🗼';
+      const wBadge = toy.world === 'safari' ? '🦁' : (toy.world === 'kyoto' ? '⛩️' : '🗼');
       card.innerHTML =
         '<div class="toy-emoji">' + (owned ? toy.emoji : '❓') + '</div>' +
         '<div class="toy-name">' + (owned ? (toy.name + ' ' + wBadge) : ('Mystery ' + wBadge)) + '</div>';
@@ -501,11 +563,15 @@ window.LailaSalma = window.LailaSalma || {};
     if (titleEl) {
       titleEl.textContent = activeGachaponWorld === 'all'
         ? '🎁 Toy Shelf & Sticker Album (' + LS.state.unlockedToys.length + '/' + LS.GACHAPON_TOYS.length + ')'
-        : (activeGachaponWorld === 'kyoto' ? '🎁 Kyoto Gachapon Capsule Machine' : '🎁 Tokyo Gachapon Capsule Machine');
+        : (activeGachaponWorld === 'safari'
+          ? '📸 Safari Wildlife Photo Sticker Booth'
+          : (activeGachaponWorld === 'kyoto' ? '🎁 Kyoto Gachapon Capsule Machine' : '🎁 Tokyo Gachapon Capsule Machine'));
     }
     if (spinBtn) {
       spinBtn.classList.toggle('hidden', activeGachaponWorld === 'all');
-      spinBtn.textContent = activeGachaponWorld === 'kyoto' ? '🎰 Spin Kyoto Capsule (15c)' : '🎰 Spin Tokyo Capsule (15c)';
+      spinBtn.textContent = activeGachaponWorld === 'safari'
+        ? '📸 Snap & Print Wildlife Sticker (15c)'
+        : (activeGachaponWorld === 'kyoto' ? '🎰 Spin Kyoto Capsule (15c)' : '🎰 Spin Tokyo Capsule (15c)');
     }
     document.getElementById('gachapon-msg').textContent = '';
     renderGachaponShelf();
@@ -755,6 +821,45 @@ window.LailaSalma = window.LailaSalma || {};
     LS.showToast('🐟🦆 Splash! The koi fish & ducks swim over happily! +15c & +12 XP!');
   };
 
+  LS.feedSafariAnimals = function (kind) {
+    LS.runtime.safariFeedTimer = 5.5;
+    LS.state.safariFedCount = (LS.state.safariFedCount || 0) + 1;
+    LS.addCoins(15);
+    LS.addXP(12);
+    LS.unlockStamp('safari_feed');
+    LS.playSFX(kind === 'elephant' ? 'splash' : 'animal');
+    if (kind === 'elephant') {
+      LS.showToast('🐘💦 Trumpet & splash! The gentle elephants wave their trunks & love the sweet melons! +15c & +12 XP!');
+    } else {
+      LS.showToast('🦒🌿 Crunch crunch! The tall giraffes dip their long necks for fresh acacia leaves! +15c & +12 XP!');
+    }
+  };
+
+  LS.enjoySafariSmoothie = function () {
+    const cost = 20;
+    if (LS.state.coins < cost) {
+      LS.playSFX('wrong');
+      LS.showToast('🥭 Need 20 coins for a Mango Sunrise Smoothie! Feed animals or play quizzes to earn coins!');
+      return;
+    }
+    LS.addCoins(-cost);
+    LS.addXP(12);
+    LS.runtime.stamina = 100;
+    LS.runtime.buff = { name: 'Mango Sunrise Smoothie', short: 'Mango⚡', speedMult: 1.28, infiniteStamina: true, expiresAt: Date.now() + 75000 };
+    LS.runtime.sparkleUntil = Date.now() + 45000;
+    LS.playSFX('correct');
+    LS.updateHUD();
+    LS.showToast('🥭✨ Yum! Mango Sunrise Smoothie gives Speed + Infinite Run + Golden Sparkles for 75s (+12 XP)!');
+  };
+
+  LS.startSafariJeepRide = function () {
+    if (LS.runtime.safariRide || LS.runtime.modalOpen || LS.runtime.traveling) return;
+    if (!LS.activeWorld || !LS.activeWorld.jeepPath || !LS.activeWorld.safariJeep) return;
+    LS.runtime.safariRide = { t: 0, duration: 15.0 };
+    LS.playSFX('train');
+    LS.showToast('🚙🦁 All aboard the Safari Jeep! Cruising past Giraffes, Elephants, Pride Rock & Zebras!');
+  };
+
   LS.petHiddenAnimal = function (animalId) {
     const world = LS.activeWorld;
     if (!world || !world.hiddenAnimals) return;
@@ -765,7 +870,8 @@ window.LailaSalma = window.LailaSalma || {};
     if (animal.marker) animal.marker.visible = false;
 
     const isKitsune = animal.kind === 'kitsune';
-    const arr = isKitsune ? LS.state.foundKitsune : LS.state.foundCats;
+    const isLionCub = animal.kind === 'lion_cub';
+    const arr = isLionCub ? LS.state.foundLionCubs : (isKitsune ? LS.state.foundKitsune : LS.state.foundCats);
     if (!arr.includes(animalId)) arr.push(animalId);
 
     world.zones = world.zones.filter(z => z.id !== 'animal:' + animalId);
@@ -774,7 +880,8 @@ window.LailaSalma = window.LailaSalma || {};
     const count = arr.length;
     const isAll = count >= 5;
     if (isAll) {
-      if (isKitsune) LS.state.kitsuneCompletedAt = Date.now();
+      if (isLionCub) LS.state.lionCubsCompletedAt = Date.now();
+      else if (isKitsune) LS.state.kitsuneCompletedAt = Date.now();
       else LS.state.catsCompletedAt = Date.now();
     }
 
@@ -788,11 +895,11 @@ window.LailaSalma = window.LailaSalma || {};
     LS.playSFX('animal');
 
     if (isAll) {
-      LS.unlockStamp(isKitsune ? 'kyoto_kitsune' : 'tokyo_cats');
-      LS.showToast((isKitsune ? '🦊🎉 All 5 Kyoto Kitsune Found!' : '🐾🎉 All 5 Tokyo Cats Found!') +
+      LS.unlockStamp(isLionCub ? 'safari_cubs' : (isKitsune ? 'kyoto_kitsune' : 'tokyo_cats'));
+      LS.showToast((isLionCub ? '🦁🎉 All 5 Safari Lion Cubs Found!' : (isKitsune ? '🦊🎉 All 5 Kyoto Kitsune Found!' : '🐾🎉 All 5 Tokyo Cats Found!')) +
         ' Bonus +' + coinReward + 'c! They will hide in brand-new spots in 2 hours!');
     } else {
-      LS.showToast((isKitsune ? '🦊 Befriended ' : '🐱 Found ') + animal.name + ' (' + count + '/5)! +' + coinReward + 'c & +' + xpReward + ' XP!');
+      LS.showToast((isLionCub ? '🦁 Befriended ' : (isKitsune ? '🦊 Befriended ' : '🐱 Found ')) + animal.name + ' (' + count + '/5)! +' + coinReward + 'c & +' + xpReward + ' XP!');
     }
   };
 

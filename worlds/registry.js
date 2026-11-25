@@ -91,12 +91,32 @@ window.LailaSalma = window.LailaSalma || {};
       arrivalSpawn: { x: 0, y: 0, z: 3.1, rotY: Math.PI },
       fogNear: 25,
       fogFar: 65
+    },
+    safari: {
+      id: 'safari',
+      title: 'African Safari',
+      subtitle: 'Savanna Reserve & Wildlife Zoo',
+      emoji: '🦁',
+      badgeColor: '#d97706',
+      unlocked: true,
+      isInterior: false,
+      collectibleLabel: 'Lion Cubs',
+      collectibleEmoji: '🦁',
+      collectibleTotal: 5,
+      destinationName: 'Tokyo',
+      destinationId: 'tokyo',
+      travelMode: 'flight',
+      description: 'Fly from Haneda Gate A1 to the golden African Savanna! Ride a zebra-striped Safari Jeep, feed tall giraffes & gentle elephants at the watering hole, spot flamingos & Pride Rock lions, test your skills at Ranger Academy, collect wildlife stickers, and find 5 playful hiding lion cubs!',
+      bounds: { minX: -60, maxX: 60, minZ: -56, maxZ: 48 },
+      mapBounds: { minX: -62, maxX: 62, minZ: -58, maxZ: 50 },
+      spawn: { x: 0, y: 0, z: 18.0, rotY: Math.PI },
+      arrivalSpawn: { x: 24.0, y: 0, z: 26.0, rotY: -Math.PI * 0.72 },
+      fogNear: 78,
+      fogFar: 245
     }
   };
 
   LS.UPCOMING_WORLDS = [
-    { id: 'safari', title: 'African Safari & Wildlife Zoo', subtitle: 'Savanna Reserve & Animal Sanctuary', emoji: '🦁', gate: 'Gate A1',
-      description: 'Ride a safari jeep, feed giraffes & elephants, spot playful lion cubs, and collect wildlife photo stickers!' },
     { id: 'egypt', title: 'Ancient Egypt', subtitle: 'Nile River & Golden Pyramids', emoji: '🐪', gate: 'Gate A2',
       description: 'Sail a felucca down the Nile, explore the pyramids, decode hieroglyph puzzles, and befriend desert cats!' },
     { id: 'vikings', title: 'Viking Era Village', subtitle: 'Fjord Harbor & Northern Lights', emoji: '⛵', gate: 'Gate A3',
@@ -141,7 +161,11 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'kyoto_arrival', world: 'kyoto', emoji: '🚅', title: 'Shinkansen Traveler', desc: 'Rode the bullet train to Kyoto' },
     { id: 'kyoto_koi', world: 'kyoto', emoji: '🐟', title: 'Koi & Duck Pal', desc: 'Fed the koi fish & ducks at Sakurako Lake' },
     { id: 'kyoto_shrine', world: 'kyoto', emoji: '🎐', title: 'Shrine Wish Maker', desc: 'Drew an Omikuji fortune or hung an Ema wish' },
-    { id: 'kyoto_kitsune', world: 'kyoto', emoji: '🦊', title: 'Kitsune Seeker', desc: 'Found all 5 hidden kitsune foxes in Kyoto' }
+    { id: 'kyoto_kitsune', world: 'kyoto', emoji: '🦊', title: 'Kitsune Seeker', desc: 'Found all 5 hidden kitsune foxes in Kyoto' },
+    { id: 'safari_arrival', world: 'safari', emoji: '✈️', title: 'Safari Explorer', desc: 'Flew to the African Safari & Wildlife Zoo' },
+    { id: 'safari_feed', world: 'safari', emoji: '🦒', title: 'Gentle Giant Pal', desc: 'Fed giraffes or elephants at the Savanna Sanctuary' },
+    { id: 'safari_jeep', world: 'safari', emoji: '🚙', title: 'Jeep Adventurer', desc: 'Rode the Safari Jeep tour across the savanna' },
+    { id: 'safari_cubs', world: 'safari', emoji: '🦁', title: 'Lion Cub Friend', desc: 'Found all 5 playful hiding lion cubs' }
   ];
 
   LS.worldBuilders = {};

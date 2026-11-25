@@ -19,7 +19,14 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'bamboo_panda', world: 'kyoto', name: 'Bamboo Panda Figure', emoji: '🐼', desc: 'Cute panda peeking from Arashiyama stalks' },
     { id: 'koi_chime', world: 'kyoto', name: 'Koi Wind Chime', emoji: '🎐', desc: 'Glass furin bell with a tiny koi fish' },
     { id: 'matcha_whisk', world: 'kyoto', name: 'Uji Matcha Set', emoji: '🍵', desc: 'Miniature tea bowl & bamboo whisk' },
-    { id: 'dango_pin', world: 'kyoto', name: 'Sweet Dango Sticker', emoji: '🍡', desc: 'Sparkly pink-white-green dango badge' }
+    { id: 'dango_pin', world: 'kyoto', name: 'Sweet Dango Sticker', emoji: '🍡', desc: 'Sparkly pink-white-green dango badge' },
+    // Safari Wildlife Photo Stickers (6)
+    { id: 'lion_sticker', world: 'safari', name: 'Pride Rock Lion Sticker', emoji: '🦁', desc: 'Golden savanna king photo sticker from Serengeti' },
+    { id: 'giraffe_sticker', world: 'safari', name: 'Tall Giraffe Sticker', emoji: '🦒', desc: 'Spotted acacia-munching giraffe collectible card' },
+    { id: 'elephant_sticker', world: 'safari', name: 'Baby Elephant Sticker', emoji: '🐘', desc: 'Splashing watering-hole elephant photo badge' },
+    { id: 'zebra_sticker', world: 'safari', name: 'Zebra Herd Sticker', emoji: '🦓', desc: 'Bold striped runner card from Zebra Meadow' },
+    { id: 'flamingo_sticker', world: 'safari', name: 'Pink Flamingo Sticker', emoji: '🦩', desc: 'Rosy oasis flamingo sticker for the Toy Shelf' },
+    { id: 'jeep_pin', world: 'safari', name: 'Safari Jeep Explorer Pin', emoji: '🚙', desc: 'Miniature zebra-striped Land Cruiser badge' }
   ];
 
   LS.ROOM_WALLPAPERS = [
@@ -66,6 +73,7 @@ window.LailaSalma = window.LailaSalma || {};
     coins: 200,
     lastCompletedWindowTokyo: -1,
     lastCompletedWindowKyoto: -1,
+    lastCompletedWindowSafari: -1,
     demoOffsetWindows: 0,
     timeMode: 0,
     grainEnabled: true,
@@ -76,6 +84,9 @@ window.LailaSalma = window.LailaSalma || {};
     foundKitsune: [],
     kitsuneCompletedAt: 0,
     kitsuneRound: 0,
+    foundLionCubs: [],
+    lionCubsCompletedAt: 0,
+    lionCubsRound: 0,
     unlockedOutfits: ['laila_school', 'salma_kinder'],
     equippedLaila: 'laila_school',
     equippedSalma: 'salma_kinder',
@@ -84,6 +95,7 @@ window.LailaSalma = window.LailaSalma || {};
     emaWishes: [],
     lastFortune: null,
     koiFedCount: 0,
+    safariFedCount: 0,
     roomWallpaper: 'sakura_cream',
     unlockedRoomItems: ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
     roomBeanbag: 'strawberry_puff',
@@ -100,11 +112,13 @@ window.LailaSalma = window.LailaSalma || {};
       if (!raw) return Object.assign({}, defaultState);
       const parsed = JSON.parse(raw);
       // Never resume stranded inside an interior without parent context; default to valid world
-      const startW = (parsed.currentWorld === 'kyoto' || parsed.currentWorld === 'tokyo') ? parsed.currentWorld : 'tokyo';
+      const startW = (parsed.currentWorld === 'kyoto' || parsed.currentWorld === 'tokyo' || parsed.currentWorld === 'safari')
+        ? parsed.currentWorld : 'tokyo';
       return Object.assign({}, defaultState, parsed, {
         currentWorld: startW,
         foundCats: Array.isArray(parsed.foundCats) ? parsed.foundCats : [],
         foundKitsune: Array.isArray(parsed.foundKitsune) ? parsed.foundKitsune : [],
+        foundLionCubs: Array.isArray(parsed.foundLionCubs) ? parsed.foundLionCubs : [],
         unlockedOutfits: Array.isArray(parsed.unlockedOutfits) ? parsed.unlockedOutfits : ['laila_school', 'salma_kinder'],
         unlockedToys: Array.isArray(parsed.unlockedToys) ? parsed.unlockedToys : [],
         stamps: Array.isArray(parsed.stamps) ? parsed.stamps : [],
@@ -136,6 +150,8 @@ window.LailaSalma = window.LailaSalma || {};
     mochiGame: null,
     mochiHeartTimer: 0,
     parkActivity: null,
+    safariRide: null,
+    safariFeedTimer: 0,
     koiFeedTimer: 0,
     salmaHintUntil: 0
   };
@@ -168,6 +184,15 @@ window.LailaSalma = window.LailaSalma || {};
         return true;
       }
     }
+    if (wid === 'safari' && LS.state.foundLionCubs.length >= 5 && LS.state.lionCubsCompletedAt > 0) {
+      if (now - LS.state.lionCubsCompletedAt >= ANIMAL_RESET_MS) {
+        LS.state.foundLionCubs = [];
+        LS.state.lionCubsCompletedAt = 0;
+        LS.state.lionCubsRound = (LS.state.lionCubsRound || 0) + 1;
+        LS.saveState();
+        return true;
+      }
+    }
     return false;
   };
 
@@ -180,6 +205,9 @@ window.LailaSalma = window.LailaSalma || {};
     if (wid === 'kyoto' && LS.state.foundKitsune.length >= 5 && LS.state.kitsuneCompletedAt > 0) {
       return Math.max(0, ANIMAL_RESET_MS - (now - LS.state.kitsuneCompletedAt));
     }
+    if (wid === 'safari' && LS.state.foundLionCubs.length >= 5 && LS.state.lionCubsCompletedAt > 0) {
+      return Math.max(0, ANIMAL_RESET_MS - (now - LS.state.lionCubsCompletedAt));
+    }
     return 0;
   };
 
@@ -189,6 +217,10 @@ window.LailaSalma = window.LailaSalma || {};
       LS.state.foundKitsune = [];
       LS.state.kitsuneCompletedAt = 0;
       LS.state.kitsuneRound = (LS.state.kitsuneRound || 0) + 1;
+    } else if (wid === 'safari') {
+      LS.state.foundLionCubs = [];
+      LS.state.lionCubsCompletedAt = 0;
+      LS.state.lionCubsRound = (LS.state.lionCubsRound || 0) + 1;
     } else {
       LS.state.foundCats = [];
       LS.state.catsCompletedAt = 0;
@@ -199,9 +231,11 @@ window.LailaSalma = window.LailaSalma || {};
       LS.loadWorld(wid, false);
     }
     LS.playSFX('animal');
-    LS.showToast(wid === 'kyoto'
-      ? '🦊 New Hide-and-Seek Round! All 5 Kyoto Kitsune hid in brand-new spots!'
-      : '🐱 New Hide-and-Seek Round! All 5 Tokyo Cats hid in brand-new spots!');
+    LS.showToast(wid === 'safari'
+      ? '🦁 New Hide-and-Seek Round! All 5 Safari Lion Cubs hid in brand-new spots!'
+      : (wid === 'kyoto'
+        ? '🦊 New Hide-and-Seek Round! All 5 Kyoto Kitsune hid in brand-new spots!'
+        : '🐱 New Hide-and-Seek Round! All 5 Tokyo Cats hid in brand-new spots!'));
   };
 
   // Deterministic seeded pick of 5 hiding spots from a larger curated list based on round number
@@ -270,7 +304,9 @@ window.LailaSalma = window.LailaSalma || {};
   LS.getQuizCooldownMs = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
     const cur = LS.getCurrentQuizWindow();
-    const last = wid === 'kyoto' ? LS.state.lastCompletedWindowKyoto : LS.state.lastCompletedWindowTokyo;
+    const last = wid === 'safari'
+      ? LS.state.lastCompletedWindowSafari
+      : (wid === 'kyoto' ? LS.state.lastCompletedWindowKyoto : LS.state.lastCompletedWindowTokyo);
     if (last < cur) return 0;
     const realWindow = Math.floor(Date.now() / QUIZ_WINDOW_MS);
     const nextRealBoundary = (realWindow + 1) * QUIZ_WINDOW_MS;
@@ -280,7 +316,9 @@ window.LailaSalma = window.LailaSalma || {};
   LS.markQuizCompleted = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
     const cur = LS.getCurrentQuizWindow();
-    if (wid === 'kyoto') {
+    if (wid === 'safari') {
+      LS.state.lastCompletedWindowSafari = cur;
+    } else if (wid === 'kyoto') {
       LS.state.lastCompletedWindowKyoto = cur;
     } else {
       LS.state.lastCompletedWindowTokyo = cur;
@@ -292,6 +330,7 @@ window.LailaSalma = window.LailaSalma || {};
   LS.updateHUD = function () {
     const worldMeta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
     const isKyotoContext = LS.state.currentWorld === 'kyoto' || LS.state.currentWorld === 'kyoto_room';
+    const isSafariContext = LS.state.currentWorld === 'safari';
     const lvEl = document.getElementById('hud-level');
     const worldBadge = document.getElementById('hud-world-badge');
     const xpBar = document.getElementById('xp-bar');
@@ -318,7 +357,11 @@ window.LailaSalma = window.LailaSalma || {};
     if (coinEl) coinEl.textContent = LS.state.coins;
 
     if (animalPill) {
-      if (isKyotoContext) {
+      if (isSafariContext) {
+        const sCount = LS.state.foundLionCubs ? LS.state.foundLionCubs.length : 0;
+        animalPill.innerHTML = '🦁 <span id="cat-count">' + sCount + '/5</span>';
+        animalPill.title = 'Hidden Safari Lion Cubs Found (resets 2h after 5/5)';
+      } else if (isKyotoContext) {
         const kCount = LS.state.foundKitsune ? LS.state.foundKitsune.length : 0;
         animalPill.innerHTML = '🦊 <span id="cat-count">' + kCount + '/5</span>';
         animalPill.title = 'Hidden Kyoto Kitsune Foxes Found (resets 2h after 5/5)';

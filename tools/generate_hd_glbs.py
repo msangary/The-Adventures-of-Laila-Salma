@@ -10,6 +10,7 @@ import io
 import json
 import math
 import os
+import random
 import struct
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -1361,8 +1362,278 @@ def build_anime_kitsune():
     b.save_glb(os.path.join(OUT_DIR, "anime_kitsune.glb"))
 
 
+def make_giraffe_spot_tex(w=256, h=256):
+    """Warm golden-ochre giraffe hide with soft organic chestnut-brown polygonal spots."""
+    img = Image.new("RGBA", (w, h), (238, 188, 92, 255))
+    draw = ImageDraw.Draw(img)
+    rng = random.Random(404)
+    for _ in range(52):
+        cx = rng.randint(0, w - 1)
+        cy = rng.randint(0, h - 1)
+        rx = rng.randint(12, 26)
+        ry = rng.randint(10, 24)
+        col = (rng.randint(128, 152), rng.randint(72, 92), rng.randint(36, 48), 255)
+        for ox in (-w, 0, w):
+            for oy in (-h, 0, h):
+                draw.ellipse([cx + ox - rx, cy + oy - ry, cx + ox + rx, cy + oy + ry], fill=col)
+    return img
+
+
+def make_zebra_stripe_tex(w=256, h=128):
+    """Crisp safari-cream Land Cruiser body texture with bold savanna zebra stripes."""
+    img = Image.new("RGBA", (w, h), (242, 232, 206, 255))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([0, h - 20, w, h], fill=(78, 66, 52, 255))
+    for i in range(0, w, 28):
+        pts = [(i, 0), (i + 11, 0), (i + 18, h // 2), (i + 9, h - 20), (i - 2, h - 20), (i + 6, h // 2)]
+        draw.polygon(pts, fill=(44, 38, 34, 255))
+    return img
+
+
+def build_anime_acacia():
+    """Iconic flat-topped African Umbrella Acacia tree with curving gnarled branches & sun-dappled olive canopy!"""
+    b = GLBBuilder()
+    bark_tex = make_bark_tex((106, 76, 52))
+    m_bark = b.add_material("acacia_bark", (1, 1, 1, 1), bark_tex, normal_strength=2.6, roughness=0.90)
+    leaf_tex = make_leaf_cluster_tex([(58, 92, 38), (94, 134, 52), (168, 186, 74)])
+    m_leaf = b.add_material("acacia_leaf", (1, 1, 1, 1), leaf_tex, roughness=0.78, alpha_mask=True, double_sided=True)
+
+    # Slightly leaning lower trunk + 4 sweeping Y-forked upper branches
+    b.add_cylinder(m_bark, 0.0, 1.35, 0.0, 0.34, 0.24, 2.7, segs=10, rz=0.07)
+    branches = [
+        (0.95, 3.05, 0.32, 0.16, 0.08, 2.3, 0.14, -0.68),
+        (-1.05, 3.12, -0.24, 0.16, 0.08, 2.4, -0.10, 0.72),
+        (0.18, 3.22, -1.02, 0.14, 0.07, 2.2, -0.66, -0.12),
+        (-0.22, 3.15, 0.96, 0.14, 0.07, 2.1, 0.64, 0.14),
+    ]
+    for bx, by, bz, rb, rt, h, rx, rz in branches:
+        b.add_cylinder(m_bark, bx, by, bz, rb, rt, h, segs=8, rx=rx, rz=rz)
+
+    # Wide, flat layered umbrella canopy tiers (classic Serengeti silhouette!)
+    rng = random.Random(512)
+    tiers = [(0, 4.18, 0, 2.85, 0.40), (1.35, 4.02, 0.48, 2.0, 0.34), (-1.42, 4.10, -0.35, 2.1, 0.34), (0.25, 4.25, -1.25, 1.80, 0.32), (-0.30, 4.16, 1.22, 1.75, 0.32)]
+    for cx, cy, cz, rad, thick in tiers:
+        for i in range(9):
+            ang = (i / 9.0) * math.pi * 2 + rng.uniform(-0.2, 0.2)
+            r = rad * rng.uniform(0.18, 0.82)
+            px = cx + math.cos(ang) * r
+            pz = cz + math.sin(ang) * r
+            py = cy + rng.uniform(-thick * 0.45, thick * 0.45)
+            sz = rng.uniform(1.15, 1.58)
+            b.add_leaf_frond(m_leaf, px, py, pz, sz, rng.uniform(-0.26, 0.26), ang, rng.uniform(-0.18, 0.18), (0, 3.85, 0), height_ratio=0.92)
+    b.save_glb(os.path.join(OUT_DIR, "anime_acacia.glb"))
+
+
+def build_anime_baobab():
+    """Majestic ancient African Baobab tree with massive fluted bottle trunk & crooked crown branches!"""
+    b = GLBBuilder()
+    bark_tex = make_bark_tex((128, 96, 74))
+    m_bark = b.add_material("baobab_bark", (1, 1, 1, 1), bark_tex, normal_strength=2.8, roughness=0.92)
+    leaf_tex = make_leaf_cluster_tex([(48, 96, 44), (82, 140, 58), (144, 184, 78)])
+    m_leaf = b.add_material("baobab_leaf", (1, 1, 1, 1), leaf_tex, roughness=0.76, alpha_mask=True, double_sided=True)
+
+    # Massive bottle trunk + root buttresses
+    b.add_cylinder(m_bark, 0, 1.45, 0, 1.42, 1.18, 2.9, segs=14)
+    b.add_cylinder(m_bark, 0, 3.35, 0, 1.18, 0.88, 1.35, segs=14)
+    for i in range(6):
+        ang = (i / 6.0) * math.pi * 2
+        b.add_ellipsoid(m_bark, math.cos(ang) * 1.02, 0.55, math.sin(ang) * 1.02, 0.48, 0.75, 0.48, segs=10, rings=6)
+    # Crooked skyward root-like crown branches + lush leaf puffs
+    rng = random.Random(612)
+    for i in range(7):
+        ang = (i / 7.0) * math.pi * 2 + 0.25
+        dist = 1.35 if i % 2 == 0 else 1.12
+        bx, bz = math.cos(ang) * dist, math.sin(ang) * dist
+        b.add_cylinder(m_bark, bx * 0.65, 4.55, bz * 0.65, 0.30, 0.12, 2.1, segs=8, rx=math.sin(ang) * 0.55, rz=-math.cos(ang) * 0.55)
+        for j in range(6):
+            lx = bx * 1.25 + rng.uniform(-0.7, 0.7)
+            ly = 5.45 + rng.uniform(-0.35, 0.55)
+            lz = bz * 1.25 + rng.uniform(-0.7, 0.7)
+            sz = rng.uniform(1.05, 1.45)
+            b.add_leaf_frond(m_leaf, lx, ly, lz, sz, rng.uniform(-0.35, 0.35), rng.uniform(0, 6.28), rng.uniform(-0.25, 0.25), (0, 5.1, 0), height_ratio=0.95)
+    b.save_glb(os.path.join(OUT_DIR, "anime_baobab.glb"))
+
+
+def build_anime_giraffe():
+    """Sculpted graceful African Giraffe (~4.8m tall) with spotted hide, long neck, ossicones & friendly anime eyes!"""
+    b = GLBBuilder()
+    spot_tex = make_giraffe_spot_tex()
+    m_hide = b.add_material("giraffe_hide", (1, 1, 1, 1), spot_tex, normal_strength=1.2, roughness=0.76)
+    m_cream = b.add_material("giraffe_cream", (0.97, 0.91, 0.76, 1), roughness=0.82)
+    m_mane = b.add_material("giraffe_mane", (0.42, 0.24, 0.12, 1), roughness=0.88)
+    m_dark = b.add_material("giraffe_dark", (0.14, 0.10, 0.08, 1), roughness=0.45)
+    m_shine = b.add_material("giraffe_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.9, 0.9, 0.9))
+
+    # Sloped muscular body (higher at shoulders +Z, tapering gently toward rump -Z)
+    b.add_ellipsoid(m_hide, 0.0, 2.08, 0.0, 0.56, 0.58, 1.06, segs=18, rings=12, rx=-0.16)
+    b.add_ellipsoid(m_cream, 0.0, 1.72, 0.02, 0.42, 0.30, 0.85, segs=12, rings=8)
+
+    # 4 tall slender legs with darker hooves
+    for lx, lz in ((-0.32, 0.62), (0.32, 0.62), (-0.30, -0.68), (0.30, -0.68)):
+        b.add_cylinder(m_hide, lx, 1.48, lz, 0.14, 0.10, 1.15, segs=10)
+        b.add_cylinder(m_cream, lx, 0.52, lz, 0.095, 0.075, 0.96, segs=10)
+        b.add_cylinder(m_dark, lx, 0.06, lz, 0.082, 0.092, 0.12, segs=10)
+
+    # Sweeping graceful neck + dark crest mane along the back!
+    b.add_cylinder(m_hide, 0.0, 3.25, 0.96, 0.34, 0.19, 2.25, segs=14, rx=0.22)
+    for mi in range(7):
+        t = mi / 6.0
+        b.add_ellipsoid(m_mane, 0.0, 2.40 + t * 1.80, 0.55 + t * 0.44, 0.065, 0.14, 0.11, segs=8, rings=6)
+
+    # Sculpted giraffe head, cream muzzle, ossicones (horns), floppy ears & big kind anime eyes!
+    b.add_ellipsoid(m_hide, 0.0, 4.44, 1.32, 0.24, 0.22, 0.30, segs=16, rings=10)
+    b.add_ellipsoid(m_cream, 0.0, 4.35, 1.62, 0.15, 0.14, 0.24, segs=14, rings=8, rx=0.14)
+    b.add_ellipsoid(m_dark, 0.0, 4.37, 1.83, 0.06, 0.045, 0.04, segs=8, rings=6)
+    for side in (-1, 1):
+        b.add_cylinder(m_hide, side * 0.10, 4.72, 1.24, 0.032, 0.028, 0.24, segs=8, rz=side * -0.14)
+        b.add_ellipsoid(m_mane, side * 0.12, 4.85, 1.24, 0.045, 0.045, 0.045, segs=8, rings=6)
+        b.add_ellipsoid(m_hide, side * 0.28, 4.54, 1.18, 0.15, 0.065, 0.085, segs=10, rings=6, rz=side * 0.28)
+        b.add_ellipsoid(m_dark, side * 0.18, 4.48, 1.46, 0.052, 0.056, 0.042, segs=10, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.20, 4.50, 1.495, 0.018, 0.022, 0.016, segs=8, rings=6)
+
+    # Slender tail with fluffy dark tuft
+    b.add_cylinder(m_cream, 0.0, 1.65, -1.08, 0.045, 0.030, 0.78, segs=8, rx=-0.35)
+    b.add_ellipsoid(m_mane, 0.0, 1.24, -1.24, 0.085, 0.15, 0.085, segs=10, rings=6)
+    b.save_glb(os.path.join(OUT_DIR, "anime_giraffe.glb"))
+
+
+def build_anime_elephant():
+    """Sculpted gentle African Elephant (~3.1m tall) with wrinkled normal-mapped hide, wide ears, curved ivory tusks & curling trunk!"""
+    b = GLBBuilder()
+    hide_tex = make_stucco_tex((144, 148, 156))
+    m_hide = b.add_material("ele_hide", (1, 1, 1, 1), hide_tex, normal_strength=2.2, roughness=0.86)
+    m_ear_in = b.add_material("ele_ear_in", (0.72, 0.64, 0.66, 1), roughness=0.85)
+    m_ivory = b.add_material("ele_ivory", (0.98, 0.95, 0.86, 1), roughness=0.35)
+    m_nail = b.add_material("ele_nail", (0.85, 0.82, 0.76, 1), roughness=0.72)
+    m_dark = b.add_material("ele_dark", (0.12, 0.10, 0.10, 1), roughness=0.30)
+    m_shine = b.add_material("ele_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.9, 0.9, 0.9))
+
+    # Big warm rounded barrel torso
+    b.add_ellipsoid(m_hide, 0.0, 1.72, -0.10, 0.98, 0.92, 1.32, segs=22, rings=14)
+    # 4 sturdy pillar legs + cute light toenails
+    for lx, lz in ((-0.54, 0.64), (0.54, 0.64), (-0.52, -0.78), (0.52, -0.78)):
+        b.add_cylinder(m_hide, lx, 0.72, lz, 0.30, 0.28, 1.44, segs=12)
+        for ni in (-0.12, 0.0, 0.12):
+            b.add_ellipsoid(m_nail, lx + ni, 0.08, lz + 0.27, 0.055, 0.055, 0.045, segs=6, rings=5)
+
+    # Big gentle domed head
+    b.add_ellipsoid(m_hide, 0.0, 2.28, 1.08, 0.66, 0.68, 0.64, segs=18, rings=12)
+    # Iconic wide African elephant ears!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_hide, side * 0.88, 2.24, 0.82, 0.56, 0.72, 0.14, segs=14, rings=10, ry=side * -0.42, rz=side * 0.12)
+        b.add_ellipsoid(m_ear_in, side * 0.86, 2.20, 0.89, 0.40, 0.52, 0.07, segs=12, rings=8, ry=side * -0.42, rz=side * 0.12)
+        b.add_cylinder(m_ivory, side * 0.28, 1.72, 1.66, 0.078, 0.032, 0.68, segs=10, rx=1.08, ry=side * 0.18)
+        b.add_ellipsoid(m_dark, side * 0.44, 2.38, 1.54, 0.075, 0.080, 0.055, segs=10, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.46, 2.41, 1.585, 0.026, 0.030, 0.020, segs=8, rings=6)
+
+    # Gracefully curving multi-segment trunk (C-curl upward at the tip like a happy greeting!)
+    trunk_segs = [
+        (0.0, 1.94, 1.56, 0.23, 0.19, 0.42, 0.45),
+        (0.0, 1.58, 1.78, 0.19, 0.15, 0.44, 0.22),
+        (0.0, 1.24, 1.88, 0.15, 0.12, 0.42, -0.18),
+        (0.0, 1.08, 2.08, 0.12, 0.095, 0.34, -1.05),
+        (0.0, 1.18, 2.32, 0.095, 0.080, 0.26, -1.85),
+    ]
+    for tx, ty, tz, rb, rt, h, rx in trunk_segs:
+        b.add_cylinder(m_hide, tx, ty, tz, rb, rt, h, segs=12, rx=rx)
+
+    # Little tail with dark tuft
+    b.add_cylinder(m_hide, 0.0, 1.52, -1.42, 0.055, 0.035, 0.68, segs=8, rx=-0.38)
+    b.add_ellipsoid(m_dark, 0.0, 1.16, -1.58, 0.085, 0.14, 0.085, segs=8, rings=6)
+    b.save_glb(os.path.join(OUT_DIR, "anime_elephant.glb"))
+
+
+def build_anime_lion_cub():
+    """Adorable playful African Lion Cub (5 hiding collectibles!) with honey-gold fur, cream belly/paws, fluffy ears & tufted tail!"""
+    b = GLBBuilder()
+    fur_tex = make_fur_tex((234, 178, 86), (206, 146, 62))
+    m_fur = b.add_material("cub_fur", (1, 1, 1, 1), fur_tex, normal_strength=1.5, roughness=0.80)
+    m_cream = b.add_material("cub_cream", (0.98, 0.93, 0.80, 1), roughness=0.82)
+    m_tuft = b.add_material("cub_tuft", (0.52, 0.30, 0.14, 1), roughness=0.86)
+    m_nose = b.add_material("cub_nose", (0.76, 0.42, 0.42, 1), roughness=0.45)
+    m_eye = b.add_material("cub_eye", (0.86, 0.56, 0.14, 1), roughness=0.18, emissive=(0.14, 0.08, 0.02))
+    m_dark = b.add_material("cub_dark", (0.12, 0.09, 0.08, 1), roughness=0.25)
+    m_shine = b.add_material("cub_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.95, 0.95, 0.95))
+
+    # Plump playful sitting-crouched cub body + cream belly
+    b.add_ellipsoid(m_fur, 0.0, 0.28, -0.04, 0.21, 0.19, 0.29, segs=18, rings=12)
+    b.add_ellipsoid(m_cream, 0.0, 0.24, 0.06, 0.15, 0.14, 0.19, segs=12, rings=8)
+    for lx, lz in ((-0.12, 0.15), (0.12, 0.15), (-0.13, -0.18), (0.13, -0.18)):
+        b.add_cylinder(m_fur, lx, 0.14, lz, 0.062, 0.052, 0.24, segs=10)
+        b.add_ellipsoid(m_cream, lx, 0.042, lz + 0.03, 0.064, 0.042, 0.075, segs=10, rings=6)
+
+    # Big cute anime cub head + cream muzzle + pink nose + forehead tuft
+    b.add_ellipsoid(m_fur, 0.0, 0.52, 0.20, 0.22, 0.20, 0.21, segs=18, rings=12)
+    b.add_ellipsoid(m_cream, 0.0, 0.46, 0.37, 0.115, 0.085, 0.095, segs=14, rings=8)
+    b.add_ellipsoid(m_nose, 0.0, 0.495, 0.455, 0.044, 0.032, 0.030, segs=10, rings=6)
+    b.add_ellipsoid(m_tuft, 0.0, 0.72, 0.22, 0.075, 0.055, 0.070, segs=10, rings=6)
+
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.18, 0.67, 0.15, 0.082, 0.085, 0.055, segs=12, rings=8, rz=side * -0.25)
+        b.add_ellipsoid(m_cream, side * 0.18, 0.66, 0.185, 0.048, 0.052, 0.030, segs=10, rings=6, rz=side * -0.25)
+        b.add_ellipsoid(m_eye, side * 0.095, 0.545, 0.382, 0.048, 0.052, 0.032, segs=10, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.095, 0.545, 0.402, 0.028, 0.036, 0.022, segs=8, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.108, 0.562, 0.412, 0.016, 0.018, 0.014, segs=8, rings=6)
+
+    # Playful curved tail with dark brown lion tuft!
+    b.add_cylinder(m_fur, 0.0, 0.32, -0.34, 0.034, 0.028, 0.34, segs=8, rx=-0.95)
+    b.add_ellipsoid(m_tuft, 0.0, 0.44, -0.49, 0.068, 0.082, 0.068, segs=10, rings=8)
+    b.save_glb(os.path.join(OUT_DIR, "anime_lion_cub.glb"))
+
+
+def build_anime_safari_jeep():
+    """Sculpted open-top Zebra-Striped Safari Land Cruiser Jeep with hollow torus tires, roll cage, canvas roof, seats & headlights!"""
+    b = GLBBuilder()
+    zebra_tex = make_zebra_stripe_tex()
+    m_zebra = b.add_material("jeep_zebra", (1, 1, 1, 1), zebra_tex, normal_strength=0.6, roughness=0.45, metallic=0.12)
+    m_khaki = b.add_material("jeep_khaki", (0.76, 0.67, 0.48, 1), roughness=0.78)
+    m_dark = b.add_material("jeep_dark", (0.16, 0.16, 0.18, 1), roughness=0.75, metallic=0.35)
+    m_chrome = b.add_material("jeep_chrome", (0.85, 0.87, 0.90, 1), roughness=0.20, metallic=0.85)
+    m_glass = b.add_material("jeep_glass", (0.42, 0.64, 0.74, 1), roughness=0.10, metallic=0.38)
+    m_seat = b.add_material("jeep_seat", (0.48, 0.30, 0.18, 1), roughness=0.72)
+    m_lamp = b.add_material("jeep_lamp", (1.0, 0.96, 0.78, 1), roughness=0.12, emissive=(0.95, 0.88, 0.60))
+    m_tail = b.add_material("jeep_tail", (0.90, 0.16, 0.14, 1), roughness=0.22, emissive=(0.45, 0.06, 0.05))
+
+    b.add_box(m_dark, 0.0, 0.46, 0.0, 1.72, 0.18, 3.85)
+    b.add_box(m_zebra, 0.0, 0.88, 1.25, 1.76, 0.66, 1.48)
+    b.add_box(m_zebra, 0.0, 0.82, -0.58, 1.82, 0.56, 2.28)
+    b.add_box(m_dark, 0.0, 0.86, 2.00, 1.28, 0.44, 0.06)
+    for gx in (-0.42, -0.21, 0.0, 0.21, 0.42):
+        b.add_box(m_chrome, gx, 0.86, 2.04, 0.04, 0.38, 0.03)
+    b.add_box(m_dark, 0.0, 0.56, 2.12, 1.84, 0.14, 0.18)
+    for bx in (-0.45, 0.45):
+        b.add_cylinder(m_dark, bx, 0.82, 2.16, 0.032, 0.032, 0.52, segs=8)
+    b.add_cylinder(m_dark, 0.0, 1.04, 2.16, 0.032, 0.032, 0.96, segs=8, rz=math.pi / 2)
+    for hx in (-0.66, 0.66):
+        b.add_cylinder(m_chrome, hx, 0.90, 1.99, 0.13, 0.13, 0.06, segs=12, rx=math.pi / 2)
+        b.add_ellipsoid(m_lamp, hx, 0.90, 2.03, 0.105, 0.105, 0.03, segs=10, rings=6)
+        b.add_box(m_tail, hx, 0.88, -1.74, 0.18, 0.12, 0.05)
+
+    b.add_box(m_dark, 0.0, 1.56, 0.58, 1.72, 0.62, 0.07, rx=-0.16)
+    b.add_box(m_glass, 0.0, 1.56, 0.58, 1.54, 0.48, 0.09, rx=-0.16)
+    b.add_torus(m_dark, -0.44, 1.24, 0.28, 0.16, 0.022, segs=14, tube_segs=6, rx=0.45)
+    for sz in (-0.18, -1.08):
+        b.add_box(m_seat, 0.0, 0.92, sz, 1.46, 0.14, 0.48)
+        b.add_box(m_seat, 0.0, 1.24, sz - 0.20, 1.46, 0.52, 0.12, rx=-0.10)
+
+    for rx_p in (-0.82, 0.82):
+        for rz_p in (0.50, -0.58, -1.64):
+            b.add_cylinder(m_dark, rx_p, 1.54, rz_p, 0.035, 0.035, 1.08, segs=8)
+    b.add_box(m_khaki, 0.0, 2.08, -0.58, 1.80, 0.10, 2.36)
+    b.add_box(m_dark, 0.0, 2.16, -1.05, 1.50, 0.08, 1.05)
+
+    for wx in (-0.94, 0.94):
+        for wz in (1.26, -1.16):
+            b.add_torus(m_dark, wx, 0.44, wz, 0.33, 0.11, segs=22, tube_segs=10, ry=math.pi / 2)
+            b.add_cylinder(m_chrome, wx, 0.44, wz, 0.22, 0.22, 0.14, segs=14, rz=math.pi / 2)
+    b.add_torus(m_dark, 0.0, 0.96, -1.84, 0.30, 0.095, segs=20, tube_segs=8)
+    b.add_cylinder(m_chrome, 0.0, 0.96, -1.84, 0.19, 0.19, 0.12, segs=12, rx=math.pi / 2)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_safari_jeep.glb"))
+
+
 if __name__ == "__main__":
-    print("Generating 19 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
+    print("Generating 26 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
     build_tokyo_house_2f()
     build_tokyo_house_1f()
     build_kyoto_machiya()
@@ -1383,4 +1654,10 @@ if __name__ == "__main__":
     build_anime_shiba()
     build_anime_cat()
     build_anime_kitsune()
-    print("All 20 AAA .glb assets built successfully!")
+    build_anime_acacia()
+    build_anime_baobab()
+    build_anime_giraffe()
+    build_anime_elephant()
+    build_anime_lion_cub()
+    build_anime_safari_jeep()
+    print("All 26 AAA .glb assets built successfully!")

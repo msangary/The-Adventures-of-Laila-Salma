@@ -41,7 +41,19 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'salma_kitsune', who: 'salma', shop: 'kyoto', name: 'Little Kitsune Festival Set', desc: 'Peach shrine kimono with a cute white kitsune fox mask!', cost: 90, swatch: '#f77f00',
       style: { topColor: 0xffd6a5, bottomColor: 0xe76f51, shoeColor: 0xffffff, backpackColor: 0xd62828, hatType: 'foxmask', hatColor: 0xffffff } },
     { id: 'salma_matcha', who: 'salma', shop: 'kyoto', name: 'Uji Matcha Princess Kimono', desc: 'Soft matcha green kimono with blossom hairpin', cost: 115, swatch: '#74c69d',
-      style: { topColor: 0xb7e4c7, bottomColor: 0x40916c, shoeColor: 0xffd166, backpackColor: 0xff8fab, hatType: 'kanzashi', hatColor: 0xffd166 } }
+      style: { topColor: 0xb7e4c7, bottomColor: 0x40916c, shoeColor: 0xffd166, backpackColor: 0xff8fab, hatType: 'kanzashi', hatColor: 0xffd166 } },
+
+    // Safari — Laila outfits
+    { id: 'laila_safari', who: 'laila', shop: 'safari', name: 'Savanna Explorer Vest', desc: 'Khaki safari vest, olive shorts & wide-brim explorer sun hat', cost: 85, swatch: '#d4a359',
+      style: { topColor: 0xe2c792, bottomColor: 0x6b705c, shoeColor: 0x7f4f24, backpackColor: 0xb08968, hatType: 'kinder', hatColor: 0xd4a359 } },
+    { id: 'laila_sunset_ranger', who: 'laila', shop: 'safari', name: 'Serengeti Sunset Ranger', desc: 'Terracotta ranger jacket & warm amber explorer cap', cost: 115, swatch: '#e07a5f',
+      style: { topColor: 0xe07a5f, bottomColor: 0x3d405b, shoeColor: 0x8d5524, backpackColor: 0xf2cc8f, hatType: 'cap', hatColor: 0xd97706 } },
+
+    // Safari — Salma outfits
+    { id: 'salma_safari', who: 'salma', shop: 'safari', name: 'Little Safari Ranger', desc: 'Sunny khaki explorer outfit with a matching safari sun hat!', cost: 80, swatch: '#e9c46a',
+      style: { topColor: 0xf4e4ba, bottomColor: 0x84a59d, shoeColor: 0x9c6644, backpackColor: 0xe76f51, hatType: 'kinder', hatColor: 0xe9c46a } },
+    { id: 'salma_lioncub', who: 'salma', shop: 'safari', name: 'Playful Lion Cub Hoodie', desc: 'Cozy honey-gold safari hoodie with cute cub ears!', cost: 110, swatch: '#f59e0b',
+      style: { topColor: 0xfcd34d, bottomColor: 0xd97706, shoeColor: 0x78350f, backpackColor: 0xfef3c7, hatType: 'panda', hatColor: 0xf59e0b } }
   ];
 
   function buildHatMeshes(hatType, hatColor) {
@@ -685,12 +697,14 @@ window.LailaSalma = window.LailaSalma || {};
       LS.setSalmaBubbleText('Let us decorate our room or step outside to play! 🎨', 3800);
       return;
     }
-    const isKyoto = LS.state.currentWorld === 'kyoto';
-    const label = isKyoto ? 'kitsune foxes' : 'cats';
-    const emoji = isKyoto ? '🦊' : '🐱';
+    const wid = LS.state.currentWorld;
+    const isKyoto = wid === 'kyoto';
+    const isSafari = wid === 'safari';
+    const label = isSafari ? 'lion cubs' : (isKyoto ? 'kitsune foxes' : 'cats');
+    const emoji = isSafari ? '🦁' : (isKyoto ? '🦊' : '🐱');
     const unfound = world.hiddenAnimals.filter(a => !a.found);
     if (unfound.length === 0) {
-      const rem = LS.getAnimalResetRemainingMs(LS.state.currentWorld);
+      const rem = LS.getAnimalResetRemainingMs(wid);
       const mins = Math.max(1, Math.ceil(rem / 60000));
       const doneMsg = 'We found all 5 ' + label + '! They will hide in new spots in ' + mins + ' min!';
       LS.setSalmaBubbleText(doneMsg, 4500);
@@ -704,8 +718,8 @@ window.LailaSalma = window.LailaSalma || {};
       const d = a.mesh.position.distanceTo(lp);
       if (d < bestD) { bestD = d; nearest = a; }
     });
-    const soundWord = isKyoto ? 'yipping happily' : 'meowing';
-    const placeText = nearest.hint || (isKyoto ? 'somewhere nearby in Kyoto' : 'somewhere nearby in Tokyo');
+    const soundWord = isSafari ? 'purring & roaring softly' : (isKyoto ? 'yipping happily' : 'meowing');
+    const placeText = nearest.hint || (isSafari ? 'somewhere out on the savanna' : (isKyoto ? 'somewhere nearby in Kyoto' : 'somewhere nearby in Tokyo'));
     const hintText = 'Laila, I hear ' + nearest.name.split(' ')[0] + ' ' + soundWord + ' ' + placeText + '!';
     LS.setSalmaBubbleText(hintText, 5000);
     LS.showToast(emoji + ' Salma Boost: ' + hintText);

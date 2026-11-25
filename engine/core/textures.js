@@ -339,13 +339,16 @@ window.LailaSalma = window.LailaSalma || {};
     c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     const isKyoto = style === 'kyoto';
-    ctx.fillStyle = isKyoto ? '#5d874b' : '#6ca656';
+    const isSafari = style === 'safari';
+    ctx.fillStyle = isSafari ? '#c8a956' : (isKyoto ? '#5d874b' : '#6ca656');
     ctx.fillRect(0, 0, S, S);
 
-    // Seamless painterly Ghibli meadow/moss patches using hash scatter (zero linear banding!)
-    const tones = isKyoto
-      ? ['rgba(74,114,58,0.28)', 'rgba(118,150,82,0.24)', 'rgba(84,102,56,0.2)', 'rgba(136,162,90,0.18)']
-      : ['rgba(90,148,70,0.28)', 'rgba(134,182,92,0.24)', 'rgba(80,132,62,0.22)', 'rgba(162,196,104,0.18)'];
+    // Seamless painterly Ghibli meadow/savanna patches using hash scatter (zero linear banding!)
+    const tones = isSafari
+      ? ['rgba(182,146,66,0.30)', 'rgba(218,188,98,0.26)', 'rgba(154,132,58,0.24)', 'rgba(232,202,118,0.20)']
+      : (isKyoto
+        ? ['rgba(74,114,58,0.28)', 'rgba(118,150,82,0.24)', 'rgba(84,102,56,0.2)', 'rgba(136,162,90,0.18)']
+        : ['rgba(90,148,70,0.28)', 'rgba(134,182,92,0.24)', 'rgba(80,132,62,0.22)', 'rgba(162,196,104,0.18)']);
     const patchCount = LS.isHD ? 340 : 220;
     for (let i = 0; i < patchCount; i++) {
       ctx.fillStyle = tones[i % tones.length];
@@ -362,10 +365,12 @@ window.LailaSalma = window.LailaSalma || {};
         }
       }
     }
-    // Delicate randomly scattered grass blades & tiny clover specks
+    // Delicate randomly scattered grass blades & tiny specks
     const bladeCount = LS.isHD ? 1400 : 420;
     for (let i = 0; i < bladeCount; i++) {
-      ctx.fillStyle = i % 4 === 0 ? 'rgba(230,244,184,0.24)' : (i % 4 === 1 ? 'rgba(42,74,34,0.24)' : 'rgba(92,146,66,0.22)');
+      ctx.fillStyle = isSafari
+        ? (i % 4 === 0 ? 'rgba(246,226,154,0.28)' : (i % 4 === 1 ? 'rgba(134,104,42,0.24)' : 'rgba(182,154,68,0.24)'))
+        : (i % 4 === 0 ? 'rgba(230,244,184,0.24)' : (i % 4 === 1 ? 'rgba(42,74,34,0.24)' : 'rgba(92,146,66,0.22)'));
       const gx = hash01(i * 11.3 + 4.1) * S;
       const gy = hash01(i * 17.9 + 2.3) * S;
       ctx.fillRect(gx, gy, 2 * sc, 5 * sc);
@@ -392,7 +397,8 @@ window.LailaSalma = window.LailaSalma || {};
     c.width = S; c.height = S;
     const ctx = c.getContext('2d');
     const isKyoto = style === 'kyoto';
-    ctx.fillStyle = isKyoto ? '#847a6c' : '#a79e8d';
+    const isSafari = style === 'safari';
+    ctx.fillStyle = isSafari ? '#b9824f' : (isKyoto ? '#847a6c' : '#a79e8d');
     ctx.fillRect(0, 0, S, S);
     const speckCount = LS.isHD ? 1800 : 650;
     for (let i = 0; i < speckCount; i++) {
@@ -400,12 +406,11 @@ window.LailaSalma = window.LailaSalma || {};
       const py = hash01(i * 6.9 + 7.7) * S;
       const sz = (2 + hash01(i * 2.1) * 5.5) * sc;
       ctx.fillStyle = i % 3 === 0
-        ? (isKyoto ? 'rgba(98,90,78,0.34)' : 'rgba(126,118,104,0.3)')
-        : (isKyoto ? 'rgba(170,160,144,0.26)' : 'rgba(232,224,206,0.28)');
+        ? (isSafari ? 'rgba(136,84,42,0.34)' : (isKyoto ? 'rgba(98,90,78,0.34)' : 'rgba(126,118,104,0.3)'))
+        : (isSafari ? 'rgba(224,180,120,0.28)' : (isKyoto ? 'rgba(170,160,144,0.26)' : 'rgba(232,224,206,0.28)'));
       ctx.fillRect(px, py, sz, sz * 0.8);
     }
     if (LS.isHD) {
-      // Subtle rounded river cobbles for crisp HD close-ups
       for (let i = 0; i < 160; i++) {
         const cx = (34 + hash01(i * 9.1) * 188) * sc;
         const cy = hash01(i * 13.7) * S;
@@ -415,7 +420,7 @@ window.LailaSalma = window.LailaSalma || {};
       }
     }
     const gL = ctx.createLinearGradient(0, 0, 34 * sc, 0);
-    gL.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.72)' : 'rgba(106,154,82,0.62)');
+    gL.addColorStop(0, isSafari ? 'rgba(196,166,82,0.78)' : (isKyoto ? 'rgba(84,116,66,0.72)' : 'rgba(106,154,82,0.62)'));
     gL.addColorStop(1, 'rgba(106,154,82,0)');
     ctx.fillStyle = gL; ctx.fillRect(0, 0, 34 * sc, S);
     const gR = ctx.createLinearGradient(S, 0, S - 34 * sc, 0);
@@ -1102,6 +1107,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (style === 'stone') tex = LS.createStonePathTexture();
       else if (style === 'lane_tokyo') tex = LS.createVillageLaneTexture('tokyo');
       else if (style === 'lane_kyoto') tex = LS.createVillageLaneTexture('kyoto');
+      else if (style === 'lane_safari') tex = LS.createVillageLaneTexture('safari');
       else tex = LS.createGravelPathTexture();
 
       const mat = LS.makeSurfaceMat(tex, { side: THREE.DoubleSide, roughness: style === 'stone' ? 0.76 : 0.86 });
