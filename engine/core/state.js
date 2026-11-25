@@ -66,68 +66,70 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'kitsune_lantern', name: 'Lanterns & Kitsune Art', cost: 95, label: '🦊 LANTERN FESTIVAL 🏮', bg: '#3a1f1b', border: '#f59e0b', fg: '#fff5dc' }
   ];
 
-  const defaultState = {
-    currentWorld: 'tokyo',
-    level: 1,
-    xp: 0,
-    coins: 200,
-    lastCompletedWindowTokyo: -1,
-    lastCompletedWindowKyoto: -1,
-    lastCompletedWindowSafari: -1,
-    demoOffsetWindows: 0,
-    timeMode: 0,
-    grainEnabled: true,
-    soundEnabled: false,
-    foundCats: [],
-    catsCompletedAt: 0,
-    catsRound: 0,
-    foundKitsune: [],
-    kitsuneCompletedAt: 0,
-    kitsuneRound: 0,
-    foundLionCubs: [],
-    lionCubsCompletedAt: 0,
-    lionCubsRound: 0,
-    unlockedOutfits: ['laila_school', 'salma_kinder'],
-    equippedLaila: 'laila_school',
-    equippedSalma: 'salma_kinder',
-    unlockedToys: [],
-    stamps: [],
-    emaWishes: [],
-    lastFortune: null,
-    koiFedCount: 0,
-    safariFedCount: 0,
-    roomWallpaper: 'sakura_cream',
-    unlockedRoomItems: ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
-    roomBeanbag: 'strawberry_puff',
-    roomPoster: 'tokyo_sketches',
-    ryokanTatami: 'classic_tatami',
-    ryokanCushion: 'sakura_zabuton',
-    ryokanScroll: 'kyoto_torii',
-    unlockedRyokanItems: ['classic_tatami', 'sakura_zabuton', 'kyoto_torii']
-  };
+  function makeDefaultState() {
+    return {
+      currentWorld: 'tokyo',
+      level: 1,
+      xp: 0,
+      coins: 200,
+      lastCompletedWindowTokyo: -1,
+      lastCompletedWindowKyoto: -1,
+      lastCompletedWindowSafari: -1,
+      demoOffsetWindows: 0,
+      timeMode: 0,
+      grainEnabled: true,
+      soundEnabled: false,
+      foundCats: [],
+      catsCompletedAt: 0,
+      catsRound: 0,
+      foundKitsune: [],
+      kitsuneCompletedAt: 0,
+      kitsuneRound: 0,
+      foundLionCubs: [],
+      lionCubsCompletedAt: 0,
+      lionCubsRound: 0,
+      unlockedOutfits: ['laila_school', 'salma_kinder'],
+      equippedLaila: 'laila_school',
+      equippedSalma: 'salma_kinder',
+      unlockedToys: [],
+      stamps: [],
+      emaWishes: [],
+      lastFortune: null,
+      koiFedCount: 0,
+      safariFedCount: 0,
+      roomWallpaper: 'sakura_cream',
+      unlockedRoomItems: ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
+      roomBeanbag: 'strawberry_puff',
+      roomPoster: 'tokyo_sketches',
+      ryokanTatami: 'classic_tatami',
+      ryokanCushion: 'sakura_zabuton',
+      ryokanScroll: 'kyoto_torii',
+      unlockedRyokanItems: ['classic_tatami', 'sakura_zabuton', 'kyoto_torii']
+    };
+  }
 
   function loadState() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return Object.assign({}, defaultState);
+      if (!raw) return makeDefaultState();
       const parsed = JSON.parse(raw);
       // Never resume stranded inside an interior without parent context; default to valid world
       const startW = (parsed.currentWorld === 'kyoto' || parsed.currentWorld === 'tokyo' || parsed.currentWorld === 'safari')
         ? parsed.currentWorld : 'tokyo';
-      return Object.assign({}, defaultState, parsed, {
+      return Object.assign(makeDefaultState(), parsed, {
         currentWorld: startW,
-        foundCats: Array.isArray(parsed.foundCats) ? parsed.foundCats : [],
-        foundKitsune: Array.isArray(parsed.foundKitsune) ? parsed.foundKitsune : [],
-        foundLionCubs: Array.isArray(parsed.foundLionCubs) ? parsed.foundLionCubs : [],
-        unlockedOutfits: Array.isArray(parsed.unlockedOutfits) ? parsed.unlockedOutfits : ['laila_school', 'salma_kinder'],
-        unlockedToys: Array.isArray(parsed.unlockedToys) ? parsed.unlockedToys : [],
-        stamps: Array.isArray(parsed.stamps) ? parsed.stamps : [],
-        emaWishes: Array.isArray(parsed.emaWishes) ? parsed.emaWishes : [],
-        unlockedRoomItems: Array.isArray(parsed.unlockedRoomItems) ? parsed.unlockedRoomItems : ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
-        unlockedRyokanItems: Array.isArray(parsed.unlockedRyokanItems) ? parsed.unlockedRyokanItems : ['classic_tatami', 'sakura_zabuton', 'kyoto_torii']
+        foundCats: Array.isArray(parsed.foundCats) ? parsed.foundCats.slice() : [],
+        foundKitsune: Array.isArray(parsed.foundKitsune) ? parsed.foundKitsune.slice() : [],
+        foundLionCubs: Array.isArray(parsed.foundLionCubs) ? parsed.foundLionCubs.slice() : [],
+        unlockedOutfits: Array.isArray(parsed.unlockedOutfits) ? parsed.unlockedOutfits.slice() : ['laila_school', 'salma_kinder'],
+        unlockedToys: Array.isArray(parsed.unlockedToys) ? parsed.unlockedToys.slice() : [],
+        stamps: Array.isArray(parsed.stamps) ? parsed.stamps.slice() : [],
+        emaWishes: Array.isArray(parsed.emaWishes) ? parsed.emaWishes.slice() : [],
+        unlockedRoomItems: Array.isArray(parsed.unlockedRoomItems) ? parsed.unlockedRoomItems.slice() : ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
+        unlockedRyokanItems: Array.isArray(parsed.unlockedRyokanItems) ? parsed.unlockedRyokanItems.slice() : ['classic_tatami', 'sakura_zabuton', 'kyoto_torii']
       });
     } catch (e) {
-      return Object.assign({}, defaultState);
+      return makeDefaultState();
     }
   }
 
@@ -160,6 +162,41 @@ window.LailaSalma = window.LailaSalma || {};
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(LS.state));
     } catch (e) {}
+  };
+
+  LS.resetProgress = function () {
+    const keepSound = !!LS.state.soundEnabled;
+    const keepGrain = LS.state.grainEnabled !== false;
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch (e) {}
+
+    // Fresh state with brand-new arrays while preserving audio & paper-grain preferences
+    const fresh = makeDefaultState();
+    fresh.soundEnabled = keepSound;
+    fresh.grainEnabled = keepGrain;
+    Object.keys(LS.state).forEach(k => { delete LS.state[k]; });
+    Object.assign(LS.state, fresh);
+
+    LS.runtime.stamina = 100;
+    LS.runtime.buff = null;
+    LS.runtime.superJumpUntil = 0;
+    LS.runtime.sparkleUntil = 0;
+    LS.runtime.piggybackUntil = 0;
+    LS.runtime.mochiGame = null;
+    LS.runtime.parkActivity = null;
+    LS.runtime.safariRide = null;
+
+    LS.saveState();
+    if (LS.applyOutfit) {
+      LS.applyOutfit('laila', LS.state.equippedLaila);
+      LS.applyOutfit('salma', LS.state.equippedSalma);
+    }
+    if (LS.closeAllModals) LS.closeAllModals();
+    if (LS.loadWorld) LS.loadWorld('tokyo', false);
+    LS.updateHUD();
+    LS.playSFX('coin');
+    LS.showToast('🔄 Progress reset! Welcome to a brand-new adventure, Laila & Salma!');
   };
 
   // 2-Hour Animal Hide-and-Seek Reset Logic

@@ -343,6 +343,10 @@ window.LailaSalma = window.LailaSalma || {};
         stampsBox.appendChild(el);
       });
     }
+    const resetBtn = document.getElementById('btn-reset-progress');
+    const resetBox = document.getElementById('reset-confirm-box');
+    if (resetBtn) resetBtn.classList.remove('hidden');
+    if (resetBox) resetBox.classList.add('hidden');
     document.getElementById('passport-modal').classList.remove('hidden');
   };
 
@@ -1246,5 +1250,28 @@ window.LailaSalma = window.LailaSalma || {};
     document.getElementById('btn-skip-eat').addEventListener('click', () => {
       LS.finishEatingAnimation(scene);
     });
+
+    // Two-step kid-safe Reset All Progress controls inside Travel Passport
+    const resetTrigger = document.getElementById('btn-reset-progress');
+    const resetConfirmBox = document.getElementById('reset-confirm-box');
+    const resetCancel = document.getElementById('btn-reset-cancel');
+    const resetConfirm = document.getElementById('btn-reset-confirm');
+    if (resetTrigger && resetConfirmBox) {
+      resetTrigger.addEventListener('click', () => {
+        resetTrigger.classList.add('hidden');
+        resetConfirmBox.classList.remove('hidden');
+      });
+    }
+    if (resetCancel && resetTrigger && resetConfirmBox) {
+      resetCancel.addEventListener('click', () => {
+        resetConfirmBox.classList.add('hidden');
+        resetTrigger.classList.remove('hidden');
+      });
+    }
+    if (resetConfirm) {
+      resetConfirm.addEventListener('click', () => {
+        if (LS.resetProgress) LS.resetProgress();
+      });
+    }
   };
 })(window.LailaSalma);

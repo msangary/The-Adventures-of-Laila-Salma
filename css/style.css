@@ -823,6 +823,57 @@ html, body {
   padding-right: 4px;
 }
 
+.passport-reset-wrap {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1.5px dashed #d7be96;
+  text-align: center;
+}
+
+.btn-danger-outline {
+  border: 1.5px solid #d47872;
+  border-radius: 11px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #a12c26;
+  background: #fff4f2;
+  cursor: pointer;
+}
+
+.btn-danger-outline:hover {
+  background: #ffe3df;
+}
+
+.btn-danger {
+  border: none;
+  border-radius: 11px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  background: #c83e37;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #ab2e28;
+}
+
+.reset-confirm-box {
+  background: #fff3f0;
+  border: 1.5px solid #e2958f;
+  border-radius: 12px;
+  padding: 11px 12px;
+}
+
+.reset-confirm-text {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #7f1d1d;
+  margin-bottom: 10px;
+}
+
 .passport-section-title {
   font-size: 14px;
   margin-bottom: 8px;
