@@ -186,6 +186,61 @@ window.LailaSalma = window.LailaSalma || {};
   }
   LS.applyTimeOfDay = applyTimeOfDay;
 
+  let questTrailSystem = null;
+
+  function getLeader() {
+    if (LS.state && LS.state.activeLeader === 'salma' && LS.chars.salma) return LS.chars.salma;
+    return LS.chars.laila;
+  }
+
+  function getCompanion() {
+    if (LS.state && LS.state.activeLeader === 'salma' && LS.chars.salma) return LS.chars.laila;
+    return LS.chars.salma;
+  }
+
+  LS.swapActiveSister = function () {
+    if (LS.runtime.eating || LS.runtime.modalOpen || LS.runtime.traveling || LS.runtime.bikeRide || LS.runtime.safariRide || LS.runtime.balloonRide) return;
+    LS.state.activeLeader = LS.state.activeLeader === 'salma' ? 'laila' : 'salma';
+    LS.saveState();
+    LS.playSFX('correct');
+    const isSalma = LS.state.activeLeader === 'salma';
+    LS.setSalmaBubbleText(isSalma
+      ? 'Lead the way, Salma! Big sister Laila is right behind you! 💖'
+      : 'Yay! Laila is leading the adventure again! 🌸', 3600);
+    LS.showToast(isSalma ? '🧒 Now playing as Salma! (Laila follows)' : '👧 Now playing as Laila! (Salma follows)');
+    if (LS.completeCozyMission) LS.completeCozyMission('swap');
+    LS.updateHUD();
+  };
+
+  LS.dismissTitleScreen = function () {
+    LS.runtime.titleScreenActive = false;
+    if (LS.unlockAudio) LS.unlockAudio();
+    const ts = document.getElementById('title-screen');
+    if (ts) ts.classList.add('title-hidden');
+    document.body.classList.remove('on-title-screen');
+    // Place Laila & Salma cleanly at the active world's spawn point!
+    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.home_neighborhood;
+    const sp = meta.spawn;
+    const baseH = getGroundH(sp.x, sp.z);
+    if (LS.chars.laila) {
+      LS.chars.laila.root.position.set(sp.x, baseH, sp.z);
+      LS.chars.laila.root.rotation.y = sp.rotY;
+    }
+    if (LS.chars.salma) {
+      LS.chars.salma.root.position.set(sp.x - 1.1, baseH, sp.z + 1.1);
+      LS.chars.salma.root.rotation.y = sp.rotY;
+    }
+    camYaw = sp.rotY;
+    targetCamYaw = sp.rotY;
+    camPitch = meta.isInterior ? 0.38 : 0.30;
+    targetCamPitch = camPitch;
+    camDist = meta.isInterior ? 4.8 : 6.8;
+    targetCamDist = camDist;
+    camSnapNext = true;
+    LS.playSFX('levelup');
+    LS.showToast('🌸 Welcome home, Laila & Salma! Explore your Apartment, School, Bistro & Magic Globe!');
+  };
+
   function initSparklesAndStars() {
     const count = 48;
     const geo = new THREE.BufferGeometry();
@@ -195,6 +250,16 @@ window.LailaSalma = window.LailaSalma || {};
     const mat = new THREE.PointsMaterial({ color: 0xffd6f0, size: 0.24, transparent: true, opacity: 0.92 });
     sparkleSystem = new THREE.Points(geo, mat);
     scene.add(sparkleSystem);
+
+    // Golden Quest Guide Trail sparkles leading gently toward the next Story Chapter target!
+    const qCount = 14;
+    const qGeo = new THREE.BufferGeometry();
+    const qPos = new Float32Array(qCount * 3);
+    for (let i = 0; i < qCount; i++) qPos[i * 3 + 1] = -999;
+    qGeo.setAttribute('position', new THREE.BufferAttribute(qPos, 3));
+    const qMat = new THREE.PointsMaterial({ color: 0xffe066, size: 0.32, transparent: true, opacity: 0.82 });
+    questTrailSystem = new THREE.Points(qGeo, qMat);
+    scene.add(questTrailSystem);
 
     // 3D Star Particle Burst for Synchronized Sister High-Five!
     starBurstGroup = new THREE.Group();
@@ -230,13 +295,14 @@ window.LailaSalma = window.LailaSalma || {};
     starBurstTimer = 1.3;
   }
 
-  function updateSparklesAndStars(dt) {
-    if (sparkleSystem && LS.chars.laila) {
+  function updateSparklesAndStars(dt, elapsed) {
+    const leader = getLeader();
+    if (sparkleSystem && leader) {
       const pos = sparkleSystem.geometry.attributes.position;
       const active = (LS.runtime.sparkleUntil && Date.now() < LS.runtime.sparkleUntil) ||
                      (LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil);
       if (active) {
-        const lp = LS.chars.laila.root.position;
+        const lp = leader.root.position;
         const i = sparkleIdx % pos.count;
         pos.setXYZ(
           i,
@@ -255,6 +321,30 @@ window.LailaSalma = window.LailaSalma || {};
         }
       }
       pos.needsUpdate = true;
+    }
+
+    // Update Golden Story Quest Guide Trail
+    if (questTrailSystem && leader && LS.activeWorld && LS.activeWorld.zones) {
+      const qPos = questTrailSystem.geometry.attributes.position;
+      const activeQ = (!LS.runtime.titleScreenActive && LS.getActiveStoryStep) ? LS.getActiveStoryStep(LS.state.currentWorld) : null;
+      const targetZ = activeQ ? LS.activeWorld.zones.find(z => z.id === activeQ.targetZoneId) : null;
+      if (targetZ && leader.root.position.distanceTo(targetZ.pos) > 3.2) {
+        const lp = leader.root.position;
+        const tp = targetZ.pos;
+        const tBase = (elapsed || 0) * 0.45;
+        for (let i = 0; i < qPos.count; i++) {
+          const frac = ((i / qPos.count) + tBase) % 1.0;
+          const x = lp.x + (tp.x - lp.x) * frac;
+          const z = lp.z + (tp.z - lp.z) * frac;
+          const gy = getGroundH(x, z);
+          const y = gy + 0.55 + Math.sin(frac * Math.PI) * 0.55;
+          qPos.setXYZ(i, x, y, z);
+        }
+        questTrailSystem.visible = true;
+        qPos.needsUpdate = true;
+      } else {
+        questTrailSystem.visible = false;
+      }
     }
 
     if (starBurstTimer > 0 && starBurstGroup) {
@@ -348,9 +438,9 @@ window.LailaSalma = window.LailaSalma || {};
     const builder = LS.worldBuilders[worldId];
     if (!meta || !builder) return;
 
-    // Auto-check 2-hour Hide-and-Seek animal reset when entering Tokyo, Kyoto, or Safari!
+    // Auto-check 2-hour Hide-and-Seek animal reset when entering outdoor worlds!
     let didResetAnimals = false;
-    if (worldId === 'tokyo' || worldId === 'kyoto' || worldId === 'safari') {
+    if (worldId === 'home_neighborhood' || worldId === 'tokyo' || worldId === 'kyoto' || worldId === 'safari') {
       didResetAnimals = LS.checkAnimalReset(worldId);
     }
 
@@ -384,16 +474,17 @@ window.LailaSalma = window.LailaSalma || {};
     scene.fog.far = meta.fogFar || 185;
 
     if (meta.isInterior) {
+      const sh = worldId === 'home_apartment' ? 14 : 10;
       dirLight.position.set(4, 9, 5);
-      dirLight.shadow.camera.left = -10;
-      dirLight.shadow.camera.right = 10;
-      dirLight.shadow.camera.top = 10;
-      dirLight.shadow.camera.bottom = -10;
+      dirLight.shadow.camera.left = -sh;
+      dirLight.shadow.camera.right = sh;
+      dirLight.shadow.camera.top = sh;
+      dirLight.shadow.camera.bottom = -sh;
       dirLight.shadow.camera.updateProjectionMatrix();
       streetLight.position.set(0, 3.8, 0);
       accentLight.position.set(-3, 2.5, -2);
     } else if (worldId === 'safari') {
-      dirLight.position.set(LS.isHD ? 36 : 24, LS.isHD ? 28 : 40, 22);
+      dirLight.position.set(36, 28, 22);
       dirLight.shadow.camera.left = -64;
       dirLight.shadow.camera.right = 64;
       dirLight.shadow.camera.top = 56;
@@ -402,20 +493,29 @@ window.LailaSalma = window.LailaSalma || {};
       streetLight.position.set(0, 5.4, 12);
       accentLight.position.set(-24.0, 4.2, -26.0);
     } else if (worldId === 'kyoto') {
-      dirLight.position.set(LS.isHD ? 28 : 16, LS.isHD ? 24 : 38, LS.isHD ? 20 : 16);
-      dirLight.shadow.camera.left = -64;
-      dirLight.shadow.camera.right = 46;
-      dirLight.shadow.camera.top = 46;
-      dirLight.shadow.camera.bottom = -58;
+      dirLight.position.set(28, 24, 20);
+      dirLight.shadow.camera.left = -74;
+      dirLight.shadow.camera.right = 74;
+      dirLight.shadow.camera.top = 58;
+      dirLight.shadow.camera.bottom = -64;
       dirLight.shadow.camera.updateProjectionMatrix();
       streetLight.position.set(0, 5.2, -10);
       accentLight.position.set(-22.0, 3.6, -27.5);
-    } else {
-      dirLight.position.set(LS.isHD ? 34 : 22, LS.isHD ? 24 : 38, 18);
-      dirLight.shadow.camera.left = -54;
+    } else if (worldId === 'home_neighborhood') {
+      dirLight.position.set(30, 26, 20);
+      dirLight.shadow.camera.left = -56;
       dirLight.shadow.camera.right = 56;
       dirLight.shadow.camera.top = 50;
-      dirLight.shadow.camera.bottom = -54;
+      dirLight.shadow.camera.bottom = -50;
+      dirLight.shadow.camera.updateProjectionMatrix();
+      streetLight.position.set(0, 5.2, 4);
+      accentLight.position.set(24.0, 4.2, -8.0);
+    } else {
+      dirLight.position.set(34, 24, 18);
+      dirLight.shadow.camera.left = -74;
+      dirLight.shadow.camera.right = 74;
+      dirLight.shadow.camera.top = 58;
+      dirLight.shadow.camera.bottom = -64;
       dirLight.shadow.camera.updateProjectionMatrix();
       streetLight.position.set(0, 5.2, -6);
       accentLight.position.set(24.0, 4.2, 16.0);
@@ -437,15 +537,18 @@ window.LailaSalma = window.LailaSalma || {};
     velY = 0;
     salmaVelY = 0;
 
-    if (LS.chars.mochi && LS.activeWorld.mochiStartPos) {
-      LS.chars.mochi.position.copy(LS.activeWorld.mochiStartPos);
+    if (LS.chars.mochi) {
+      LS.chars.mochi.visible = !meta.isInterior;
+      if (LS.activeWorld.mochiStartPos) {
+        LS.chars.mochi.position.copy(LS.activeWorld.mochiStartPos);
+      }
     }
 
     camYaw = sp.rotY;
     targetCamYaw = sp.rotY;
     camPitch = meta.isInterior ? 0.38 : 0.30;
     targetCamPitch = camPitch;
-    camDist = meta.isInterior ? 4.8 : 6.8;
+    camDist = meta.isInterior ? 5.2 : 6.8;
     targetCamDist = camDist;
     effectiveCamDist = camDist;
     manualCamCooldown = 0;
@@ -459,28 +562,34 @@ window.LailaSalma = window.LailaSalma || {};
 
     const legendAnimal = document.getElementById('mm-animal-label');
     if (legendAnimal) {
-      legendAnimal.innerHTML = (worldId === 'safari' || worldId === 'safari_tent')
-        ? '<i class="mm-dot mm-cat"></i>Cubs'
-        : ((worldId === 'kyoto' || worldId === 'kyoto_room')
-          ? '<i class="mm-dot mm-cat"></i>Foxes'
-          : '<i class="mm-dot mm-cat"></i>Cats');
+      legendAnimal.innerHTML = (worldId === 'home_neighborhood' || worldId === 'home_apartment')
+        ? '<i class="mm-dot mm-cat"></i>Pups'
+        : ((worldId === 'safari' || worldId === 'safari_tent')
+          ? '<i class="mm-dot mm-cat"></i>Cubs'
+          : ((worldId === 'kyoto' || worldId === 'kyoto_room')
+            ? '<i class="mm-dot mm-cat"></i>Foxes'
+            : '<i class="mm-dot mm-cat"></i>Cats'));
     }
     const mmCard = document.getElementById('minimap-card');
     if (mmCard) mmCard.title = meta.title + ' Mini-Map (M to toggle)';
 
-    if (meta.isInterior) {
+    if (worldId === 'home_apartment') {
+      LS.setSalmaBubbleText('Home sweet home! Kitchen snacks, Laila\'s Piano, TV games, & our Magic Globe! 🎹🌍', 4500);
+    } else if (meta.isInterior) {
       LS.setSalmaBubbleText(worldId === 'safari_tent'
         ? 'Whoa! Our cozy Safari Glamping Tent! Let us decorate the rug & cushions! ⛺✨'
         : 'Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
       LS.unlockStamp(worldId === 'safari_tent' ? 'safari_tent_decor' : 'room_decorator');
+    } else if (worldId === 'home_neighborhood') {
+      LS.setSalmaBubbleText('Our Gated Community! Step inside our Apartment, walk to School, or dine at Bella Bistro! 🏡🍽️', 0);
     } else if (worldId === 'safari') {
-      LS.setSalmaBubbleText('Whoa, African Safari!! Ride the Balloon or Jeep, snap wildlife photos [F], & race the Cheetah! 🎈🦒🦁', 0);
+      LS.setSalmaBubbleText('Whoa, African Safari!! Quiz with Dr. Kofi, ride the Balloon or Jeep, & snap wildlife [F]! 🎈🦒', 0);
       LS.unlockStamp('safari_arrival');
     } else if (worldId === 'kyoto') {
-      LS.setSalmaBubbleText('Whoa, Kyoto! Let us cross the koi bridge, visit the park & find 5 foxes! ⛩️🦊', 0);
+      LS.setSalmaBubbleText('Whoa, expanded Kyoto! Explore Gion Lantern Street, quiz with Sensei Kenji & feed the koi! ⛩️🦊', 0);
       LS.unlockStamp('kyoto_arrival');
     } else {
-      LS.setSalmaBubbleText('Yay, Tokyo! Let us explore the airport, park, ramen & 5 hiding cats! 🌸🐱', 0);
+      LS.setSalmaBubbleText('Yay, expanded Tokyo! Quiz with Sensei Haruka, visit Harajuku Crêpes & Cat Café Street! 🌸🐱', 0);
     }
 
     applyTimeOfDay();
@@ -488,11 +597,13 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (didResetAnimals) {
       setTimeout(() => {
-        LS.showToast(worldId === 'safari'
-          ? '🦁 2 hours passed! All 5 Safari Lion Cubs hid in brand-new spots!'
-          : (worldId === 'kyoto'
-            ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
-            : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!'));
+        LS.showToast(worldId === 'home_neighborhood'
+          ? '🐶 2 hours passed! All 5 Community Puppies hid in brand-new spots!'
+          : (worldId === 'safari'
+            ? '🦁 2 hours passed! All 5 Safari Lion Cubs hid in brand-new spots!'
+            : (worldId === 'kyoto'
+              ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
+              : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!')));
       }, 600);
     }
   };
@@ -500,11 +611,13 @@ window.LailaSalma = window.LailaSalma || {};
   LS.enterInterior = function (roomId) {
     LS.playSFX('door');
     LS.loadWorld(roomId, false);
-    LS.showToast(roomId === 'safari_tent'
-      ? "⛺ Welcome inside Laila & Salma's Safari Glamping Tent!"
-      : (roomId === 'kyoto_room'
-        ? "🏮 Welcome inside Laila & Salma's Kyoto Ryokan Suite!"
-        : "🏡 Welcome inside Laila & Salma's Tokyo Room!"));
+    LS.showToast(roomId === 'home_apartment'
+      ? "🏡 Welcome inside Laila & Salma's 4-Room Home Apartment!"
+      : (roomId === 'safari_tent'
+        ? "⛺ Welcome inside Laila & Salma's Safari Glamping Tent!"
+        : (roomId === 'kyoto_room'
+          ? "🏮 Welcome inside Laila & Salma's Kyoto Ryokan Suite!"
+          : "🏡 Welcome inside Laila & Salma's Tokyo Room!")));
   };
 
   LS.exitInterior = function () {
@@ -526,18 +639,23 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.traveling = true;
     const fromMeta = LS.WORLDS[LS.state.currentWorld];
     const toMeta = LS.WORLDS[targetWorldId];
-    const isFlight = targetWorldId === 'safari' || LS.state.currentWorld === 'safari';
+    const isGlobe = LS.state.currentWorld === 'home_apartment' || LS.state.currentWorld === 'home_neighborhood' || targetWorldId === 'home_neighborhood';
+    const isFlight = !isGlobe && (targetWorldId === 'safari' || LS.state.currentWorld === 'safari');
 
     const overlay = document.getElementById('travel-overlay');
+    const animEl = overlay ? overlay.querySelector('.train-anim') : null;
     const titleEl = document.getElementById('travel-title');
     const subEl = document.getElementById('travel-sub');
+    if (animEl) animEl.textContent = isGlobe ? '🌍✨' : (isFlight ? '✈️☁️' : '🚅💨');
     if (titleEl) {
-      titleEl.textContent = (isFlight ? '✈️ Safari Charter Flight: ' : '🚅 Shinkansen Express: ') + fromMeta.title + ' → ' + toMeta.title;
+      titleEl.textContent = (isGlobe ? '🌍 Magic World Globe: ' : (isFlight ? '✈️ Safari Charter Flight: ' : '🚅 Shinkansen Express: ')) + fromMeta.title + ' → ' + toMeta.title;
     }
     if (subEl) {
-      subEl.textContent = isFlight
-        ? 'Fasten seatbelts, Laila, Salma & Mochi! Soaring above the clouds toward ' + toMeta.title + '...'
-        : 'All aboard, Laila, Salma & Mochi! Zooming past Mt. Fuji at 300 km/h...';
+      subEl.textContent = isGlobe
+        ? 'Whoosh! The glowing Magic World Globe carries Laila & Salma straight to ' + toMeta.title + '!'
+        : (isFlight
+          ? 'Fasten seatbelts, Laila, Salma & Mochi! Soaring above the clouds toward ' + toMeta.title + '...'
+          : 'All aboard, Laila, Salma & Mochi! Zooming past Mt. Fuji at 300 km/h...');
     }
     if (overlay) overlay.classList.remove('hidden');
 
@@ -737,21 +855,30 @@ window.LailaSalma = window.LailaSalma || {};
   }
 
   function triggerInteract() {
-    if (LS.runtime.modalOpen || LS.runtime.eating || LS.runtime.traveling) return;
+    if (LS.runtime.titleScreenActive || LS.runtime.modalOpen || LS.runtime.eating || LS.runtime.traveling) return;
+    if (LS.unlockAudio) LS.unlockAudio();
     if (LS.runtime.bikeRide) {
       LS.dismountYellowBike();
       return;
     }
-    if (!LS.runtime.nearZone && LS.chars.mochi &&
-        LS.chars.laila.root.position.distanceTo(LS.chars.mochi.position) < 2.6) {
+    const leader = getLeader();
+    if (!LS.runtime.nearZone && LS.chars.mochi && LS.chars.mochi.visible &&
+        leader.root.position.distanceTo(LS.chars.mochi.position) < 2.6) {
       LS.openMochiModal();
       return;
     }
     if (!LS.runtime.nearZone) return;
     const zid = LS.runtime.nearZone.id;
     if (zid === 'tokyo_yellow_bike') LS.mountYellowBike();
-    else if (zid === 'school') LS.openSchoolModal('tokyo');
-    else if (zid === 'kyoto_academy') LS.openSchoolModal('kyoto');
+    else if (zid === 'enter_home_apartment') LS.enterInterior('home_apartment');
+    else if (zid === 'home_kitchen_snack') LS.openKitchenModal();
+    else if (zid === 'home_piano') LS.openPianoModal();
+    else if (zid === 'home_tv_room') LS.openTvGameModal();
+    else if (zid === 'magic_globe') LS.openGlobeModal();
+    else if (zid === 'home_school') LS.openSchoolModal('home_neighborhood');
+    else if (zid === 'home_restaurant') LS.openHomeRestaurantModal();
+    else if (zid === 'tokyo_teacher_quiz' || zid === 'school') LS.openSchoolModal('tokyo');
+    else if (zid === 'kyoto_teacher_quiz' || zid === 'kyoto_academy') LS.openSchoolModal('kyoto');
     else if (zid === 'ramen') LS.openRamenModal();
     else if (zid === 'sushi_stand') LS.openSushiModal();
     else if (zid === 'tea_house') LS.openTeaHouseModal();
@@ -777,7 +904,8 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'safari_stickers') LS.openGachaponModal('safari');
     else if (
       zid === 'safari_cafe' || zid === 'safari_crafts' || zid === 'sakura_bakery' || zid === 'sunny_florist' ||
-      zid === 'cozy_bookshop' || zid === 'kyoto_pottery' || zid === 'kyoto_fans'
+      zid === 'cozy_bookshop' || zid === 'kyoto_pottery' || zid === 'kyoto_fans' ||
+      zid === 'tokyo_crepes' || zid === 'tokyo_cat_cafe' || zid === 'tokyo_origami' || zid === 'kyoto_wagashi'
     ) LS.openLocalShopModal(zid);
     else if (zid === 'safari_jeep') LS.startSafariJeepRide();
     else if (zid === 'safari_balloon') LS.startBalloonRide();
@@ -792,17 +920,20 @@ window.LailaSalma = window.LailaSalma || {};
       LS.runtime.parkActivity = { type: 'slide', timer: 2.4, duration: 2.4 };
       LS.addXP(10);
       LS.playSFX('jump');
+      if (LS.completeCozyMission) LS.completeCozyMission('play');
       LS.showToast('🛝 Wheee! Laila & Salma slide down together! +10 XP');
     } else if (zid === 'park_swing') {
       LS.runtime.parkActivity = { type: 'swing', timer: 3.8, duration: 3.8 };
       LS.addXP(10);
       LS.playSFX('jump');
+      if (LS.completeCozyMission) LS.completeCozyMission('play');
       LS.showToast('🎠 Swinging high together on the park swing! +10 XP');
     } else if (zid === 'park_hopscotch') {
       LS.runtime.parkActivity = { type: 'hopscotch', timer: 2.2, duration: 2.2 };
       LS.addCoins(20);
       LS.addXP(12);
       LS.playSFX('coin');
+      if (LS.completeCozyMission) LS.completeCozyMission('play');
       LS.showToast('🎯 Hopscotch cleared together! +20c & +12 XP!');
     } else if (zid.startsWith('animal:')) {
       LS.petHiddenAnimal(zid.slice(7));
@@ -813,13 +944,20 @@ window.LailaSalma = window.LailaSalma || {};
     window.addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
       keys[k] = true;
+      if (LS.runtime.titleScreenActive) {
+        if (k === 'enter' || k === ' ') LS.dismissTitleScreen();
+        return;
+      }
       if (LS.runtime.modalOpen) {
         if (k === 'escape') LS.closeAllModals();
         return;
       }
+      if (LS.unlockAudio) LS.unlockAudio();
       if (k === 'c') cycleCameraMode();
       if (k === 'q') recenterCamera();
       if (k === 'v') triggerSisterPose();
+      if (k === 't') LS.swapActiveSister();
+      if (k === 'b') { if (LS.openQuestModal) LS.openQuestModal(); }
       if (k === 'm') toggleMiniMap();
       if (k === 'h') toggleHudCard();
       if (k === 'p') LS.openPassportModal();
@@ -838,7 +976,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     const getZoomBounds = () => {
       const meta = LS.WORLDS[LS.state.currentWorld];
-      return (meta && meta.isInterior) ? { min: 2.8, max: 7.2 } : { min: 3.2, max: 13.5 };
+      return (meta && meta.isInterior) ? { min: 2.8, max: 7.4 } : { min: 3.2, max: 13.5 };
     };
 
     const releasePointer = pointerId => {
@@ -858,8 +996,8 @@ window.LailaSalma = window.LailaSalma || {};
     dom.addEventListener('dblclick', () => recenterCamera());
 
     dom.addEventListener('pointerdown', e => {
-      if (LS.runtime.modalOpen) return;
-      // Only orbit with primary/secondary mouse buttons or touch
+      if (LS.runtime.modalOpen || LS.runtime.titleScreenActive) return;
+      if (LS.unlockAudio) LS.unlockAudio();
       if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
       if (LS.runtime.camMode !== 0) setCameraMode(0);
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -874,21 +1012,19 @@ window.LailaSalma = window.LailaSalma || {};
     });
 
     window.addEventListener('pointermove', e => {
-      if (LS.runtime.modalOpen || !activePointers.has(e.pointerId)) return;
+      if (LS.runtime.modalOpen || LS.runtime.titleScreenActive || !activePointers.has(e.pointerId)) return;
       const prev = activePointers.get(e.pointerId);
       const dx = e.clientX - prev.x;
       const dy = e.clientY - prev.y;
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
       if (activePointers.size === 1) {
-        // Drag right -> look right; drag up -> look up (natural 3rd-person orbit)
         const yawSens = e.pointerType === 'touch' ? 0.0068 : 0.0056;
         const pitchSens = e.pointerType === 'touch' ? 0.0048 : 0.0042;
         targetCamYaw -= dx * yawSens;
         targetCamPitch = Math.max(0.06, Math.min(1.12, targetCamPitch + dy * pitchSens));
         manualCamCooldown = 1.8;
       } else if (activePointers.size >= 2) {
-        // Two-finger pinch-to-zoom + gentle orbit
         const pts = Array.from(activePointers.values());
         const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
         if (lastPinchDist !== null) {
@@ -905,7 +1041,7 @@ window.LailaSalma = window.LailaSalma || {};
     window.addEventListener('pointercancel', e => releasePointer(e.pointerId));
 
     dom.addEventListener('wheel', e => {
-      if (LS.runtime.modalOpen) return;
+      if (LS.runtime.modalOpen || LS.runtime.titleScreenActive) return;
       e.preventDefault();
       if (LS.runtime.camMode !== 0) setCameraMode(0);
       const zb = getZoomBounds();
@@ -913,7 +1049,18 @@ window.LailaSalma = window.LailaSalma || {};
       manualCamCooldown = 1.2;
     }, { passive: false });
 
+    const playAdvBtn = document.getElementById('btn-play-adventure');
+    if (playAdvBtn) playAdvBtn.addEventListener('click', LS.dismissTitleScreen);
+
     document.getElementById('btn-passport').addEventListener('click', LS.openPassportModal);
+    const questBtn = document.getElementById('btn-quests');
+    if (questBtn) questBtn.addEventListener('click', () => { if (LS.openQuestModal) LS.openQuestModal(); });
+    const questHint = document.getElementById('hud-quest-hint');
+    if (questHint) questHint.addEventListener('click', () => { if (LS.openQuestModal) LS.openQuestModal(); });
+
+    const swapBtn = document.getElementById('btn-swap-sister');
+    if (swapBtn) swapBtn.addEventListener('click', LS.swapActiveSister);
+
     document.getElementById('btn-time').addEventListener('click', () => {
       LS.state.timeMode = (LS.state.timeMode + 1) % 3;
       LS.saveState();
@@ -934,6 +1081,7 @@ window.LailaSalma = window.LailaSalma || {};
     const soundBtn = document.getElementById('btn-sound');
     soundBtn.textContent = LS.state.soundEnabled ? '🔊' : '🔇';
     soundBtn.addEventListener('click', () => {
+      if (LS.unlockAudio) LS.unlockAudio();
       LS.state.soundEnabled = !LS.state.soundEnabled;
       LS.saveState();
       soundBtn.textContent = LS.state.soundEnabled ? '🔊' : '🔇';
@@ -1034,32 +1182,32 @@ window.LailaSalma = window.LailaSalma || {};
   }
 
   function updateSalmaCompanion(dt, elapsed, isRunning, speed) {
-    const laila = LS.chars.laila;
-    const salma = LS.chars.salma;
-    if (!salma) return;
+    const leader = getLeader();
+    const follower = getCompanion();
+    if (!leader || !follower) return;
 
-    const lp = laila.root.position;
-    const sp = salma.root.position;
+    const lp = leader.root.position;
+    const sp = follower.root.position;
 
-    // Piggyback Ride mode! Salma happily rides behind Laila's shoulders!
-    if (LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil && LS.runtime.highFiveTimer <= 0) {
-      const backX = -Math.sin(laila.root.rotation.y) * 0.34;
-      const backZ = -Math.cos(laila.root.rotation.y) * 0.34;
+    // Piggyback Ride mode! Companion happily rides behind Laila's shoulders when Laila leads!
+    if (LS.state.activeLeader !== 'salma' && LS.runtime.piggybackUntil && Date.now() < LS.runtime.piggybackUntil && LS.runtime.highFiveTimer <= 0) {
+      const backX = -Math.sin(leader.root.rotation.y) * 0.34;
+      const backZ = -Math.cos(leader.root.rotation.y) * 0.34;
       sp.set(lp.x + backX, lp.y + 0.62, lp.z + backZ);
-      salma.root.rotation.y = laila.root.rotation.y;
-      salma.leftLeg.rotation.x = -0.95 + Math.sin(elapsed * 9) * 0.22;
-      salma.rightLeg.rotation.x = -0.95 - Math.sin(elapsed * 9) * 0.22;
-      salma.leftArm.rotation.x = -0.85;
-      salma.rightArm.rotation.x = -0.85;
-      if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'sit', elapsed);
+      follower.root.rotation.y = leader.root.rotation.y;
+      follower.leftLeg.rotation.x = -0.95 + Math.sin(elapsed * 9) * 0.22;
+      follower.rightLeg.rotation.x = -0.95 - Math.sin(elapsed * 9) * 0.22;
+      follower.leftArm.rotation.x = -0.85;
+      follower.rightArm.rotation.x = -0.85;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(follower, 0, 'sit', elapsed);
       return;
     }
 
-    const sideOffset = LS.runtime.poseTimer > 0 ? 1.05 : 0.65;
+    const sideOffset = LS.runtime.poseTimer > 0 ? 1.05 : 0.68;
     const backOffset = LS.runtime.poseTimer > 0 ? 0.15 : 1.15;
 
-    const behindX = -Math.sin(laila.root.rotation.y) * backOffset - Math.cos(laila.root.rotation.y) * sideOffset;
-    const behindZ = -Math.cos(laila.root.rotation.y) * backOffset + Math.sin(laila.root.rotation.y) * sideOffset;
+    const behindX = -Math.sin(leader.root.rotation.y) * backOffset - Math.cos(leader.root.rotation.y) * sideOffset;
+    const behindZ = -Math.cos(leader.root.rotation.y) * backOffset + Math.sin(leader.root.rotation.y) * sideOffset;
     const targetX = lp.x + behindX;
     const targetZ = lp.z + behindZ;
 
@@ -1077,31 +1225,31 @@ window.LailaSalma = window.LailaSalma || {};
       resolveCollisions(sp, 0.36);
 
       const targetRot = Math.atan2(dx, dz);
-      let diff = targetRot - salma.root.rotation.y;
+      let diff = targetRot - follower.root.rotation.y;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      salma.root.rotation.y += diff * Math.min(1, dt * 12);
+      follower.root.rotation.y += diff * Math.min(1, dt * 12);
 
       const sprinting = isRunning || dist > 2.2;
       const freq = sprinting ? 14.5 : 9.5;
       const amp = sprinting ? 0.82 : 0.52;
       const swing = Math.sin(elapsed * freq + 0.8) * amp;
-      salma.leftLeg.rotation.x = swing;
-      salma.rightLeg.rotation.x = -swing;
-      salma.leftArm.rotation.x = -swing * 0.85;
-      if (LS.runtime.poseTimer <= 0) salma.rightArm.rotation.x = swing * 0.85;
-      if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, swing, sprinting ? 'run' : 'walk', elapsed);
+      follower.leftLeg.rotation.x = swing;
+      follower.rightLeg.rotation.x = -swing;
+      follower.leftArm.rotation.x = -swing * 0.85;
+      if (LS.runtime.poseTimer <= 0) follower.rightArm.rotation.x = swing * 0.85;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(follower, swing, sprinting ? 'run' : 'walk', elapsed);
     } else {
-      let diff = laila.root.rotation.y - salma.root.rotation.y;
+      let diff = leader.root.rotation.y - follower.root.rotation.y;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      salma.root.rotation.y += diff * Math.min(1, dt * 8);
+      follower.root.rotation.y += diff * Math.min(1, dt * 8);
 
-      salma.leftLeg.rotation.x *= 0.82;
-      salma.rightLeg.rotation.x *= 0.82;
-      salma.leftArm.rotation.x *= 0.82;
-      if (LS.runtime.poseTimer <= 0) salma.rightArm.rotation.x *= 0.82;
-      if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'idle', elapsed + 0.7);
+      follower.leftLeg.rotation.x *= 0.82;
+      follower.rightLeg.rotation.x *= 0.82;
+      follower.leftArm.rotation.x *= 0.82;
+      if (LS.runtime.poseTimer <= 0) follower.rightArm.rotation.x *= 0.82;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(follower, 0, 'idle', elapsed + 0.7);
     }
 
     const groundY = getGroundH(sp.x, sp.z);
@@ -1123,23 +1271,59 @@ window.LailaSalma = window.LailaSalma || {};
     const salma = LS.chars.salma;
     if (!laila || !LS.activeWorld) return;
 
+    // LIVE 3D TITLE SCREEN ATTRACT MODE: Laila & Salma happily running & waving around the sunny Ghibli plaza!
+    if (LS.runtime.titleScreenActive) {
+      const cx = 0;
+      const cz = LS.state.currentWorld === 'home_neighborhood' ? 3.0 : 12.0;
+      const rad = LS.state.currentWorld === 'home_neighborhood' ? 5.6 : 4.2;
+      const angL = elapsed * 0.78;
+      const angS = angL - 0.52;
+      const lx = cx + Math.sin(angL) * rad;
+      const lz = cz + Math.cos(angL) * rad;
+      const ly = getGroundH(lx, lz) + Math.abs(Math.sin(elapsed * 5.2)) * 0.14;
+      laila.root.position.set(lx, ly, lz);
+      laila.root.rotation.y = Math.atan2(Math.cos(angL) * rad, -Math.sin(angL) * rad);
+      const swL = Math.sin(elapsed * 11.5) * 0.72;
+      laila.leftLeg.rotation.x = swL; laila.rightLeg.rotation.x = -swL;
+      laila.leftArm.rotation.x = -swL * 0.8; laila.rightArm.rotation.x = -0.32;
+      laila.rightArm.rotation.z = 1.95 + Math.sin(elapsed * 6.5) * 0.35;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, swL, 'run', elapsed);
+
+      if (salma) {
+        const sx = cx + Math.sin(angS) * (rad + 0.9);
+        const sz = cz + Math.cos(angS) * (rad + 0.9);
+        const sy = getGroundH(sx, sz) + Math.abs(Math.sin(elapsed * 6.0 + 0.7)) * 0.18;
+        salma.root.position.set(sx, sy, sz);
+        salma.root.rotation.y = Math.atan2(Math.cos(angS) * rad, -Math.sin(angS) * rad);
+        const swS = Math.sin(elapsed * 13.0 + 0.5) * 0.78;
+        salma.leftLeg.rotation.x = swS; salma.rightLeg.rotation.x = -swS;
+        salma.leftArm.rotation.x = -swS * 0.85; salma.rightArm.rotation.x = -0.35;
+        salma.rightArm.rotation.z = 2.05 + Math.sin(elapsed * 7.2) * 0.38;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, swS, 'run', elapsed + 0.4);
+      }
+      return;
+    }
+
     // Periodic 2-hour Hide-and-Seek reset check (every 10s)
     resetCheckAccum += dt;
     if (resetCheckAccum > 10) {
       resetCheckAccum = 0;
       const wid = LS.state.currentWorld;
-      if ((wid === 'tokyo' || wid === 'kyoto' || wid === 'safari') && LS.checkAnimalReset(wid)) {
+      if ((wid === 'home_neighborhood' || wid === 'tokyo' || wid === 'kyoto' || wid === 'safari') && LS.checkAnimalReset(wid)) {
+        const curLead = getLeader();
         LS.loadWorld(wid, false, {
-          x: laila.root.position.x,
-          y: laila.root.position.y,
-          z: laila.root.position.z,
-          rotY: laila.root.rotation.y
+          x: curLead.root.position.x,
+          y: curLead.root.position.y,
+          z: curLead.root.position.z,
+          rotY: curLead.root.rotation.y
         });
-        LS.showToast(wid === 'safari'
-          ? '🦁 2 hours passed! All 5 Safari Lion Cubs hid in brand-new spots!'
-          : (wid === 'kyoto'
-            ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
-            : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!'));
+        LS.showToast(wid === 'home_neighborhood'
+          ? '🐶 2 hours passed! All 5 Community Puppies hid in brand-new spots!'
+          : (wid === 'safari'
+            ? '🦁 2 hours passed! All 5 Safari Lion Cubs hid in brand-new spots!'
+            : (wid === 'kyoto'
+              ? '🦊 2 hours passed! All 5 Kyoto Kitsune hid in brand-new spots!'
+              : '🐱 2 hours passed! All 5 Tokyo Cats hid in brand-new spots!')));
         return;
       }
     }
@@ -1422,6 +1606,9 @@ window.LailaSalma = window.LailaSalma || {};
     const buffMult = (LS.runtime.buff && Date.now() < LS.runtime.buff.expiresAt) ? LS.runtime.buff.speedMult : 1.0;
     const speed = (isRunning ? 8.8 : 5.0) * buffMult;
 
+    const leader = getLeader();
+    const follower = getCompanion();
+
     if (moving) {
       const len = Math.hypot(inX, inZ);
       inX /= len; inZ /= len;
@@ -1432,78 +1619,78 @@ window.LailaSalma = window.LailaSalma || {};
         .addScaledVector(_right, inX)
         .normalize();
 
-      laila.root.position.addScaledVector(_moveVec, speed * dt);
-      resolveCollisions(laila.root.position, 0.45);
+      leader.root.position.addScaledVector(_moveVec, speed * dt);
+      resolveCollisions(leader.root.position, 0.45);
 
       const targetRot = Math.atan2(_moveVec.x, _moveVec.z);
-      let diff = targetRot - laila.root.rotation.y;
+      let diff = targetRot - leader.root.rotation.y;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
-      laila.root.rotation.y += diff * Math.min(1, dt * 12);
+      leader.root.rotation.y += diff * Math.min(1, dt * 12);
 
       const freq = isRunning ? 12.5 : 8.0;
       const amp = isRunning ? 0.78 : 0.48;
       const swing = Math.sin(elapsed * freq) * amp;
-      laila.leftLeg.rotation.x = swing;
-      laila.rightLeg.rotation.x = -swing;
-      laila.leftArm.rotation.x = -swing * 0.8;
-      laila.rightArm.rotation.x = swing * 0.8;
-      laila.rightArm.rotation.z = 0;
-      if (salma) salma.rightArm.rotation.z = 0;
-      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, swing, isRunning ? 'run' : 'walk', elapsed);
+      leader.leftLeg.rotation.x = swing;
+      leader.rightLeg.rotation.x = -swing;
+      leader.leftArm.rotation.x = -swing * 0.8;
+      leader.rightArm.rotation.x = swing * 0.8;
+      leader.rightArm.rotation.z = 0;
+      if (follower) follower.rightArm.rotation.z = 0;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(leader, swing, isRunning ? 'run' : 'walk', elapsed);
     } else {
-      laila.leftLeg.rotation.x *= 0.82;
-      laila.rightLeg.rotation.x *= 0.82;
-      laila.leftArm.rotation.x *= 0.82;
-      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, 0, 'idle', elapsed);
+      leader.leftLeg.rotation.x *= 0.82;
+      leader.rightLeg.rotation.x *= 0.82;
+      leader.leftArm.rotation.x *= 0.82;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(leader, 0, 'idle', elapsed);
 
       if (LS.runtime.poseTimer > 0) {
         LS.runtime.poseTimer -= dt;
-        laila.rightArm.rotation.x = -0.38;
-        laila.rightArm.rotation.z = 2.15 + Math.sin(elapsed * 9.5) * 0.34;
-        if (laila.rightElbow) laila.rightElbow.rotation.x = -0.32;
-        laila.headGroup.rotation.z = -0.08 + Math.sin(elapsed * 4.5) * 0.06;
-        if (salma) {
-          salma.rightArm.rotation.x = -0.42;
-          salma.rightArm.rotation.z = 2.22 + Math.sin(elapsed * 10.0 + 0.5) * 0.38;
-          if (salma.rightElbow) salma.rightElbow.rotation.x = -0.32;
-          salma.headGroup.rotation.z = 0.08 - Math.sin(elapsed * 4.5) * 0.08;
+        leader.rightArm.rotation.x = -0.38;
+        leader.rightArm.rotation.z = 2.15 + Math.sin(elapsed * 9.5) * 0.34;
+        if (leader.rightElbow) leader.rightElbow.rotation.x = -0.32;
+        leader.headGroup.rotation.z = -0.08 + Math.sin(elapsed * 4.5) * 0.06;
+        if (follower) {
+          follower.rightArm.rotation.x = -0.42;
+          follower.rightArm.rotation.z = 2.22 + Math.sin(elapsed * 10.0 + 0.5) * 0.38;
+          if (follower.rightElbow) follower.rightElbow.rotation.x = -0.32;
+          follower.headGroup.rotation.z = 0.08 - Math.sin(elapsed * 4.5) * 0.08;
         }
       } else {
-        laila.rightArm.rotation.x *= 0.82;
-        laila.rightArm.rotation.z *= 0.8;
-        laila.headGroup.rotation.z *= 0.8;
-        if (salma) {
-          salma.rightArm.rotation.z *= 0.8;
-          salma.headGroup.rotation.z *= 0.8;
+        leader.rightArm.rotation.x *= 0.82;
+        leader.rightArm.rotation.z *= 0.8;
+        leader.headGroup.rotation.z *= 0.8;
+        if (follower) {
+          follower.rightArm.rotation.z *= 0.8;
+          follower.headGroup.rotation.z *= 0.8;
         }
       }
     }
 
-    const groundY = getGroundH(laila.root.position.x, laila.root.position.z);
+    const groundY = getGroundH(leader.root.position.x, leader.root.position.z);
     if (!grounded) {
       velY -= 17.5 * dt;
-      laila.root.position.y += velY * dt;
-      if (laila.root.position.y <= groundY) {
-        laila.root.position.y = groundY;
+      leader.root.position.y += velY * dt;
+      if (leader.root.position.y <= groundY) {
+        leader.root.position.y = groundY;
         velY = 0;
         grounded = true;
       }
     } else {
-      laila.root.position.y += (groundY - laila.root.position.y) * Math.min(1, dt * 14);
+      leader.root.position.y += (groundY - leader.root.position.y) * Math.min(1, dt * 14);
     }
 
     updateSalmaCompanion(dt, elapsed, isRunning, speed);
 
     if (LS.runtime.highFiveTimer > 0) {
       LS.runtime.highFiveTimer -= dt;
-      laila.rightArm.rotation.x = -0.35;
-      laila.rightArm.rotation.z = 2.45;
-      if (salma) {
-        salma.rightArm.rotation.x = -0.35;
-        salma.rightArm.rotation.z = 2.45;
-        const sg = getGroundH(salma.root.position.x, salma.root.position.z);
-        salma.root.position.y = sg + Math.abs(Math.sin(elapsed * 10)) * 0.52;
+      leader.rightArm.rotation.x = -0.35;
+      leader.rightArm.rotation.z = 2.45;
+      if (follower) {
+        follower.rightArm.rotation.x = -0.35;
+        follower.rightArm.rotation.z = 2.45;
+        const sg = getGroundH(follower.root.position.x, follower.root.position.z);
+        follower.root.position.y = sg + Math.abs(Math.sin(elapsed * 10)) * 0.52;
       }
     }
 
@@ -1511,7 +1698,7 @@ window.LailaSalma = window.LailaSalma || {};
       const mg = LS.runtime.mochiGame;
       mg.timeLeft -= dt;
       const mp = LS.chars.mochi.position;
-      const lp = laila.root.position;
+      const lp = leader.root.position;
       const minX = -3.4, maxX = 3.4;
       const minZ = LS.state.currentWorld === 'kyoto' ? -36 : -28;
       const maxZ = 22;
@@ -1578,7 +1765,6 @@ window.LailaSalma = window.LailaSalma || {};
           banner.textContent = n > 0 ? ('🐆 Cheetah Sprint! Get Ready: ' + n + '...') : '🐆 GO!! Sprint to the Finish Arch! (Hold Shift / Run!)';
           banner.classList.remove('hidden');
         }
-        // Keep Laila & Cheetah ready at the start line during countdown
         ch.position.set(tr.start.x, 0, tr.start.z + 1.1);
         ch.rotation.y = tr.yaw;
         if (cr.countdown <= 0) {
@@ -1588,7 +1774,6 @@ window.LailaSalma = window.LailaSalma || {};
         }
       } else if (cr.phase === 'racing') {
         cr.elapsed += dt;
-        // Friendly, beatable bounding Cheetah pace (completes ~22.5m track in ~4.6s when player sprints!)
         cr.cheetahProg = Math.min(1, cr.cheetahProg + dt / 4.8);
         const cx = tr.start.x + (tr.end.x - tr.start.x) * cr.cheetahProg;
         const cz = tr.start.z + 1.1 + (tr.end.z - tr.start.z) * cr.cheetahProg;
@@ -1597,7 +1782,7 @@ window.LailaSalma = window.LailaSalma || {};
         ch.rotation.y = tr.yaw;
         ch.rotation.x = Math.cos(elapsed * 16) * 0.14;
 
-        const lp = laila.root.position;
+        const lp = leader.root.position;
         const playerDistToFinish = Math.hypot(lp.x - tr.end.x, lp.z - tr.end.z);
         if (banner) {
           banner.textContent = '🐆 Sprint to Finish: ' + Math.max(0, Math.round(playerDistToFinish)) + 'm • Time: ' + cr.elapsed.toFixed(1) + 's';
@@ -1611,17 +1796,17 @@ window.LailaSalma = window.LailaSalma || {};
       }
     }
 
-    // Zone proximity check
+    // Zone proximity check (from active leader!)
     let found = null;
     const zones = LS.activeWorld.zones || [];
     for (let i = 0; i < zones.length; i++) {
       const z = zones[i];
-      if (laila.root.position.distanceTo(z.pos) < z.radius) {
+      if (leader.root.position.distanceTo(z.pos) < z.radius) {
         found = z;
         break;
       }
     }
-    if (!found && LS.chars.mochi && laila.root.position.distanceTo(LS.chars.mochi.position) < 2.5) {
+    if (!found && LS.chars.mochi && LS.chars.mochi.visible && leader.root.position.distanceTo(LS.chars.mochi.position) < 2.5) {
       found = { id: 'mochi', label: 'Play with Mochi (Fetch / Tag / Pet)' };
     }
     LS.runtime.nearZone = found;
@@ -1639,13 +1824,12 @@ window.LailaSalma = window.LailaSalma || {};
 
     const zoneEl = document.getElementById('compass-zone');
     if (zoneEl && LS.activeWorld.getZoneLabel) {
-      zoneEl.textContent = LS.activeWorld.getZoneLabel(laila.root.position.x, laila.root.position.z);
+      zoneEl.textContent = LS.activeWorld.getZoneLabel(leader.root.position.x, leader.root.position.z);
     }
   }
 
   function computeSafeCamDist(origin, dir, maxDist, meta) {
     let safeDist = maxDist;
-    // Keep camera cleanly inside room walls & ceiling for interior worlds
     if (meta && meta.isInterior && meta.bounds) {
       const b = meta.bounds;
       if (dir.x > 1e-4) safeDist = Math.min(safeDist, (b.maxX - 0.15 - origin.x) / dir.x);
@@ -1655,7 +1839,6 @@ window.LailaSalma = window.LailaSalma || {};
       if (dir.y > 1e-4) safeDist = Math.min(safeDist, (4.1 - origin.y) / dir.y);
       return Math.max(1.4, safeDist);
     }
-    // Ray-vs-Box3 spring arm against solid buildings so camera never clips inside houses
     if (camOccluderBoxes.length > 0) {
       camRay.set(origin, dir);
       for (let i = 0; i < camOccluderBoxes.length; i++) {
@@ -1670,16 +1853,29 @@ window.LailaSalma = window.LailaSalma || {};
     return Math.max(1.5, safeDist);
   }
 
-  function updateCamera(dt) {
+  function updateCamera(dt, elapsed) {
     const laila = LS.chars.laila;
     const salma = LS.chars.salma;
     if (!laila) return;
 
-    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
-    const minDist = meta.isInterior ? 2.8 : 3.2;
-    const maxDist = meta.isInterior ? 7.2 : 13.5;
+    // Sweeping Studio Ghibli Title Screen Camera overlooking Laila & Salma running around!
+    if (LS.runtime.titleScreenActive) {
+      const cz = LS.state.currentWorld === 'home_neighborhood' ? 3.0 : 12.0;
+      const t = (elapsed || 0) * 0.22;
+      const cx = Math.sin(t) * 6.4;
+      const camZ = cz + 10.2 + Math.cos(t) * 1.3;
+      camera.position.set(cx, 3.25 + Math.sin(t * 1.3) * 0.22, camZ);
+      camTarget.set(0, 1.35, cz - 2.0);
+      camera.lookAt(camTarget);
+      camSnapNext = true;
+      return;
+    }
 
-    // Smooth continuous keyboard camera controls (J/L or [/] rotate, I/K tilt, +/- zoom)
+    const leader = getLeader();
+    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.home_neighborhood;
+    const minDist = meta.isInterior ? 2.8 : 3.2;
+    const maxDist = meta.isInterior ? 7.4 : 13.5;
+
     if (!LS.runtime.modalOpen && !LS.runtime.eating) {
       const yawKey = (keys['j'] || keys['['] ? 1 : 0) - (keys['l'] || keys[']'] ? 1 : 0);
       const pitchKey = (keys['k'] ? 1 : 0) - (keys['i'] ? 1 : 0);
@@ -1697,11 +1893,10 @@ window.LailaSalma = window.LailaSalma || {};
       manualCamCooldown = Math.max(0, manualCamCooldown - dt);
     }
 
-    // Gentle auto-follow behind Laila when walking sideways/turning (never fights manual orbit or walking backward!)
     if (LS.runtime.camMode === 0 && !LS.runtime.eating && !LS.runtime.modalOpen &&
         activePointers.size === 0 && manualCamCooldown <= 0 &&
         lastMoveInput.moving && Math.abs(lastMoveInput.x) > 0.15 && lastMoveInput.z < 0.72) {
-      const followDelta = wrapAngleDelta(targetCamYaw, laila.root.rotation.y);
+      const followDelta = wrapAngleDelta(targetCamYaw, leader.root.rotation.y);
       const followRate = 0.95 + Math.min(1, Math.abs(lastMoveInput.x)) * 0.85;
       targetCamYaw += followDelta * Math.min(1, dt * followRate);
     }
@@ -1711,7 +1906,7 @@ window.LailaSalma = window.LailaSalma || {};
     camPitch += (targetCamPitch - camPitch) * damp;
     camDist += (targetCamDist - camDist) * damp;
 
-    const p = laila.root.position;
+    const p = leader.root.position;
 
     if (LS.runtime.eating && LS.runtime.eating.camPos) {
       camera.position.lerp(LS.runtime.eating.camPos, Math.min(1, dt * 8.5));
@@ -1860,9 +2055,11 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.stroke();
     }
 
-    if (LS.chars.salma) {
-      const sp = LS.chars.salma.root.position;
-      ctx.fillStyle = '#f59e0b';
+    const leader = getLeader();
+    const companion = getCompanion();
+    if (companion) {
+      const sp = companion.root.position;
+      ctx.fillStyle = LS.state.activeLeader === 'salma' ? '#e63946' : '#f59e0b';
       ctx.beginPath();
       ctx.arc(toMapX(sp.x), toMapY(sp.z), 4.0, 0, Math.PI * 2);
       ctx.fill();
@@ -1871,25 +2068,27 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.stroke();
     }
 
-    const lp = LS.chars.laila.root.position;
-    const lx = toMapX(lp.x);
-    const ly = toMapY(lp.z);
-    const yaw = LS.chars.laila.root.rotation.y;
-    ctx.save();
-    ctx.translate(lx, ly);
-    ctx.rotate(-yaw);
-    ctx.fillStyle = '#e63946';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(0, 6.2);
-    ctx.lineTo(-4.5, -4.5);
-    ctx.lineTo(0, -2.3);
-    ctx.lineTo(4.5, -4.5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
+    if (leader) {
+      const lp = leader.root.position;
+      const lx = toMapX(lp.x);
+      const ly = toMapY(lp.z);
+      const yaw = leader.root.rotation.y;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(-yaw);
+      ctx.fillStyle = LS.state.activeLeader === 'salma' ? '#f59e0b' : '#e63946';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(0, 6.2);
+      ctx.lineTo(-4.5, -4.5);
+      ctx.lineTo(0, -2.3);
+      ctx.lineTo(4.5, -4.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   function initHDAtmosphere() {
@@ -2055,20 +2254,48 @@ window.LailaSalma = window.LailaSalma || {};
     }
   }
 
-  function initGraphicsSwitcher() {
-    if (LS.isHD) document.body.classList.add('hd-mode');
+  function applyQualitySettings(reloadWorld) {
+    const qCfg = (LS.ghibli && LS.ghibli.getQualityConfig) ? LS.ghibli.getQualityConfig(LS.state.quality) : { maxDpr: 1.5, shadowSize: 1024, label: '⚖️ Balanced' };
+    if (renderer) {
+      const pr = Math.min(window.devicePixelRatio || 1, qCfg.maxDpr);
+      renderer.setPixelRatio(pr);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (LS.hdPost) {
+        LS.hdPost.applyQuality(LS.state.quality);
+        LS.hdPost.setSize(window.innerWidth, window.innerHeight, pr);
+      }
+    }
     const btn = document.getElementById('btn-graphics-mode');
-    const badge = document.getElementById('hd-badge');
-    if (badge) badge.classList.toggle('hidden', !LS.isHD);
     if (btn) {
-      btn.textContent = LS.isHD ? '⚡ Classic' : '✨ HD';
-      btn.title = LS.isHD
-        ? 'Switch to Classic Lightweight Mode (faster for older devices)'
-        : 'Switch to HD Graphics Edition (PBR lighting, reflective water, 2048px shadows & clouds)';
-      btn.classList.toggle('hd-active', LS.isHD);
+      btn.textContent = qCfg.label;
+      btn.title = 'Graphics Quality: ' + qCfg.label + ' (Tap to cycle High / Balanced / Lite for Android)';
+      btn.classList.add('hd-active');
+    }
+    if (reloadWorld && LS.state.currentWorld) {
+      const lead = getLeader();
+      const pos = lead ? { x: lead.root.position.x, y: lead.root.position.y, z: lead.root.position.z, rotY: lead.root.rotation.y } : null;
+      LS.loadWorld(LS.state.currentWorld, false, pos);
+    }
+  }
+
+  function initGraphicsSwitcher() {
+    document.body.classList.add('hd-mode');
+    const badge = document.getElementById('hd-badge');
+    if (badge) {
+      badge.textContent = 'GHIBLI';
+      badge.classList.remove('hidden');
+    }
+    const btn = document.getElementById('btn-graphics-mode');
+    applyQualitySettings(false);
+    if (btn) {
       btn.addEventListener('click', () => {
+        const order = ['high', 'balanced', 'lite'];
+        const nextIdx = (order.indexOf(LS.state.quality) + 1) % order.length;
+        LS.state.quality = order[nextIdx];
         LS.saveState();
-        window.location.href = LS.isHD ? 'index.html' : 'hd.html';
+        applyQualitySettings(true);
+        const qCfg = LS.ghibli.getQualityConfig(LS.state.quality);
+        LS.showToast('🎨 Graphics Quality set to ' + qCfg.label + '!');
       });
     }
   }
@@ -2079,39 +2306,36 @@ window.LailaSalma = window.LailaSalma || {};
       return;
     }
 
+    const qCfg = (LS.ghibli && LS.ghibli.getQualityConfig) ? LS.ghibli.getQualityConfig(LS.state.quality) : { maxDpr: 1.5, shadowSize: 1024 };
+
     scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0xcbe6f7, 58, 185);
 
     camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.1, 340);
     renderer = new THREE.WebGLRenderer({
       antialias: true,
-      powerPreference: LS.isHD ? 'high-performance' : 'default'
+      powerPreference: 'high-performance'
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LS.isHD ? 2.0 : 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, qCfg.maxDpr));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    if (LS.isHD) {
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 0.98;
-      LS.maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 4);
-    }
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    LS.maxAnisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 4);
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // STRICT 4-LIGHT WEBGL BUDGET (both Classic & HD!)
-    hemiLight = new THREE.HemisphereLight(0xbbe2ff, 0x74855c, LS.isHD ? 0.70 : 0.78);
+    // STRICT 4-LIGHT WEBGL BUDGET!
+    hemiLight = new THREE.HemisphereLight(0xbbe2ff, 0x74855c, 0.72);
     scene.add(hemiLight);
 
-    dirLight = new THREE.DirectionalLight(0xfff1d0, LS.isHD ? 1.24 : 1.12);
+    dirLight = new THREE.DirectionalLight(0xfff1d0, 1.24);
     dirLight.position.set(22, 38, 18);
     dirLight.castShadow = true;
-    const shadowRes = LS.isHD ? 2048 : 1024;
-    dirLight.shadow.mapSize.width = shadowRes;
-    dirLight.shadow.mapSize.height = shadowRes;
-    if (LS.isHD) {
-      dirLight.shadow.bias = -0.00028;
-      dirLight.shadow.normalBias = 0.025;
-    }
+    dirLight.shadow.mapSize.width = qCfg.shadowSize;
+    dirLight.shadow.mapSize.height = qCfg.shadowSize;
+    dirLight.shadow.bias = -0.00028;
+    dirLight.shadow.normalBias = 0.025;
     scene.add(dirLight);
 
     streetLight = new THREE.PointLight(0xffd79a, 0.3, 30);
@@ -2123,7 +2347,7 @@ window.LailaSalma = window.LailaSalma || {};
     scene.add(accentLight);
 
     initHDAtmosphere();
-    if (LS.isHD && LS.hdPost) {
+    if (LS.hdPost) {
       LS.hdPost.init(renderer, scene, camera);
     }
 
@@ -2136,8 +2360,23 @@ window.LailaSalma = window.LailaSalma || {};
     initGraphicsSwitcher();
     setupInputs();
 
+    if (document.getElementById('title-screen')) {
+      LS.runtime.titleScreenActive = true;
+      document.body.classList.add('on-title-screen');
+    } else {
+      LS.runtime.titleScreenActive = false;
+    }
+
+    // Auto-collapse HUD card on narrow Android phone screens so >80% of the 3D world stays crystal clear!
+    if (window.innerWidth <= 760) {
+      const hudCard = document.getElementById('hud-left');
+      if (hudCard && !localStorage.getItem('laila_salma_hud_collapsed')) {
+        hudCard.classList.add('collapsed');
+      }
+    }
+
     const startWorld = LS.WORLDS[LS.state.currentWorld] && !LS.WORLDS[LS.state.currentWorld].isInterior
-      ? LS.state.currentWorld : 'tokyo';
+      ? LS.state.currentWorld : 'home_neighborhood';
 
     let animStarted = false;
     function animate() {
@@ -2146,18 +2385,20 @@ window.LailaSalma = window.LailaSalma || {};
         const dt = Math.min(clock.getDelta(), 0.05);
         const elapsed = clock.elapsedTime;
         updatePlayer(dt, elapsed);
-        if (LS.chars.laila) {
-          LS.updateCharacters(dt, elapsed, LS.chars.laila.root.position);
+        const leader = getLeader();
+        if (leader) {
+          LS.updateCharacters(dt, elapsed, leader.root.position);
         }
         if (LS.activeWorld && LS.activeWorld.update) {
           LS.activeWorld.update(dt, elapsed);
         }
+        if (LS.tickGhibliMusic) LS.tickGhibliMusic(dt);
         if (LS.tickSafariAmbience) LS.tickSafariAmbience(dt);
         updateZoneBeacons(elapsed);
         updateHDAtmosphere(dt, elapsed);
         if (LS.hdPost && LS.hdPost.update) LS.hdPost.update(elapsed);
-        updateSparklesAndStars(dt);
-        updateCamera(dt);
+        updateSparklesAndStars(dt, elapsed);
+        updateCamera(dt, elapsed);
         LS.updateHUD();
         updateMiniMap();
         if (!LS.hdPost || !LS.hdPost.render()) {
@@ -2185,7 +2426,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (LS.hdPost) LS.hdPost.setSize(window.innerWidth, window.innerHeight, renderer.getPixelRatio());
     });
 
-    if (LS.isHD && LS.hdAssets && LS.hdAssets.preloadAll) {
+    if (LS.hdAssets && LS.hdAssets.preloadAll) {
       LS.hdAssets.preloadAll().then(bootWorld);
     } else {
       bootWorld();

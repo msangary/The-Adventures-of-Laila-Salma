@@ -1,19 +1,58 @@
 window.LailaSalma = window.LailaSalma || {};
 
 (function (LS) {
-  const urlParams = typeof URLSearchParams !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-  const qMode = urlParams ? urlParams.get('graphics') : null;
-  LS.graphicsMode = (qMode === 'hd' || qMode === 'classic')
-    ? qMode
-    : (window.LS_GRAPHICS_MODE === 'hd' ? 'hd' : 'classic');
-  LS.isHD = LS.graphicsMode === 'hd';
-  LS.maxAnisotropy = 1;
+  // Unified Studio Ghibli Edition (always uses HD Ghibli assets + quality-scaled performance!)
+  LS.graphicsMode = 'ghibli';
+  LS.isHD = true;
+  LS.maxAnisotropy = 4;
 
   LS.WORLDS = {
+    home_neighborhood: {
+      id: 'home_neighborhood',
+      title: 'Home Community',
+      subtitle: "Laila & Salma's Gated Community",
+      emoji: '🏡',
+      badgeColor: '#2a9d8f',
+      unlocked: true,
+      isInterior: false,
+      collectibleLabel: 'Puppies',
+      collectibleEmoji: '🐶',
+      collectibleTotal: 5,
+      destinationName: 'Tokyo',
+      destinationId: 'tokyo',
+      travelMode: 'globe',
+      description: 'Start at Laila & Salma\'s sunlit Apartment Building inside their Gated Community! Step inside their 4-room Apartment (Kitchen snacks, Dining Room Piano with Mom & Dad, TV/Video Games, Bedroom Magic Globe), walk to their nearby School, enjoy Family Dinner at Bella Bistro, and find 5 hiding neighborhood puppies!',
+      bounds: { minX: -56, maxX: 56, minZ: -52, maxZ: 48 },
+      mapBounds: { minX: -58, maxX: 58, minZ: -54, maxZ: 50 },
+      spawn: { x: 0, y: 0, z: 11.5, rotY: Math.PI },
+      arrivalSpawn: { x: 0, y: 0, z: 11.5, rotY: Math.PI },
+      fogNear: 72,
+      fogFar: 225
+    },
+    home_apartment: {
+      id: 'home_apartment',
+      title: "Sisters' Apartment",
+      subtitle: 'Kitchen • Piano • TV • Bedroom',
+      emoji: '🎹',
+      badgeColor: '#e07a5f',
+      unlocked: true,
+      isInterior: true,
+      parentWorld: 'home_neighborhood',
+      exitPos: { x: 0, y: 0, z: -8.5, rotY: 0 },
+      collectibleLabel: 'Puppies',
+      collectibleEmoji: '🐶',
+      collectibleTotal: 5,
+      bounds: { minX: -9.3, maxX: 9.3, minZ: -7.3, maxZ: 7.3 },
+      mapBounds: { minX: -10.2, maxX: 10.2, minZ: -8.2, maxZ: 8.2 },
+      spawn: { x: 0, y: 0, z: 5.4, rotY: Math.PI },
+      arrivalSpawn: { x: 0, y: 0, z: 5.4, rotY: Math.PI },
+      fogNear: 30,
+      fogFar: 85
+    },
     tokyo: {
       id: 'tokyo',
       title: 'Tokyo',
-      subtitle: 'Sakura-cho & Haneda Airport',
+      subtitle: 'Expanded Sakura-cho & Haneda Airport',
       emoji: '🗼',
       badgeColor: '#e05780',
       unlocked: true,
@@ -23,18 +62,18 @@ window.LailaSalma = window.LailaSalma || {};
       collectibleTotal: 5,
       destinationName: 'Kyoto',
       destinationId: 'kyoto',
-      description: 'Explore expanded Sakura-cho! Visit Ichiban Ramen, Sakura Elementary, Tokyo Pocket Park, Gachapon & Drink machines, decorate inside Laila & Salma\'s 3D Room, check out Haneda International Airport, and find 5 hiding cats (new spots every 2 hours!).',
-      bounds: { minX: -62, maxX: 66, minZ: -62, maxZ: 50 },
-      mapBounds: { minX: -64, maxX: 68, minZ: -64, maxZ: 52 },
+      description: 'Explore expanded Sakura-cho with new Canal Street, Origami & Arcade Alley & Sakura Hill Overlook! Quiz with local teacher Sensei Haruka, visit Ichiban Ramen & Harajuku Crêpe Plaza, ride the Yellow Bicycle, visit Haneda Airport, and find 5 hiding cats!',
+      bounds: { minX: -84, maxX: 84, minZ: -74, maxZ: 58 },
+      mapBounds: { minX: -86, maxX: 86, minZ: -76, maxZ: 60 },
       spawn: { x: 0, y: 0, z: 16.0, rotY: Math.PI },
       arrivalSpawn: { x: 0, y: 0, z: 28.0, rotY: Math.PI },
-      fogNear: 72,
-      fogFar: 225
+      fogNear: 82,
+      fogFar: 255
     },
     kyoto: {
       id: 'kyoto',
       title: 'Kyoto',
-      subtitle: 'Sakurako Shrine, Bamboo & Park',
+      subtitle: 'Gion Lanterns, Shrine & Bamboo Grove',
       emoji: '⛩️',
       badgeColor: '#c83e37',
       unlocked: true,
@@ -44,18 +83,18 @@ window.LailaSalma = window.LailaSalma || {};
       collectibleTotal: 5,
       destinationName: 'Tokyo',
       destinationId: 'tokyo',
-      description: 'Cross the arched cedar bridge over the koi lake! Walk through vermilion torii gates, explore the Arashiyama Bamboo Grove, Zen Rock Garden, Momiji Craft Village, Kyoto Pocket Park & Gachapon, decorate your 3D Ryokan Suite, and find 5 hiding kitsune foxes!',
-      bounds: { minX: -68, maxX: 56, minZ: -62, maxZ: 46 },
-      mapBounds: { minX: -70, maxX: 58, minZ: -64, maxZ: 48 },
+      description: 'Stroll expanded Kyoto with Gion Lantern Street, Arashiyama Moss Road & Tea-Merchant Lane! Quiz with local teacher Sensei Kenji, cross the arched koi bridge, explore the Bamboo Grove, draw Omikuji fortunes, decorate your Ryokan Suite, and find 5 hiding kitsune foxes!',
+      bounds: { minX: -84, maxX: 82, minZ: -72, maxZ: 56 },
+      mapBounds: { minX: -86, maxX: 84, minZ: -74, maxZ: 58 },
       spawn: { x: 0, y: 0, z: 15.0, rotY: Math.PI },
       arrivalSpawn: { x: 0, y: 0, z: 25.0, rotY: Math.PI },
-      fogNear: 74,
-      fogFar: 230
+      fogNear: 82,
+      fogFar: 255
     },
     tokyo_room: {
       id: 'tokyo_room',
-      title: "Sisters' Room",
-      subtitle: 'Tokyo Bedroom & Clubhouse',
+      title: "Tokyo Clubhouse",
+      subtitle: 'Tokyo Bedroom & Toy Shelf',
       emoji: '🏡',
       badgeColor: '#d95d88',
       unlocked: true,
@@ -103,10 +142,10 @@ window.LailaSalma = window.LailaSalma || {};
       collectibleLabel: 'Lion Cubs',
       collectibleEmoji: '🦁',
       collectibleTotal: 5,
-      destinationName: 'Tokyo',
-      destinationId: 'tokyo',
+      destinationName: 'Home Community',
+      destinationId: 'home_neighborhood',
       travelMode: 'flight',
-      description: 'Fly from Haneda Gate A1 to the golden African Savanna! Ride a zebra-striped Safari Jeep or soar in a Hot Air Balloon, feed tall giraffes & splashing elephants, snap wildlife photos of hippos, meerkats & lions, race a spotted cheetah, play Djembe drums by the campfire, decorate your 3D Safari Glamping Tent, and find 5 playful hiding lion cubs!',
+      description: 'Visit the golden African Savanna! Quiz with wildlife teacher Dr. Kofi, ride a zebra-striped Safari Jeep or Hot Air Balloon, feed tall giraffes & elephants, snap wildlife photos, race a cheetah, play Djembe drums, and find 5 hiding lion cubs!',
       bounds: { minX: -60, maxX: 60, minZ: -56, maxZ: 48 },
       mapBounds: { minX: -62, maxX: 62, minZ: -58, maxZ: 50 },
       spawn: { x: 0, y: 0, z: 18.0, rotY: Math.PI },
@@ -137,43 +176,33 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   LS.UPCOMING_WORLDS = [
-    { id: 'egypt', title: 'Ancient Egypt', subtitle: 'Nile River & Golden Pyramids', emoji: '🐪', gate: 'Gate A2',
-      description: 'Sail a felucca down the Nile, explore the pyramids, decode hieroglyph puzzles, and befriend desert cats!' },
-    { id: 'vikings', title: 'Viking Era Village', subtitle: 'Fjord Harbor & Northern Lights', emoji: '⛵', gate: 'Gate A3',
+    { id: 'egypt', title: 'Ancient Egypt', subtitle: 'Nile River & Golden Pyramids', emoji: '🐪', gate: 'Phase 2 • Next!',
+      description: 'Sail a felucca down the Nile, explore the pyramids, quiz with an Egyptian teacher, and befriend desert cats!' },
+    { id: 'vikings', title: 'Viking Era Village', subtitle: 'Fjord Harbor & Northern Lights', emoji: '⛵', gate: 'Phase 2 • Next!',
       description: 'Explore cozy wooden longhouses under the aurora borealis, meet friendly reindeer & puffins, and craft rune charms!' },
-    { id: 'rome', title: 'Ancient Rome', subtitle: 'Colosseum Plaza & Gelato Alley', emoji: '🏛️', gate: 'Gate B1',
-      description: 'Stroll sunlit marble piazzas, scoop rainbow gelato, build mini mosaic tiles, and spot Roman courtyard kitties!' },
-    { id: 'paris', title: 'Paris', subtitle: 'Eiffel Gardens & Patisserie Lane', emoji: '🥐', gate: 'Gate B2',
-      description: 'Paint by the Seine, bake macarons & croissants, ride a carousel beneath the Eiffel Tower, and find Parisian puppies!' },
-    { id: 'greece', title: 'Ancient Greece', subtitle: 'Acropolis Hill & Aegean Harbor', emoji: '🏺', gate: 'Gate B3',
-      description: 'Sail turquoise island coves, meet Pegasus statues, solve myth riddles, and paint Greek pottery!' },
-    { id: 'machu_picchu', title: 'Machu Picchu', subtitle: 'Cloud Forest & Inca Terraces', emoji: '🦙', gate: 'Gate C1',
-      description: 'Climb misty stone terraces, befriend fluffy alpacas & llamas, weave colorful patterns, and spot Andean condors!' },
-    { id: 'australia', title: 'Australian Wilderness', subtitle: 'Outback, Koalas & Great Barrier Reef', emoji: '🦘', gate: 'Gate C2',
-      description: 'Hop with kangaroos, hug eucalyptus koalas, explore red desert arches, and snorkel colorful coral reefs!' },
-    { id: 'swiss_alps', title: 'Swiss Alps & Chocolate Fairytale Village', subtitle: 'Mountain Cable Car & Cozy Chalets', emoji: '🏔️', gate: 'Gate C3',
-      description: 'Ride a colorful mountain cable car, pet fluffy St. Bernard puppies, visit a cozy hot-chocolate & fondue chalet, solve a cuckoo-clock music puzzle, and slide down gentle snow hills!' },
-    { id: 'amazon_rainforest', title: 'Amazon Rainforest Treehouse Village', subtitle: 'Canopy Rope Bridges & River Canoes', emoji: '🦜', gate: 'Gate D1',
-      description: 'Cross swinging canopy rope bridges high in giant trees, spot toucans, sloths & capybaras, paddle a gentle river canoe, and decorate a treetop lookout!' },
-    { id: 'marrakech', title: 'Marrakech Lantern Bazaar (Morocco)', subtitle: 'Glowing Mosaic Souk & Desert Courtyard', emoji: '🏜️', gate: 'Gate D2',
-      description: 'Explore a colorful tiled courtyard souk glowing with mosaic lanterns, sip sweet mint tea, befriend cute big-eared fennec foxes & camels, and design mosaic tile patterns!' },
-    { id: 'space', title: 'Outer Space Station', subtitle: 'Moon Base & Starlight Observatory', emoji: '🚀', gate: 'Gate S1',
-      description: 'Bounce in low gravity on the Moon, drive a lunar rover, meet friendly alien pets, and explore planets!' },
-    { id: 'dinosaur_valley', title: 'Dinosaur Valley & Prehistoric Park', subtitle: 'Amber Jungle & Time-Travel Sanctuary', emoji: '🦕', gate: 'Gate T1', bonus: true,
-      description: 'Step through a glowing time portal to feed gentle Brachiosaurus, ride a Triceratops trail, hatch baby dino eggs, and hunt amber fossils!' },
-    { id: 'atlantis_reef', title: 'Underwater Coral Kingdom & Atlantis', subtitle: 'Crystal Reef & Bubble Submarine', emoji: '🐠', gate: 'Gate U1', bonus: true,
-      description: 'Dive aboard a bubble submarine to swim with friendly dolphins & sea turtles, explore glowing Atlantis arches, and collect pearl shells!' },
-    { id: 'fairy_castle', title: 'Medieval Fairy-Tale Castle & Dragon Valley', subtitle: 'Storybook Keep & Friendly Dragons', emoji: '🏰', gate: 'Gate M1', bonus: true,
-      description: 'Visit a hilltop storybook castle, befriend a playful baby dragon, brew rainbow sparkle potions, and hunt enchanted crystal crowns!' },
-    { id: 'arctic_village', title: 'Arctic Snow Village & Polar Penguins', subtitle: 'Glittering Glaciers & Dancing Aurora', emoji: '❄️', gate: 'Gate N1', bonus: true,
+    { id: 'arctic_village', title: 'Arctic Snow Village & Polar Penguins', subtitle: 'Glittering Glaciers & Dancing Aurora', emoji: '❄️', gate: 'Phase 3', bonus: true,
       description: 'Sled down sparkling snow hills under the Northern Lights, waddle with adorable penguins & polar bear cubs, and sip hot cocoa in a cozy igloo!' },
-    { id: 'hawaii_lagoon', title: 'Hawaiian Tropical Island & Volcano Lagoon', subtitle: 'Turquoise Surf & Hibiscus Beach', emoji: '🌴', gate: 'Gate P1', bonus: true,
-      description: 'Weave hibiscus flower leis, surf gentle turquoise waves, roast marshmallows by a tiki lagoon, and spot colorful tropical parrots!' }
+    { id: 'space', title: 'Outer Space Station', subtitle: 'Moon Base & Starlight Observatory', emoji: '🚀', gate: 'Phase 3',
+      description: 'Bounce in low gravity on the Moon, drive a lunar rover, meet friendly alien pets, and explore planets!' },
+    { id: 'paris', title: 'Paris', subtitle: 'Eiffel Gardens & Patisserie Lane', emoji: '🥐', gate: 'Future World',
+      description: 'Paint by the Seine, bake macarons & croissants, ride a carousel beneath the Eiffel Tower, and find Parisian puppies!' },
+    { id: 'rome', title: 'Ancient Rome', subtitle: 'Colosseum Plaza & Gelato Alley', emoji: '🏛️', gate: 'Future World',
+      description: 'Stroll sunlit marble piazzas, scoop rainbow gelato, build mini mosaic tiles, and spot Roman courtyard kitties!' },
+    { id: 'greece', title: 'Ancient Greece', subtitle: 'Acropolis Hill & Aegean Harbor', emoji: '🏺', gate: 'Future World',
+      description: 'Sail turquoise island coves, meet Pegasus statues, solve myth riddles, and paint Greek pottery!' },
+    { id: 'marrakech', title: 'Marrakech Lantern Bazaar', subtitle: 'Glowing Mosaic Souk & Courtyard', emoji: '🏜️', gate: 'Future World',
+      description: 'Explore a colorful tiled courtyard souk glowing with mosaic lanterns, sip sweet mint tea, and befriend fennec foxes!' }
   ];
 
   LS.PASSPORT_STAMPS = [
+    { id: 'home_snack', world: 'home_neighborhood', emoji: '🍎', title: 'Healthy Kitchen Chef', desc: 'Enjoyed a healthy snack in the Home Kitchen' },
+    { id: 'home_piano', world: 'home_neighborhood', emoji: '🎹', title: "Laila's Piano Recital", desc: 'Played a song on the Dining Room piano for Mom & Dad' },
+    { id: 'home_gamer', world: 'home_neighborhood', emoji: '🎮', title: 'TV Room Star', desc: 'Watched cozy cartoons or played the TV Star-Catcher game' },
+    { id: 'home_school', world: 'home_neighborhood', emoji: '🏫', title: 'Neighborhood Honor Roll', desc: 'Completed a quiz at Laila & Salma\'s neighborhood school' },
+    { id: 'home_dinner', world: 'home_neighborhood', emoji: '🍽️', title: 'Family Dinner Night', desc: 'Shared a cozy family dinner at Bella Bistro' },
+    { id: 'home_pets', world: 'home_neighborhood', emoji: '🐶', title: 'Community Puppy Pal', desc: 'Found all 5 hiding puppies in the Gated Community' },
     { id: 'tokyo_ramen', world: 'tokyo', emoji: '🍜', title: 'Ramen Foodie', desc: 'Enjoyed a hot bowl at Ichiban Ramen' },
-    { id: 'tokyo_quiz', world: 'tokyo', emoji: '🏫', title: 'Sakura Scholar', desc: 'Completed a quiz at Sakura Elementary' },
+    { id: 'tokyo_quiz', world: 'tokyo', emoji: '👩‍🏫', title: 'Tokyo Quiz Star', desc: 'Completed a quiz with Sensei Haruka in Tokyo' },
     { id: 'tokyo_cats', world: 'tokyo', emoji: '🐱', title: 'Tokyo Cat Friend', desc: 'Found all 5 hidden cats in Tokyo' },
     { id: 'tokyo_toys', world: 'tokyo', emoji: '🎁', title: 'Capsule Collector', desc: 'Collected 3+ Gachapon capsule toys' },
     { id: 'tokyo_airport', world: 'tokyo', emoji: '✈️', title: 'World Flyer', desc: 'Visited Haneda-Tokyo International Airport' },
@@ -182,7 +211,7 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'kyoto_koi', world: 'kyoto', emoji: '🐟', title: 'Koi & Duck Pal', desc: 'Fed the koi fish & ducks at Sakurako Lake' },
     { id: 'kyoto_shrine', world: 'kyoto', emoji: '🎐', title: 'Shrine Wish Maker', desc: 'Drew an Omikuji fortune or hung an Ema wish' },
     { id: 'kyoto_kitsune', world: 'kyoto', emoji: '🦊', title: 'Kitsune Seeker', desc: 'Found all 5 hidden kitsune foxes in Kyoto' },
-    { id: 'safari_arrival', world: 'safari', emoji: '✈️', title: 'Safari Explorer', desc: 'Flew to the African Safari & Wildlife Zoo' },
+    { id: 'safari_arrival', world: 'safari', emoji: '✈️', title: 'Safari Explorer', desc: 'Visited the African Safari & Wildlife Zoo' },
     { id: 'safari_feed', world: 'safari', emoji: '🦒', title: 'Gentle Giant Pal', desc: 'Fed giraffes or elephants at the Savanna Sanctuary' },
     { id: 'safari_jeep', world: 'safari', emoji: '🚙', title: 'Jeep Adventurer', desc: 'Rode the Safari Jeep tour across the savanna' },
     { id: 'safari_cubs', world: 'safari', emoji: '🦁', title: 'Lion Cub Friend', desc: 'Found all 5 playful hiding lion cubs' },

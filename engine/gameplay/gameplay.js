@@ -42,6 +42,17 @@ window.LailaSalma = window.LailaSalma || {};
     { q: 'What do elephants flap to cool themselves down on hot savanna days?', opts: ['Their tails', 'Their big ears', 'Their tusks', 'Their hooves'], a: 1 }
   ];
 
+  const HOME_GK_POOL = [
+    { q: 'Which meal gives Laila & Salma healthy energy from fruits and yogurt?', opts: ['Healthy Snack', 'Salty Chips Only', 'Candy Bar Only', 'Soda'], a: 0 },
+    { q: 'How many keys are in one full musical octave from C to C on a piano?', opts: ['5', '6', '8', '12'], a: 2 },
+    { q: 'Which tool in the sisters’ bedroom lets you spin and explore countries around Earth?', opts: ['A World Globe', 'A Toaster', 'A Hammer', 'A Clock'], a: 0 },
+    { q: 'What helps plants in a community courtyard grow tall and green?', opts: ['Sunlight & Water', 'Dark Closets', 'Ice Cubes Only', 'Sand Only'], a: 0 },
+    { q: 'How many minutes are in one full hour?', opts: ['30', '45', '60', '100'], a: 2 },
+    { q: 'Which shape has 4 equal sides and 4 square corners?', opts: ['Triangle', 'Square', 'Circle', 'Oval'], a: 1 },
+    { q: 'What should good neighbors always say when greeting the security guard?', opts: ['Good morning & Thank you!', 'Nothing at all', 'Run away fast', 'Hide behind a bush'], a: 0 },
+    { q: 'Which sense do we use to hear Laila play a song on the dining room piano?', opts: ['Smell', 'Taste', 'Hearing', 'Touch'], a: 2 }
+  ];
+
   // Salma-friendly Age-5 Picture Quiz Pool (big visual emojis + simple counting/matching)
   const SALMA_POOL = [
     { q: '🐱🐱 + 🐱 = How many kitties altogether?', opts: ['2 🐱', '3 🐱', '4 🐱', '5 🐱'], a: 1 },
@@ -102,8 +113,15 @@ window.LailaSalma = window.LailaSalma || {};
       return questions;
     }
 
-    const pool = (worldId === 'safari' ? SAFARI_GK_POOL : (worldId === 'kyoto' ? KYOTO_GK_POOL : TOKYO_GK_POOL)).slice();
-    const catName = worldId === 'safari' ? 'Safari Wildlife' : (worldId === 'kyoto' ? 'Kyoto Discovery' : 'General Knowledge');
+    const pool = (
+      worldId === 'home_neighborhood' ? HOME_GK_POOL :
+      worldId === 'safari' ? SAFARI_GK_POOL :
+      worldId === 'kyoto' ? KYOTO_GK_POOL : TOKYO_GK_POOL
+    ).slice();
+    const catName =
+      worldId === 'home_neighborhood' ? 'Sunny Oaks School' :
+      worldId === 'safari' ? 'Safari Wildlife' :
+      worldId === 'kyoto' ? 'Kyoto Discovery' : 'Tokyo & World Quiz';
     for (let i = 0; i < 3; i++) {
       const idx = Math.floor(rng() * pool.length);
       const item = pool.splice(idx, 1)[0];
@@ -165,16 +183,20 @@ window.LailaSalma = window.LailaSalma || {};
     const titleEl = document.getElementById('school-modal-title');
     const backBtn = document.getElementById('btn-school-back');
     if (titleEl) {
-      titleEl.textContent = activeQuizWorld === 'safari'
-        ? '🦁 Savanna Ranger Academy — Wildlife Quiz'
-        : (activeQuizWorld === 'kyoto'
-          ? '📚 Kyoto Temple Academy — Quiz'
-          : '🏫 Sakura Elementary — Quiz');
+      titleEl.textContent = activeQuizWorld === 'home_neighborhood'
+        ? '🏫 Sunny Oaks School — Ms. Nadia\'s Quiz'
+        : (activeQuizWorld === 'safari'
+          ? '👨‍🏫 Dr. Kofi — Safari Wildlife Quiz'
+          : (activeQuizWorld === 'kyoto'
+            ? '👨‍🏫 Sensei Kenji — Kyoto Discovery Quiz'
+            : '👩‍🏫 Sensei Haruka — Tokyo Town Quiz'));
     }
     if (backBtn) {
-      backBtn.textContent = activeQuizWorld === 'safari'
-        ? 'Back to Safari'
-        : (activeQuizWorld === 'kyoto' ? 'Back to Kyoto' : 'Back to Tokyo');
+      backBtn.textContent = activeQuizWorld === 'home_neighborhood'
+        ? 'Back to Home Community'
+        : (activeQuizWorld === 'safari'
+          ? 'Back to Safari'
+          : (activeQuizWorld === 'kyoto' ? 'Back to Kyoto' : 'Back to Tokyo'));
     }
     document.getElementById('school-modal').classList.remove('hidden');
     document.getElementById('school-lobby').classList.remove('hidden');
@@ -252,6 +274,7 @@ window.LailaSalma = window.LailaSalma || {};
       const xGain = 12 + s * 6;
       LS.addCoins(cGain);
       LS.addXP(xGain);
+      LS.markQuizCompleted(activeQuizWorld);
       rew.innerHTML = '🌈 Amazing work, Salma & Laila! Earned <strong>+' + xGain + ' XP</strong> and <strong>+' + cGain + ' Coins</strong>!';
     } else if (activeQuiz.practice) {
       rew.innerHTML = '📝 Practice complete! Come back when the 2-hour timer refreshes for graded XP &amp; Coins.';
@@ -263,6 +286,12 @@ window.LailaSalma = window.LailaSalma || {};
       LS.addXP(xpGain);
       rew.innerHTML = '✨ Earned <strong>+' + xpGain + ' XP</strong> and <strong>+' + coinGain + ' Coins</strong>!';
     }
+    if (LS.advanceStoryStep) {
+      if (activeQuizWorld === 'tokyo') LS.advanceStoryStep('tokyo', 'tokyo_teacher');
+      else if (activeQuizWorld === 'kyoto') LS.advanceStoryStep('kyoto', 'kyoto_teacher');
+      else if (activeQuizWorld === 'safari') LS.advanceStoryStep('safari', 'safari_teacher');
+    }
+    if (LS.completeCozyMission) LS.completeCozyMission('quiz');
   }
 
   // Travel Passport & World Map
@@ -272,13 +301,15 @@ window.LailaSalma = window.LailaSalma || {};
     const stampsBox = document.getElementById('passport-stamps');
     if (worldsBox) {
       worldsBox.innerHTML = '';
-      ['tokyo', 'kyoto', 'safari'].forEach(wid => {
+      ['home_neighborhood', 'tokyo', 'kyoto', 'safari'].forEach(wid => {
         const w = LS.WORLDS[wid];
         if (!w) return;
-        const isHere = LS.state.currentWorld === wid;
-        const foundCount = wid === 'safari'
-          ? (LS.state.foundLionCubs ? LS.state.foundLionCubs.length : 0)
-          : (wid === 'kyoto' ? LS.state.foundKitsune.length : LS.state.foundCats.length);
+        const isHere = LS.state.currentWorld === wid || (wid === 'home_neighborhood' && LS.state.currentWorld === 'home_apartment');
+        const foundCount = wid === 'home_neighborhood'
+          ? (LS.state.foundHomePets ? LS.state.foundHomePets.length : 0)
+          : (wid === 'safari'
+            ? (LS.state.foundLionCubs ? LS.state.foundLionCubs.length : 0)
+            : (wid === 'kyoto' ? LS.state.foundKitsune.length : LS.state.foundCats.length));
         const remMs = LS.getAnimalResetRemainingMs(wid);
         const resetHtml = foundCount >= 5
           ? ('<div class="ramen-desc" style="color:#1b7a43;font-weight:700;">✨ All 5 found! New hiding spots in ' +
@@ -302,8 +333,9 @@ window.LailaSalma = window.LailaSalma || {};
           btn.disabled = true;
         } else {
           btn.className = 'btn-primary';
-          const isFlight = wid === 'safari' || LS.state.currentWorld === 'safari';
-          btn.textContent = (isFlight ? '✈️ Fly to ' : '🚅 Ride Shinkansen to ') + w.title;
+          const isGlobe = wid === 'home_neighborhood' || LS.state.currentWorld === 'home_neighborhood' || LS.state.currentWorld === 'home_apartment';
+          const isFlight = !isGlobe && (wid === 'safari' || LS.state.currentWorld === 'safari');
+          btn.textContent = (isGlobe ? '🌍 Magic Globe to ' : (isFlight ? '✈️ Fly to ' : '🚅 Ride Shinkansen to ')) + w.title;
           btn.onclick = () => LS.travelToWorld(wid);
         }
         actions.appendChild(btn);
@@ -325,8 +357,8 @@ window.LailaSalma = window.LailaSalma || {};
       const airportNote = document.createElement('div');
       airportNote.className = 'passport-world-card upcoming-world';
       airportNote.innerHTML =
-        '<div class="pw-head"><div><strong>✈️ Haneda International Airport (Tokyo)</strong></div><span class="pw-soon">' + LS.UPCOMING_WORLDS.length + ' Upcoming Worlds</span></div>' +
-        '<p class="ramen-desc">Upcoming flights: ' + LS.UPCOMING_WORLDS.map(u => u.emoji + ' ' + u.title).join(' • ') + '</p>';
+        '<div class="pw-head"><div><strong>🌍 Magic Globe — Upcoming Worlds</strong></div><span class="pw-soon">' + LS.UPCOMING_WORLDS.length + ' Coming Soon</span></div>' +
+        '<p class="ramen-desc">Next destinations: ' + LS.UPCOMING_WORLDS.map(u => u.emoji + ' ' + u.title).join(' • ') + '</p>';
       worldsBox.appendChild(airportNote);
     }
 
@@ -821,6 +853,7 @@ window.LailaSalma = window.LailaSalma || {};
     LS.addCoins(15);
     LS.addXP(12);
     LS.unlockStamp('kyoto_koi');
+    if (LS.advanceStoryStep) LS.advanceStoryStep('kyoto', 'kyoto_koi');
     LS.playSFX('splash');
     LS.showToast('🐟🦆 Splash! The koi fish & ducks swim over happily! +15c & +12 XP!');
   };
@@ -831,6 +864,7 @@ window.LailaSalma = window.LailaSalma || {};
     LS.addCoins(15);
     LS.addXP(12);
     LS.unlockStamp('safari_feed');
+    if (LS.advanceStoryStep) LS.advanceStoryStep('safari', 'safari_feed');
     LS.playSFX(kind === 'elephant' ? 'splash' : 'animal');
     if (kind === 'elephant') {
       LS.showToast('🐘💦 Trumpet & splash! The gentle elephants wave their trunks & love the sweet melons! +15c & +12 XP!');
@@ -902,6 +936,39 @@ window.LailaSalma = window.LailaSalma || {};
         { name: '🪘 Mini Pocket Shaker', desc: 'Joyful savanna rhythm • Speed +26% & Infinite Run for 80s (+18 XP)', cost: 22, xp: 18, buff: { name: 'Savanna Rhythm', short: 'Rhythm🥁', speedMult: 1.26, infiniteStamina: true, durationMs: 80000 } },
         { name: '🦁 Carved Baobab Lion Charm', desc: 'Salma senses the nearest hiding Lion Cub + Super-Jump for 65s (+24 XP)', cost: 28, xp: 24, hint: true, superJumpMs: 65000 }
       ]
+    },
+    tokyo_crepes: {
+      title: '🍓 Harajuku Crêpe & Sakura Tea Plaza',
+      sub: '“Welcome to Tokyo’s sweetest plaza, Laila & Salma! Pick a freshly folded Harajuku crêpe or blossom tea!”',
+      items: [
+        { name: '🍓 Strawberry Cream Crêpe', desc: 'Fluffy berries & cream • Speed +26% & Sparkle Trail for 75s (+18 XP)', cost: 22, xp: 18, sparkleMs: 75000, buff: { name: 'Harajuku Crêpe', short: 'Crêpe🍓', speedMult: 1.26, infiniteStamina: true, durationMs: 75000 } },
+        { name: '🍵 Iced Sakura Bubble Tea', desc: 'Bouncy tapioca pearls • Super-Jump power for 65s (+16 XP)', cost: 20, xp: 16, superJumpMs: 65000 },
+        { name: '🍌 Chocolate Banana Crêpe', desc: 'Full energy + Salma spots a nearby Tokyo cat (+20 XP)', cost: 25, xp: 20, hint: true, buff: { name: 'Choco Crêpe', short: 'Sweet⚡', speedMult: 1.24, infiniteStamina: true, durationMs: 80000 } }
+      ]
+    },
+    tokyo_cat_cafe: {
+      title: '🐱 Neko Cat Café — Lantern Canal Street',
+      sub: '“Meow! Relax with fluffy neighborhood kitties along West Lantern Canal Street!”',
+      items: [
+        { name: '🐾 Kitty Paw Waffle', desc: 'Warm maple waffle • Speed +24% for 80s (+15 XP)', cost: 18, xp: 15, buff: { name: 'Paw Waffle', short: 'Kitty⚡', speedMult: 1.24, infiniteStamina: true, durationMs: 80000 } },
+        { name: '🐟 Catnip Treat Bag', desc: 'Salma immediately hears the nearest hiding Tokyo cat! (+18 XP)', cost: 20, xp: 18, hint: true }
+      ]
+    },
+    tokyo_origami: {
+      title: '🕊️ Tokyo Origami Studio — East Alley',
+      sub: '“Fold golden paper cranes & paper stars in our colorful East Tokyo alley!”',
+      items: [
+        { name: '🕊️ Golden Paper Crane', desc: 'Feather-light jumps • Super-Jump + Sparkles for 70s (+20 XP)', cost: 20, xp: 20, superJumpMs: 70000, sparkleMs: 70000 },
+        { name: '⭐ Origami Star Garland', desc: 'Big explorer learning boost (+35 XP)!', cost: 24, xp: 35 }
+      ]
+    },
+    kyoto_wagashi: {
+      title: '🍡 Gion Lantern Wagashi Sweet Shop',
+      sub: '“Welcome to Gion Lantern Street! Handcrafted seasonal Kyoto sweets & yuzu tea!”',
+      items: [
+        { name: '🍡 Sakura Mochi Set', desc: 'Sweet pink mochi • Sparkle Trail + Infinite Run for 80s (+18 XP)', cost: 22, xp: 18, sparkleMs: 80000, buff: { name: 'Sakura Mochi', short: 'Mochi🌸', speedMult: 1.25, infiniteStamina: true, durationMs: 80000 } },
+        { name: '🦊 Sweet Kitsune Cookie', desc: 'Guides Salma toward the nearest hiding Kyoto fox (+18 XP)', cost: 20, xp: 18, hint: true }
+      ]
     }
   };
 
@@ -946,6 +1013,8 @@ window.LailaSalma = window.LailaSalma || {};
           }
           if (item.sparkleMs) LS.runtime.sparkleUntil = Date.now() + item.sparkleMs;
           if (item.superJumpMs) LS.runtime.superJumpUntil = Date.now() + item.superJumpMs;
+          if (shopKey === 'tokyo_crepes' && LS.advanceStoryStep) LS.advanceStoryStep('tokyo', 'tokyo_crepes');
+          if (LS.completeCozyMission) LS.completeCozyMission('meal');
           LS.closeAllModals();
           LS.playSFX('correct');
           LS.updateHUD();
@@ -971,6 +1040,7 @@ window.LailaSalma = window.LailaSalma || {};
     if (LS.runtime.safariRide || LS.runtime.balloonRide || LS.runtime.modalOpen || LS.runtime.traveling) return;
     if (!LS.activeWorld || !LS.activeWorld.jeepPath || !LS.activeWorld.safariJeep) return;
     LS.runtime.safariRide = { t: 0, duration: 15.0 };
+    if (LS.advanceStoryStep) LS.advanceStoryStep('safari', 'safari_jeep');
     LS.playSFX('train');
     LS.showToast('🚙🦁 All aboard the Safari Jeep! Cruising past Giraffes, Elephants, Pride Rock & Zebras!');
   };
@@ -1280,10 +1350,14 @@ window.LailaSalma = window.LailaSalma || {};
 
     animal.found = true;
     if (animal.marker) animal.marker.visible = false;
+    if (animal.mesh && LS.state.currentWorld === 'home_neighborhood') animal.mesh.visible = false;
 
+    const isHomePup = animalId.startsWith('home_pup_') || LS.state.currentWorld === 'home_neighborhood';
     const isKitsune = animal.kind === 'kitsune';
     const isLionCub = animal.kind === 'lion_cub';
-    const arr = isLionCub ? LS.state.foundLionCubs : (isKitsune ? LS.state.foundKitsune : LS.state.foundCats);
+    if (isHomePup && !Array.isArray(LS.state.foundHomePets)) LS.state.foundHomePets = [];
+    const arr = isHomePup ? LS.state.foundHomePets
+      : (isLionCub ? LS.state.foundLionCubs : (isKitsune ? LS.state.foundKitsune : LS.state.foundCats));
     if (!arr.includes(animalId)) arr.push(animalId);
 
     world.zones = world.zones.filter(z => z.id !== 'animal:' + animalId);
@@ -1292,7 +1366,8 @@ window.LailaSalma = window.LailaSalma || {};
     const count = arr.length;
     const isAll = count >= 5;
     if (isAll) {
-      if (isLionCub) LS.state.lionCubsCompletedAt = Date.now();
+      if (isHomePup) LS.state.homePetsCompletedAt = Date.now();
+      else if (isLionCub) LS.state.lionCubsCompletedAt = Date.now();
       else if (isKitsune) LS.state.kitsuneCompletedAt = Date.now();
       else LS.state.catsCompletedAt = Date.now();
     }
@@ -1305,24 +1380,29 @@ window.LailaSalma = window.LailaSalma || {};
     LS.saveState();
     LS.updateHUD();
     LS.playSFX('animal');
+    if (LS.completeCozyMission) LS.completeCozyMission('pet');
 
     if (isAll) {
-      LS.unlockStamp(isLionCub ? 'safari_cubs' : (isKitsune ? 'kyoto_kitsune' : 'tokyo_cats'));
-      LS.showToast((isLionCub ? '🦁🎉 All 5 Safari Lion Cubs Found!' : (isKitsune ? '🦊🎉 All 5 Kyoto Kitsune Found!' : '🐾🎉 All 5 Tokyo Cats Found!')) +
+      LS.unlockStamp(isHomePup ? 'home_pets' : (isLionCub ? 'safari_cubs' : (isKitsune ? 'kyoto_kitsune' : 'tokyo_cats')));
+      LS.showToast((isHomePup ? '🐶🎉 All 5 Community Puppies Found!'
+        : (isLionCub ? '🦁🎉 All 5 Safari Lion Cubs Found!' : (isKitsune ? '🦊🎉 All 5 Kyoto Kitsune Found!' : '🐾🎉 All 5 Tokyo Cats Found!'))) +
         ' Bonus +' + coinReward + 'c! They will hide in brand-new spots in 2 hours!');
     } else {
-      LS.showToast((isLionCub ? '🦁 Befriended ' : (isKitsune ? '🦊 Befriended ' : '🐱 Found ')) + animal.name + ' (' + count + '/5)! +' + coinReward + 'c & +' + xpReward + ' XP!');
+      LS.showToast((isHomePup ? '🐶 Petted ' : (isLionCub ? '🦁 Befriended ' : (isKitsune ? '🦊 Befriended ' : '🐱 Found '))) + animal.name + ' (' + count + '/5)! +' + coinReward + 'c & +' + xpReward + ' XP!');
     }
   };
 
+  let tvGameTimer = null;
   LS.closeAllModals = function () {
     LS.runtime.modalOpen = false;
     clearInterval(timerInterval);
+    if (tvGameTimer) { clearInterval(tvGameTimer); tvGameTimer = null; }
     [
       'passport-modal', 'airport-modal', 'local-shop-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
       'sushi-modal', 'tea-modal', 'shop-modal', 'gachapon-modal',
       'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal',
-      'safari-guide-modal', 'safari-campfire-modal', 'safari-tent-modal'
+      'safari-guide-modal', 'safari-campfire-modal', 'safari-tent-modal',
+      'kitchen-modal', 'piano-modal', 'tv-game-modal', 'home-restaurant-modal', 'globe-modal', 'quest-modal'
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -1594,7 +1674,7 @@ window.LailaSalma = window.LailaSalma || {};
         const item = RAMEN_CATALOG[key];
         if (!item) return;
         if (LS.state.coins < item.cost) {
-          document.getElementById('ramen-msg').textContent = 'Not enough coins! Take a quiz at Sakura Elementary to earn more.';
+          document.getElementById('ramen-msg').textContent = 'Not enough coins! Take a quiz with Sensei Haruka in Sakura Plaza to earn more.';
           LS.playSFX('wrong'); return;
         }
         LS.addCoins(-item.cost);
@@ -1602,6 +1682,8 @@ window.LailaSalma = window.LailaSalma || {};
         LS.runtime.buff = { name: item.name, short: item.short, speedMult: item.speedMult, infiniteStamina: item.infiniteStamina, expiresAt: Date.now() + item.durationMs };
         if (item.bonusXp > 0) LS.addXP(item.bonusXp);
         LS.unlockStamp('tokyo_ramen');
+        if (LS.advanceStoryStep) LS.advanceStoryStep('tokyo', 'tokyo_ramen');
+        if (LS.completeCozyMission) LS.completeCozyMission('meal');
         LS.closeAllModals();
         if (LS.activeWorld && LS.activeWorld.ramenDiningConfig) {
           LS.startEatingAnimation(scene, key, item.name, LS.activeWorld.ramenDiningConfig);
@@ -1616,13 +1698,14 @@ window.LailaSalma = window.LailaSalma || {};
         const item = SUSHI_CATALOG[key];
         if (!item) return;
         if (LS.state.coins < item.cost) {
-          document.getElementById('sushi-msg').textContent = 'Not enough coins! Feed the koi, find kitsune, or visit Kyoto Academy.';
+          document.getElementById('sushi-msg').textContent = 'Not enough coins! Feed the koi, find kitsune, or quiz with Sensei Kenji.';
           LS.playSFX('wrong'); return;
         }
         LS.addCoins(-item.cost);
         LS.runtime.stamina = 100;
         LS.runtime.buff = { name: item.name, short: item.short, speedMult: item.speedMult, infiniteStamina: item.infiniteStamina, expiresAt: Date.now() + item.durationMs };
         if (item.bonusXp > 0) LS.addXP(item.bonusXp);
+        if (LS.completeCozyMission) LS.completeCozyMission('meal');
         LS.closeAllModals();
         if (LS.activeWorld && LS.activeWorld.sushiDiningConfig) {
           LS.startEatingAnimation(scene, key, item.name, LS.activeWorld.sushiDiningConfig);
@@ -1637,6 +1720,7 @@ window.LailaSalma = window.LailaSalma || {};
       LS.addCoins(f.bonusCoins);
       LS.addXP(f.bonusXp);
       LS.unlockStamp('kyoto_shrine');
+      if (LS.advanceStoryStep) LS.advanceStoryStep('kyoto', 'kyoto_shrine');
       LS.playSFX('shrine');
       document.getElementById('omikuji-result').innerHTML =
         '<strong>' + f.emoji + ' ' + f.rank + '</strong><div>' + f.text + ' (+' + f.bonusCoins + 'c, +' + f.bonusXp + ' XP)</div>';
@@ -1649,6 +1733,7 @@ window.LailaSalma = window.LailaSalma || {};
         LS.addXP(12);
         LS.addCoins(10);
         LS.unlockStamp('kyoto_shrine');
+        if (LS.advanceStoryStep) LS.advanceStoryStep('kyoto', 'kyoto_shrine');
         LS.saveState();
         LS.playSFX('shrine');
         renderShrineWishes();
@@ -1740,5 +1825,313 @@ window.LailaSalma = window.LailaSalma || {};
         LS.showToast('🔥🍡 Toasted Campfire Marshmallows with Laila & Salma! +15c & +15 XP!');
       });
     }
+
+    // --- HOME APARTMENT & STORYBOOK JOURNAL LISTENERS ---
+    // 1. Kitchen Healthy Snacks
+    document.querySelectorAll('.pick-snack').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const snack = btn.getAttribute('data-snack');
+        LS.runtime.stamina = 100;
+        if (snack === 'apple') {
+          LS.runtime.buff = { name: 'Apple & Almond Butter', short: 'Healthy🍎', speedMult: 1.24, infiniteStamina: true, expiresAt: Date.now() + 90000 };
+        } else if (snack === 'yogurt') {
+          LS.runtime.sparkleUntil = Date.now() + 75000;
+          LS.runtime.buff = { name: 'Berry Yogurt Parfait', short: 'Berry🫐', speedMult: 1.20, infiniteStamina: true, expiresAt: Date.now() + 90000 };
+        } else {
+          LS.runtime.superJumpUntil = Date.now() + 75000;
+          LS.runtime.buff = { name: 'Veggies & Hummus', short: 'Veggie🥕', speedMult: 1.22, infiniteStamina: true, expiresAt: Date.now() + 90000 };
+        }
+        LS.addXP(15);
+        LS.unlockStamp('home_snack');
+        if (LS.advanceStoryStep) LS.advanceStoryStep('home_neighborhood', 'home_snack');
+        if (LS.completeCozyMission) LS.completeCozyMission('meal');
+        LS.playSFX('correct');
+        LS.closeAllModals();
+        LS.updateHUD();
+        LS.showToast('🍎 Yum! Healthy home snack boost active! +15 XP!');
+      });
+    });
+
+    // 2. Laila's 8-Key Upright Piano + Auto Ghibli Melody
+    document.querySelectorAll('.piano-key').forEach(key => {
+      key.addEventListener('click', () => {
+        if (LS.unlockAudio) LS.unlockAudio();
+        const noteIdx = parseInt(key.getAttribute('data-note'), 10) || 0;
+        if (LS.playPianoNote) LS.playPianoNote(noteIdx, 0, 0.13);
+        key.classList.add('pressed');
+        setTimeout(() => key.classList.remove('pressed'), 180);
+        const msg = document.getElementById('piano-msg');
+        if (msg) msg.textContent = '🎹 Mom & Dad smile over their coffee: "Beautiful playing, Laila!" ☕💛';
+        if (!LS.state.stamps.includes('home_piano')) {
+          LS.addCoins(15);
+          LS.addXP(20);
+          LS.unlockStamp('home_piano');
+        }
+        if (LS.advanceStoryStep) LS.advanceStoryStep('home_neighborhood', 'home_piano');
+        if (LS.completeCozyMission) LS.completeCozyMission('music');
+      });
+    });
+
+    const btnGhibliSong = document.getElementById('btn-play-ghibli-song');
+    if (btnGhibliSong) {
+      btnGhibliSong.addEventListener('click', () => {
+        if (LS.unlockAudio) LS.unlockAudio();
+        const melody = [0, 2, 4, 7, 5, 4, 2, 0, 2, 4, 5, 4, 2, 0];
+        const keys = document.querySelectorAll('.piano-key');
+        melody.forEach((n, idx) => {
+          setTimeout(() => {
+            if (LS.playPianoNote) LS.playPianoNote(n, 0, 0.13);
+            const k = keys[n];
+            if (k) {
+              k.classList.add('pressed');
+              setTimeout(() => k.classList.remove('pressed'), 200);
+            }
+          }, idx * 240);
+        });
+        LS.addCoins(15);
+        LS.addXP(20);
+        LS.unlockStamp('home_piano');
+        if (LS.advanceStoryStep) LS.advanceStoryStep('home_neighborhood', 'home_piano');
+        if (LS.completeCozyMission) LS.completeCozyMission('music');
+        const msg = document.getElementById('piano-msg');
+        if (msg) msg.textContent = '✨🎶 Mom & Dad applaud Laila\'s Studio Ghibli recital! (+15c, +20 XP)';
+        LS.showToast('🎹 Mom & Dad loved Laila\'s piano recital! +15c & +20 XP!');
+      });
+    }
+
+    // 3. TV Room: Watch Cozy Cartoon OR Play 15s Star-Catcher Mini-Game!
+    const btnWatchTv = document.getElementById('btn-watch-cartoon');
+    if (btnWatchTv) {
+      btnWatchTv.addEventListener('click', () => {
+        if (tvGameTimer) { clearInterval(tvGameTimer); tvGameTimer = null; }
+        const stage = document.getElementById('tv-stage');
+        if (stage) {
+          stage.innerHTML = '<div class="tv-cartoon-scene">☁️✨ 🏡 👧🧒 ✨☁️<div class="tv-sub">Cozy Studio Ghibli Adventure Cartoon Playing...</div></div>';
+        }
+        LS.runtime.stamina = 100;
+        LS.addXP(12);
+        LS.unlockStamp('home_gamer');
+        if (LS.completeCozyMission) LS.completeCozyMission('play');
+        LS.playSFX('correct');
+        const msg = document.getElementById('tv-game-msg');
+        if (msg) msg.textContent = '📺 Cozy cartoon time with Laila & Salma! Full energy restored (+12 XP)!';
+      });
+    }
+
+    const btnStartTvGame = document.getElementById('btn-start-tv-game');
+    if (btnStartTvGame) {
+      btnStartTvGame.addEventListener('click', () => {
+        if (tvGameTimer) { clearInterval(tvGameTimer); tvGameTimer = null; }
+        const stage = document.getElementById('tv-stage');
+        const msg = document.getElementById('tv-game-msg');
+        if (!stage) return;
+        let score = 0;
+        let timeLeft = 15;
+        stage.innerHTML = '<div class="tv-hud">⭐ Score: <strong id="tv-score">0</strong> • ⏱️ <strong id="tv-time">15</strong>s</div><div id="tv-playfield" class="tv-playfield"></div>';
+        const pf = document.getElementById('tv-playfield');
+
+        function spawnStar() {
+          if (!pf) return;
+          const star = document.createElement('button');
+          star.type = 'button';
+          star.className = 'tv-star-btn';
+          star.textContent = Math.random() > 0.25 ? '⭐' : '🌟';
+          star.style.left = (8 + Math.random() * 76) + '%';
+          star.style.top = (10 + Math.random() * 68) + '%';
+          star.onclick = () => {
+            score += 1;
+            const scEl = document.getElementById('tv-score');
+            if (scEl) scEl.textContent = String(score);
+            LS.playSFX('coin');
+            star.remove();
+            spawnStar();
+          };
+          pf.appendChild(star);
+          setTimeout(() => { if (star.parentNode) star.remove(); }, 1800);
+        }
+
+        spawnStar();
+        spawnStar();
+        if (msg) msg.textContent = '🎮 Tap the glowing stars as fast as you can!';
+        tvGameTimer = setInterval(() => {
+          timeLeft -= 1;
+          const tEl = document.getElementById('tv-time');
+          if (tEl) tEl.textContent = String(Math.max(0, timeLeft));
+          if (timeLeft > 0) spawnStar();
+          if (timeLeft <= 0) {
+            clearInterval(tvGameTimer);
+            tvGameTimer = null;
+            const coins = 15 + score * 4;
+            const xp = 12 + score * 3;
+            LS.addCoins(coins);
+            LS.addXP(xp);
+            LS.unlockStamp('home_gamer');
+            if (LS.completeCozyMission) LS.completeCozyMission('play');
+            LS.playSFX('levelup');
+            if (pf) pf.innerHTML = '<div class="tv-done">🎉 High Score: ' + score + ' ⭐ (+' + coins + 'c, +' + xp + ' XP)!</div>';
+            if (msg) msg.textContent = '🎮 Awesome video game session! Earned +' + coins + 'c & +' + xp + ' XP!';
+          }
+        }, 1000);
+      });
+    }
+
+    // 4. Bella Bistro Family Dinner
+    document.querySelectorAll('.buy-bistro').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const meal = btn.getAttribute('data-bistro');
+        const menu = {
+          pasta: { name: 'Creamy Tomato Pasta', cost: 25, xp: 20 },
+          grilled_salmon: { name: 'Lemon Herb Grilled Salmon', cost: 35, xp: 25 },
+          family_pizza: { name: 'Family Wood-Fired Pizza ⭐', cost: 40, xp: 30 }
+        }[meal];
+        if (!menu) return;
+        if (LS.state.coins < menu.cost) {
+          const m = document.getElementById('bistro-msg');
+          if (m) m.textContent = 'Not enough coins (' + menu.cost + 'c)!';
+          LS.playSFX('wrong');
+          return;
+        }
+        LS.addCoins(-menu.cost);
+        LS.addXP(menu.xp);
+        LS.runtime.stamina = 100;
+        LS.runtime.buff = { name: menu.name, short: 'Dinner🍽️', speedMult: 1.28, infiniteStamina: true, expiresAt: Date.now() + 180000 };
+        LS.unlockStamp('home_dinner');
+        if (LS.advanceStoryStep) LS.advanceStoryStep('home_neighborhood', 'home_dinner');
+        if (LS.completeCozyMission) LS.completeCozyMission('meal');
+        LS.closeAllModals();
+        const dc = LS.activeWorld && LS.activeWorld.diningConfigs && LS.activeWorld.diningConfigs.home_restaurant;
+        if (dc) {
+          LS.startEatingAnimation(scene, meal, menu.name, {
+            lailaSeatPos: dc.lailaSeat,
+            salmaSeatPos: dc.salmaSeat,
+            seatRotY: dc.seatYaw,
+            exitOffset: new THREE.Vector3(-2.0, 0, 0),
+            lailaDishPos: dc.lailaDishPos,
+            salmaDishPos: dc.salmaDishPos,
+            oishiiPos: dc.oishiiPos,
+            camPos: dc.camPos,
+            camLook: dc.camLook,
+            caption: dc.caption
+          });
+        } else {
+          LS.showToast('🍽️ Delicious Family Dinner at Bella Bistro! +' + menu.xp + ' XP!');
+        }
+      });
+    });
+
+    // 5. Cozy Mission Refresh Button inside Storybook Journal
+    const btnRefreshMissions = document.getElementById('btn-refresh-missions');
+    if (btnRefreshMissions) {
+      btnRefreshMissions.addEventListener('click', () => {
+        if (LS.refreshCozyMissions) LS.refreshCozyMissions();
+        LS.playSFX('coin');
+        LS.openQuestModal();
+      });
+    }
+  };
+
+  LS.openKitchenModal = function () {
+    LS.runtime.modalOpen = true;
+    const m = document.getElementById('kitchen-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openPianoModal = function () {
+    LS.runtime.modalOpen = true;
+    const msg = document.getElementById('piano-msg');
+    if (msg) msg.textContent = 'Tap any key or press "Play Laila\'s Ghibli Song" while Mom & Dad sip coffee! ☕';
+    const m = document.getElementById('piano-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openTvGameModal = function () {
+    LS.runtime.modalOpen = true;
+    const stage = document.getElementById('tv-stage');
+    if (stage) stage.innerHTML = '<div class="tv-cartoon-scene">📺 Ready for Cozy TV or Star-Catcher Arcade! 🎮</div>';
+    const msg = document.getElementById('tv-game-msg');
+    if (msg) msg.textContent = '';
+    const m = document.getElementById('tv-game-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openHomeRestaurantModal = function () {
+    LS.runtime.modalOpen = true;
+    const msg = document.getElementById('bistro-msg');
+    if (msg) msg.textContent = '';
+    const m = document.getElementById('home-restaurant-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openGlobeModal = function () {
+    LS.runtime.modalOpen = true;
+    const list = document.getElementById('globe-worlds-list');
+    if (list) {
+      list.innerHTML = '';
+      ['home_neighborhood', 'tokyo', 'kyoto', 'safari'].forEach(wid => {
+        const w = LS.WORLDS[wid];
+        if (!w) return;
+        const row = document.createElement('div');
+        row.className = 'ramen-item';
+        const isHere = LS.state.currentWorld === wid || (wid === 'home_neighborhood' && LS.state.currentWorld === 'home_apartment');
+        row.innerHTML = '<div><strong>' + w.emoji + ' ' + w.title + '</strong><div class="ramen-desc">' + w.subtitle + '</div></div>';
+        const btn = document.createElement('button');
+        btn.className = isHere ? 'btn-secondary' : 'btn-primary';
+        btn.textContent = isHere ? 'Home Base ✓' : 'Spin & Go ✨';
+        btn.disabled = isHere;
+        btn.onclick = () => LS.travelToWorld(wid);
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+      // Preview next phase worlds!
+      const up = document.createElement('div');
+      up.className = 'ramen-desc';
+      up.style.marginTop = '10px';
+      up.innerHTML = '<strong>✨ Coming Soon on the Magic Globe:</strong> ' + LS.UPCOMING_WORLDS.slice(0, 4).map(u => u.emoji + ' ' + u.title + ' (' + u.gate + ')').join(' • ');
+      list.appendChild(up);
+    }
+    const m = document.getElementById('globe-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openQuestModal = function () {
+    LS.runtime.modalOpen = true;
+    const chapBox = document.getElementById('quest-chapters-list');
+    const misBox = document.getElementById('quest-missions-list');
+    if (chapBox && LS.STORY_CHAPTERS) {
+      chapBox.innerHTML = '';
+      Object.keys(LS.STORY_CHAPTERS).forEach(wid => {
+        const chap = LS.STORY_CHAPTERS[wid];
+        const prog = (LS.state.storyProgress && LS.state.storyProgress[wid]) || 0;
+        const card = document.createElement('div');
+        card.className = 'passport-world-card';
+        let stepsHtml = chap.steps.map((st, idx) => {
+          const done = idx < prog;
+          const active = idx === prog;
+          return '<div class="quest-step ' + (done ? 'done' : (active ? 'active' : '')) + '">' +
+            (done ? '✅ ' : (active ? '⭐ ' : '⬜ ')) + st.title +
+            (active ? '<div class="ramen-desc" style="margin-left:20px;">💡 ' + st.hint + '</div>' : '') +
+            '</div>';
+        }).join('');
+        card.innerHTML =
+          '<div class="pw-head"><strong>' + chap.emoji + ' ' + chap.title + '</strong>' +
+          '<span class="pw-progress">' + Math.min(prog, chap.steps.length) + '/' + chap.steps.length + '</span></div>' +
+          stepsHtml;
+        chapBox.appendChild(card);
+      });
+    }
+    if (misBox && Array.isArray(LS.state.cozyMissions)) {
+      misBox.innerHTML = '';
+      LS.state.cozyMissions.forEach(m => {
+        const row = document.createElement('div');
+        row.className = 'ramen-item';
+        row.innerHTML =
+          '<div><strong>' + (m.done ? '✅ ' : m.emoji + ' ') + m.title + '</strong>' +
+          '<div class="ramen-desc">Reward: +' + m.rewardCoins + 'c &amp; +' + m.rewardXp + ' XP</div></div>' +
+          '<span class="pw-progress">' + (m.done ? 'Done!' : 'Active') + '</span>';
+        misBox.appendChild(row);
+      });
+    }
+    const m = document.getElementById('quest-modal');
+    if (m) m.classList.remove('hidden');
   };
 })(window.LailaSalma);

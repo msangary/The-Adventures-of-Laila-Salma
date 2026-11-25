@@ -1183,16 +1183,428 @@ html, body {
   filter: brightness(1.12);
 }
 
-/* Responsive Mobile & Tablet Polish */
-@media (max-width: 820px) {
+/* =========================================================
+   STUDIO GHIBLI LIVE 3D TITLE SCREEN
+   ========================================================= */
+body.on-title-screen #hud-left,
+body.on-title-screen #hud-top-right,
+body.on-title-screen #hud-bottom-right,
+body.on-title-screen #joystick-zone,
+body.on-title-screen #controls-hint,
+body.on-title-screen #interact-prompt,
+body.on-title-screen #toast {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.45s ease;
+}
+
+#title-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(26px, env(safe-area-inset-bottom));
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 60%, rgba(255, 250, 235, 0) 45%, rgba(28, 36, 48, 0.24) 100%);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+#title-screen.title-hidden {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.title-top-banner {
+  text-align: center;
+  padding: 10px 22px 12px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(255, 250, 236, 0.90), rgba(251, 240, 214, 0.84));
+  border: 2.5px solid rgba(206, 160, 96, 0.92);
+  box-shadow: 0 14px 36px rgba(42, 30, 18, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  max-width: 92vw;
+  animation: titleFloat 3.6s ease-in-out infinite;
+}
+
+@keyframes titleFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+}
+
+.title-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: #7c4414;
+  background: linear-gradient(135deg, #ffeec2, #f8d483);
+  border: 1.5px solid #d99f44;
+  padding: 2px 11px;
+  border-radius: 99px;
+  margin-bottom: 5px;
+}
+
+.title-logo {
+  font-family: 'Georgia', 'Trebuchet MS', serif;
+  font-size: clamp(20px, 4vw, 34px);
+  font-weight: 900;
+  line-height: 1.12;
+  color: #3a2618;
+  text-shadow: 0 2px 0 rgba(255, 252, 240, 0.95), 0 4px 12px rgba(176, 118, 52, 0.22);
+  margin-bottom: 4px;
+}
+
+.title-tagline {
+  font-size: clamp(11.5px, 2vw, 14px);
+  font-weight: 700;
+  color: #5e442c;
+}
+
+.title-bottom-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.btn-play-hero {
+  border: 3px solid #fff7e6;
+  border-radius: 999px;
+  padding: 14px 34px;
+  font-size: clamp(16px, 3vw, 20px);
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  color: #fff;
+  background: linear-gradient(135deg, #e87a38 0%, #d45b2a 55%, #c44a38 100%);
+  box-shadow: 0 10px 28px rgba(130, 44, 18, 0.42), 0 0 0 4px rgba(246, 198, 116, 0.45);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  min-height: 52px;
+}
+
+.btn-play-hero:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 14px 32px rgba(130, 44, 18, 0.48), 0 0 0 6px rgba(246, 198, 116, 0.62);
+}
+
+.btn-play-hero:active {
+  transform: scale(0.96);
+}
+
+.title-sub-hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fffdf5;
+  background: rgba(38, 28, 18, 0.62);
+  padding: 5px 14px;
+  border-radius: 99px;
+  backdrop-filter: blur(4px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Clean Horizontal Swap-Sister Pill & HUD Badge Overflow Protection */
+#btn-swap-sister.swap-btn {
+  width: auto;
+  min-width: 68px;
+  padding: 0 11px;
+  border-radius: 99px;
+  font-size: 14px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+#hud-left {
+  width: 368px;
+}
+
+#hud-world-badge {
+  max-width: 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   STORYBOOK QUEST HINT PILL & JOURNAL MODAL
+   ========================================================= */
+.quest-hint-pill {
+  margin-top: 6px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff5d6, #fde5ad);
+  border: 1.5px solid #d7a14a;
+  color: #5b330c;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.3;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(145, 92, 24, 0.14);
+  transition: transform 0.12s ease;
+}
+.quest-hint-pill:hover {
+  transform: translateY(-1px);
+}
+
+.quest-step {
+  padding: 9px 12px;
+  margin-bottom: 7px;
+  border-radius: 11px;
+  border: 2px solid #e0c596;
+  background: #fffaf0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b3522;
+}
+.quest-step.active {
+  border-color: #e07a34;
+  background: #fff3da;
+  box-shadow: 0 3px 10px rgba(224, 122, 52, 0.16);
+}
+.quest-step.done {
+  border-color: #4e9a6b;
+  background: #eefbf3;
+  color: #215e3a;
+}
+
+/* =========================================================
+   PLAYABLE 8-KEY PIANO MODAL (DINING ROOM)
+   ========================================================= */
+.piano-keyboard {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  background: #3d2415;
+  padding: 12px 10px 14px;
+  border-radius: 14px;
+  border: 3px solid #6b4024;
+  box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.35);
+  margin: 10px 0 12px;
+}
+
+.piano-key {
+  height: 112px;
+  border-radius: 0 0 9px 9px;
+  border: 1.5px solid #cbbda4;
+  background: linear-gradient(180deg, #fffdf9 0%, #f5ebd9 88%, #e4d4b9 100%);
+  color: #3d2c1e;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #b8a384;
+  transition: transform 0.06s ease, background 0.1s ease, box-shadow 0.06s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.piano-key:hover {
+  background: linear-gradient(180deg, #fffaf0 0%, #ffefc8 100%);
+}
+
+.piano-key:active,
+.piano-key.pressed {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #b8a384;
+  background: linear-gradient(180deg, #ffe29a 0%, #f6ba57 100%);
+  color: #5c2808;
+}
+
+/* =========================================================
+   TV & STAR-CATCHER VIDEO GAME ROOM MODAL
+   ========================================================= */
+.tv-screen-box {
+  background: linear-gradient(180deg, #1b2845 0%, #274060 65%, #335c67 100%);
+  border: 5px solid #2b2d42;
+  border-radius: 16px;
+  padding: 14px;
+  min-height: 196px;
+  color: #fffdf5;
+  box-shadow: inset 0 0 24px rgba(10, 16, 30, 0.55), 0 6px 16px rgba(0, 0, 0, 0.22);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.tv-cartoon-scene {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  padding: 10px;
+}
+
+.tv-hud {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffe588;
+  margin-bottom: 8px;
+}
+
+.tv-playfield {
+  position: relative;
+  width: 100%;
+  height: 168px;
+  border-radius: 10px;
+  background: radial-gradient(circle at 50% 35%, rgba(72, 118, 178, 0.45), rgba(18, 28, 52, 0.82));
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.tv-star-btn {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #fff3b0;
+  background: radial-gradient(circle, #ffe46b 0%, #f59e0b 80%);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(255, 215, 80, 0.85);
+  transition: transform 0.1s ease;
+}
+.tv-star-btn:active { transform: scale(0.86); }
+
+.tv-done {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff3b0;
+  padding: 20px 10px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   ANDROID PHONE-FIRST RESPONSIVE POLISH (PORTRAIT + LANDSCAPE)
+   ========================================================= */
+@media (max-width: 900px) {
   #controls-hint { display: none; }
-  #joystick-zone { display: block; }
-  #hud-left { width: 218px; padding: 9px 10px; top: 8px; left: 8px; }
-  #hud-top-right { top: 8px; right: 8px; max-width: 148px; gap: 5px; }
-  .icon-btn { width: 38px; height: 38px; font-size: 17px; }
-  #toast { top: 158px; font-size: 12px; padding: 7px 13px; }
-  #minimap-canvas { width: 116px; height: 126px; }
-  #interact-prompt { bottom: 138px; font-size: 12px; padding: 7px 13px; }
+  #joystick-zone {
+    display: block;
+    width: 124px;
+    height: 124px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: max(14px, env(safe-area-inset-left));
+  }
+  #joystick-knob {
+    width: 50px;
+    height: 50px;
+    top: 37px;
+    left: 37px;
+  }
+  #hud-left {
+    width: min(210px, 52vw);
+    padding: 8px 10px;
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+  }
+  #hud-left.collapsed {
+    width: auto;
+    max-width: calc(100vw - 150px);
+    padding: 5px 8px;
+  }
+  #hud-left.collapsed .hd-badge { display: none; }
+  #hud-left.collapsed .player-name { font-size: 12.5px; }
+  #hud-left.collapsed #hud-world-badge { max-width: 68px; font-size: 10px; }
+  #hud-top-right {
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    max-width: 174px;
+    gap: 5px;
+    justify-content: flex-end;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
+    border-radius: 12px;
+  }
+  .action-btn {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 15px;
+  }
+  #hud-bottom-right {
+    bottom: max(14px, env(safe-area-inset-bottom));
+    right: max(10px, env(safe-area-inset-right));
+    gap: 7px;
+  }
+  #minimap-canvas { width: 108px; height: 116px; }
+  .minimap-legend { font-size: 9px; }
+  #toast {
+    top: auto;
+    bottom: 152px;
+    font-size: 12px;
+    padding: 8px 14px;
+    max-width: 88vw;
+  }
+  #interact-prompt {
+    bottom: 156px;
+    font-size: 12.5px;
+    padding: 9px 15px;
+    max-width: 84vw;
+    text-align: center;
+  }
+  .modal-box {
+    padding: 16px 15px;
+    max-height: 86vh;
+    border-radius: 16px;
+  }
   .options-grid { grid-template-columns: 1fr; }
   .stamps-grid { grid-template-columns: repeat(2, 1fr); }
+  .piano-key { height: 92px; font-size: 11px; }
 }
+
+/* Compact Landscape Android Phones (e.g. 844x390) */
+@media (max-height: 460px) and (max-width: 960px) {
+  #controls-hint { display: none; }
+  #joystick-zone {
+    display: block;
+    width: 108px;
+    height: 108px;
+    bottom: 10px;
+    left: 12px;
+  }
+  #joystick-knob {
+    width: 44px;
+    height: 44px;
+    top: 32px;
+    left: 32px;
+  }
+  #hud-left {
+    width: 244px;
+    padding: 6px 9px;
+  }
+  #hud-left .hd-badge { display: none; }
+  #hud-left #hud-world-badge { max-width: 82px; font-size: 10px; }
+  .quest-hint-pill { display: none; }
+  #minimap-card { display: none; }
+  #title-screen { padding: 10px 14px 14px; }
+  .title-top-banner { padding: 8px 18px 10px; }
+  .btn-play-hero { padding: 11px 28px; min-height: 46px; }
+  .piano-key { height: 74px; }
+}
+

@@ -1652,16 +1652,19 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   LS.setSalmaBubbleText = function (text, showMs) {
-    if (!LS.chars.salma) return;
-    if (LS.chars.salmaBubble) {
-      LS.chars.salma.root.remove(LS.chars.salmaBubble);
+    const isSalmaLead = LS.state && LS.state.activeLeader === 'salma';
+    const speaker = isSalmaLead ? LS.chars.laila : LS.chars.salma;
+    const speakerName = isSalmaLead ? 'Laila' : 'Salma';
+    if (!speaker) return;
+    if (LS.chars.salmaBubble && LS.chars.salmaBubble.parent) {
+      LS.chars.salmaBubble.parent.remove(LS.chars.salmaBubble);
       LS.chars.salmaBubble = null;
     }
     if (!text) {
       LS.runtime.salmaHintUntil = 0;
       return;
     }
-    const nb = LS.createSpeechBubbleSprite('Salma', text);
+    const nb = LS.createSpeechBubbleSprite(speakerName, text);
     const inRoom = LS.WORLDS && LS.WORLDS[LS.state.currentWorld] && LS.WORLDS[LS.state.currentWorld].isInterior;
     if (inRoom) {
       nb.scale.multiplyScalar(0.54);
@@ -1671,18 +1674,31 @@ window.LailaSalma = window.LailaSalma || {};
     }
     nb.visible = Boolean(showMs);
     LS.chars.salmaBubble = nb;
-    LS.chars.salma.root.add(nb);
+    speaker.root.add(nb);
     if (showMs) LS.runtime.salmaHintUntil = Date.now() + showMs;
   };
 
   LS.spawnWorldNPCs = function (worldGroup, npcConfigs) {
     LS.chars.npcs = [];
+    const inRoom = LS.WORLDS && LS.WORLDS[LS.state.currentWorld] && LS.WORLDS[LS.state.currentWorld].isInterior;
     npcConfigs.forEach(cfg => {
       const model = LS.createAnimeCharacter(cfg.char);
       model.root.position.copy(cfg.pos);
       if (cfg.baseRot !== undefined) model.root.rotation.y = cfg.baseRot;
+      if (cfg.seated) {
+        model.leftLeg.rotation.x = -1.18;
+        model.rightLeg.rotation.x = -1.18;
+        model.leftArm.rotation.x = -0.62;
+        model.rightArm.rotation.x = -0.74;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(model, 0, 'sit', 0);
+      }
       const bubble = LS.createSpeechBubbleSprite(cfg.name, cfg.line);
-      bubble.position.set(0, 2.25, 0);
+      if (inRoom) {
+        bubble.scale.multiplyScalar(0.58);
+        bubble.position.set(0, 2.02, 0);
+      } else {
+        bubble.position.set(0, 2.25, 0);
+      }
       model.root.add(bubble);
       worldGroup.add(model.root);
 
@@ -1691,6 +1707,7 @@ window.LailaSalma = window.LailaSalma || {};
         model,
         bubble,
         patrol: cfg.patrol || null,
+        seated: Boolean(cfg.seated),
         dir: 1,
         waveOnNear: Boolean(cfg.waveOnNear),
         baseRot: cfg.baseRot || 0
@@ -1702,42 +1719,57 @@ window.LailaSalma = window.LailaSalma || {};
     const world = LS.activeWorld;
     if (!LS.chars.salma || !world || !world.hiddenAnimals) return;
     if (world.isInterior) {
-      LS.setSalmaBubbleText('Let us decorate our room or step outside to play! 🎨', 3800);
+      LS.setSalmaBubbleText('Let us play piano, grab a snack, or spin the Magic Globe! 🌍✨', 3800);
       return;
     }
     const wid = LS.state.currentWorld;
+    const isHome = wid === 'home_neighborhood';
     const isKyoto = wid === 'kyoto';
     const isSafari = wid === 'safari';
-    const label = isSafari ? 'lion cubs' : (isKyoto ? 'kitsune foxes' : 'cats');
-    const emoji = isSafari ? '🦁' : (isKyoto ? '🦊' : '🐱');
+    const label = isHome ? 'puppies' : (isSafari ? 'lion cubs' : (isKyoto ? 'kitsune foxes' : 'cats'));
+    const emoji = isHome ? '🐶' : (isSafari ? '🦁' : (isKyoto ? '🦊' : '🐱'));
     const unfound = world.hiddenAnimals.filter(a => !a.found);
     if (unfound.length === 0) {
       const rem = LS.getAnimalResetRemainingMs(wid);
       const mins = Math.max(1, Math.ceil(rem / 60000));
       const doneMsg = 'We found all 5 ' + label + '! They will hide in new spots in ' + mins + ' min!';
       LS.setSalmaBubbleText(doneMsg, 4500);
-      LS.showToast('🐾 Salma: ' + doneMsg);
+      LS.showToast('🐾 ' + doneMsg);
       return;
     }
-    const lp = LS.chars.laila.root.position;
+    const leader = (LS.state.activeLeader === 'salma' && LS.chars.salma) ? LS.chars.salma : LS.chars.laila;
+    const lp = leader.root.position;
     let nearest = unfound[0];
     let bestD = Infinity;
     unfound.forEach(a => {
       const d = a.mesh.position.distanceTo(lp);
       if (d < bestD) { bestD = d; nearest = a; }
     });
-    const soundWord = isSafari ? 'purring & roaring softly' : (isKyoto ? 'yipping happily' : 'meowing');
-    const placeText = nearest.hint || (isSafari ? 'somewhere out on the savanna' : (isKyoto ? 'somewhere nearby in Kyoto' : 'somewhere nearby in Tokyo'));
-    const hintText = 'Laila, I hear ' + nearest.name.split(' ')[0] + ' ' + soundWord + ' ' + placeText + '!';
+    const soundWord = isHome ? 'barking playfully' : (isSafari ? 'purring & roaring softly' : (isKyoto ? 'yipping happily' : 'meowing'));
+    const placeText = nearest.hint || 'somewhere nearby';
+    const hintText = 'I hear ' + nearest.name.split(' ')[0] + ' ' + soundWord + ' ' + placeText + '!';
     LS.setSalmaBubbleText(hintText, 5000);
-    LS.showToast(emoji + ' Salma Boost: ' + hintText);
+    LS.showToast(emoji + ' Sister Hint: ' + hintText);
   };
 
   function buildSingleBowl(mealType, bowlScale) {
     const g = new THREE.Group();
     const bs = bowlScale || 1.0;
 
-    if (mealType === 'tamago' || mealType === 'salmon' || mealType === 'sushi_boat') {
+    if (mealType === 'pasta' || mealType === 'grilled_salmon' || mealType === 'family_pizza') {
+      // Warm ceramic dinner plate for Family Dinner at Bella Bistro!
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.04, 16), LS.makeToonMat(0xfffaf2));
+      plate.position.y = 0.025;
+      g.add(plate);
+      const foodCol = mealType === 'pasta' ? 0xf4b942 : (mealType === 'grilled_salmon' ? 0xf27d52 : 0xe8a848);
+      const mound = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), LS.makeToonMat(foodCol));
+      mound.scale.set(1.1, 0.36, 1.0);
+      mound.position.y = 0.07;
+      g.add(mound);
+      const garnish = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), LS.makeToonMat(mealType === 'pasta' ? 0xd93838 : 0x4ca84c));
+      garnish.position.set(0.04, 0.12, 0.03);
+      g.add(garnish);
+    } else if (mealType === 'tamago' || mealType === 'salmon' || mealType === 'sushi_boat') {
       // Wooden Kyoto geta sushi board with colorful nigiri!
       const board = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.05, 0.24), LS.makeToonMat(0xd4a373));
       board.position.y = 0.03;
@@ -1916,6 +1948,15 @@ window.LailaSalma = window.LailaSalma || {};
     LS.chars.npcs.forEach((npc, idx) => {
       updateBlink(npc.model, dt, false);
       const dist = npc.model.root.position.distanceTo(playerPos);
+
+      if (npc.seated) {
+        npc.bubble.visible = dist < 4.5;
+        npc.model.leftLeg.rotation.x = -1.18;
+        npc.model.rightLeg.rotation.x = -1.18;
+        npc.model.rightArm.rotation.x = -0.72 + Math.sin(elapsed * 1.4 + idx) * 0.08;
+        LS.applyArticulatedPose(npc.model, 0, 'sit', elapsed + idx);
+        return;
+      }
 
       if (dist < 5.8) {
         const targetYaw = Math.atan2(

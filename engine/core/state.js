@@ -94,19 +94,92 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'meerkat', name: 'Meerkat Sentinel', emoji: '🐾', spot: 'Zebra Meadow Burrows', fact: 'Meerkats take turns standing tall on lookout duty, using their dark eye rings like built-in sunglasses in the bright sun!' }
   ];
 
+  LS.STORY_CHAPTERS = {
+    home_neighborhood: {
+      title: 'Chapter 1: Morning in Our Gated Community',
+      emoji: '🏡',
+      rewardCoins: 80,
+      rewardXp: 60,
+      steps: [
+        { id: 'home_snack', zoneId: 'enter_home_apartment', interiorZoneId: 'home_kitchen_snack', title: 'Grab a healthy snack in the Apartment Kitchen 🍎', hint: 'Step inside our Apartment Building and visit the Kitchen!' },
+        { id: 'home_piano', zoneId: 'enter_home_apartment', interiorZoneId: 'home_piano', title: 'Play a song on Laila\'s Piano for Mom & Dad 🎹', hint: 'Walk to the Dining Room piano where Mom & Dad are sipping coffee!' },
+        { id: 'home_dinner', zoneId: 'home_restaurant', title: 'Enjoy Family Dinner at Bella Bistro 🍽️', hint: 'Head out to the sunlit Bella Bistro restaurant in our community!' }
+      ]
+    },
+    tokyo: {
+      title: 'Chapter 2: Expanded Sakura-cho Discovery',
+      emoji: '🗼',
+      rewardCoins: 100,
+      rewardXp: 75,
+      steps: [
+        { id: 'tokyo_teacher', zoneId: 'tokyo_teacher_quiz', title: 'Meet Sensei Haruka for a Tokyo Quiz 👩‍🏫', hint: 'Find Sensei Haruka standing in Central Sakura Plaza!' },
+        { id: 'tokyo_ramen', zoneId: 'ramen', title: 'Share a warm bowl at Ichiban Ramen 🍜', hint: 'Master Ken is cooking hot ramen along Sakura-cho Street!' },
+        { id: 'tokyo_crepes', zoneId: 'tokyo_crepes', title: 'Treat yourselves at Harajuku Crêpe Plaza 🍓', hint: 'Visit the sweet new Crêpe & Sakura Tea Plaza in West Tokyo!' }
+      ]
+    },
+    kyoto: {
+      title: 'Chapter 3: Lanterns of Kyoto & Gion',
+      emoji: '⛩️',
+      rewardCoins: 100,
+      rewardXp: 75,
+      steps: [
+        { id: 'kyoto_teacher', zoneId: 'kyoto_teacher_quiz', title: 'Quiz with Sensei Kenji by the Koi Lake 👨‍🏫', hint: 'Meet Sensei Kenji near Sakurako Lakeside Promenade!' },
+        { id: 'kyoto_koi', zoneId: 'koi_dock', title: 'Feed the Koi Fish & Ducks at Sakurako Lake 🐟', hint: 'Walk down to the wooden lake dock to feed the koi!' },
+        { id: 'kyoto_shrine', zoneId: 'shrine_omikuji', title: 'Draw an Omikuji Fortune at Sakurako Shrine ⛩️', hint: 'Cross the bridge through the vermilion torii gates!' }
+      ]
+    },
+    safari: {
+      title: 'Chapter 4: Golden Savanna Adventure',
+      emoji: '🦁',
+      rewardCoins: 120,
+      rewardXp: 90,
+      steps: [
+        { id: 'safari_teacher', zoneId: 'safari_academy', title: 'Take a Wildlife Quiz with Dr. Kofi 🦒', hint: 'Dr. Kofi is waiting at Safari Base Camp!' },
+        { id: 'safari_feed', zoneId: 'safari_feed_giraffe', title: 'Feed the Gentle Giraffes at Acacia Sanctuary 🌿', hint: 'Follow the trail west to the Tall Giraffe platform!' },
+        { id: 'safari_jeep', zoneId: 'safari_jeep', title: 'Ride the Safari Jeep across the Savanna 🚙', hint: 'Hop into the zebra-striped Safari Jeep at Base Camp!' }
+      ]
+    }
+  };
+
+  const COZY_MISSION_POOL = [
+    { type: 'quiz', title: 'Complete a Quiz with any Teacher', emoji: '👩‍🏫', rewardCoins: 35, rewardXp: 25 },
+    { type: 'meal', title: 'Share a Snack, Ramen, Sushi or Dinner', emoji: '🍽️', rewardCoins: 30, rewardXp: 20 },
+    { type: 'pet', title: 'Find a Hidden Puppy, Cat, Fox or Cub', emoji: '🐾', rewardCoins: 35, rewardXp: 25 },
+    { type: 'music', title: 'Play Piano or Safari Djembe Drums', emoji: '🎹', rewardCoins: 30, rewardXp: 20 },
+    { type: 'play', title: 'Play TV Star-Catcher, Park or Mochi Game', emoji: '🎮', rewardCoins: 30, rewardXp: 25 },
+    { type: 'swap', title: 'Swap Leaders (Laila ⇄ Salma) & Wave', emoji: '👧', rewardCoins: 25, rewardXp: 15 }
+  ];
+
+  function buildCozyMissions(seed) {
+    const out = [];
+    const n = COZY_MISSION_POOL.length;
+    for (let i = 0; i < 3; i++) {
+      const src = COZY_MISSION_POOL[(seed * 2 + i) % n];
+      out.push(Object.assign({ id: 'm_' + seed + '_' + i, done: false }, src));
+    }
+    return out;
+  }
+
   function makeDefaultState() {
+    const defQuality = (LS.ghibli && LS.ghibli.detectDefaultQuality) ? LS.ghibli.detectDefaultQuality() : 'balanced';
     return {
-      currentWorld: 'tokyo',
+      currentWorld: 'home_neighborhood',
+      quality: defQuality,
+      activeLeader: 'laila',
       level: 1,
       xp: 0,
       coins: 200,
+      lastCompletedWindowHome: -1,
       lastCompletedWindowTokyo: -1,
       lastCompletedWindowKyoto: -1,
       lastCompletedWindowSafari: -1,
       demoOffsetWindows: 0,
       timeMode: 0,
       grainEnabled: true,
-      soundEnabled: false,
+      soundEnabled: true,
+      foundHomePets: [],
+      homePetsCompletedAt: 0,
+      homePetsRound: 0,
       foundCats: [],
       catsCompletedAt: 0,
       catsRound: 0,
@@ -116,6 +189,9 @@ window.LailaSalma = window.LailaSalma || {};
       foundLionCubs: [],
       lionCubsCompletedAt: 0,
       lionCubsRound: 0,
+      storyProgress: { home_neighborhood: 0, tokyo: 0, kyoto: 0, safari: 0 },
+      cozyMissionSeed: 1,
+      cozyMissions: buildCozyMissions(1),
       unlockedOutfits: ['laila_school', 'salma_kinder'],
       equippedLaila: 'laila_school',
       equippedSalma: 'salma_kinder',
@@ -146,11 +222,17 @@ window.LailaSalma = window.LailaSalma || {};
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return makeDefaultState();
       const parsed = JSON.parse(raw);
-      // Never resume stranded inside an interior without parent context; default to valid world
-      const startW = (parsed.currentWorld === 'kyoto' || parsed.currentWorld === 'tokyo' || parsed.currentWorld === 'safari')
-        ? parsed.currentWorld : 'tokyo';
-      return Object.assign(makeDefaultState(), parsed, {
+      const validOutdoors = ['home_neighborhood', 'tokyo', 'kyoto', 'safari'];
+      const startW = validOutdoors.includes(parsed.currentWorld) ? parsed.currentWorld : 'home_neighborhood';
+      const def = makeDefaultState();
+      const sp = Object.assign({}, def.storyProgress, parsed.storyProgress || {});
+      return Object.assign(def, parsed, {
         currentWorld: startW,
+        quality: (parsed.quality === 'high' || parsed.quality === 'balanced' || parsed.quality === 'lite') ? parsed.quality : def.quality,
+        activeLeader: parsed.activeLeader === 'salma' ? 'salma' : 'laila',
+        storyProgress: sp,
+        cozyMissions: Array.isArray(parsed.cozyMissions) && parsed.cozyMissions.length === 3 ? parsed.cozyMissions : def.cozyMissions,
+        foundHomePets: Array.isArray(parsed.foundHomePets) ? parsed.foundHomePets.slice() : [],
         foundCats: Array.isArray(parsed.foundCats) ? parsed.foundCats.slice() : [],
         foundKitsune: Array.isArray(parsed.foundKitsune) ? parsed.foundKitsune.slice() : [],
         foundLionCubs: Array.isArray(parsed.foundLionCubs) ? parsed.foundLionCubs.slice() : [],
@@ -170,6 +252,8 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.state = loadState();
   LS.runtime = {
+    titleScreenActive: true,
+    audioUnlocked: false,
     stamina: 100,
     running: false,
     runToggle: false,
@@ -203,17 +287,95 @@ window.LailaSalma = window.LailaSalma || {};
     } catch (e) {}
   };
 
+  LS.getActiveStoryStep = function (worldId) {
+    const wid = worldId || LS.state.currentWorld;
+    const baseWid = (wid === 'home_apartment') ? 'home_neighborhood' : wid;
+    const chap = LS.STORY_CHAPTERS[baseWid];
+    if (!chap) return null;
+    const idx = (LS.state.storyProgress && LS.state.storyProgress[baseWid]) || 0;
+    if (idx >= chap.steps.length) return null;
+    const step = chap.steps[idx];
+    return {
+      worldId: baseWid,
+      index: idx,
+      total: chap.steps.length,
+      chapterTitle: chap.title,
+      step: step,
+      targetZoneId: (wid === 'home_apartment' && step.interiorZoneId) ? step.interiorZoneId : step.zoneId
+    };
+  };
+
+  LS.advanceStoryStep = function (worldId, stepId) {
+    const baseWid = (worldId === 'home_apartment') ? 'home_neighborhood' : worldId;
+    const chap = LS.STORY_CHAPTERS[baseWid];
+    if (!chap) return false;
+    if (!LS.state.storyProgress) LS.state.storyProgress = {};
+    const curIdx = LS.state.storyProgress[baseWid] || 0;
+    if (curIdx >= chap.steps.length) return false;
+    if (chap.steps[curIdx].id !== stepId) return false;
+    LS.state.storyProgress[baseWid] = curIdx + 1;
+    LS.saveState();
+    if (curIdx + 1 >= chap.steps.length) {
+      LS.addCoins(chap.rewardCoins);
+      LS.addXP(chap.rewardXp);
+      LS.playSFX('levelup');
+      LS.showToast('📖✨ Chapter Complete: ' + chap.title + '! +' + chap.rewardCoins + 'c & +' + chap.rewardXp + ' XP!');
+    } else {
+      LS.addCoins(20);
+      LS.addXP(15);
+      LS.playSFX('stamp');
+      const nextStep = chap.steps[curIdx + 1];
+      LS.showToast('📖 Quest Step Done! Next: ' + nextStep.title);
+    }
+    return true;
+  };
+
+  LS.completeCozyMission = function (type) {
+    if (!Array.isArray(LS.state.cozyMissions)) LS.state.cozyMissions = buildCozyMissions(1);
+    let hit = false;
+    LS.state.cozyMissions.forEach(m => {
+      if (!m.done && m.type === type) {
+        m.done = true;
+        hit = true;
+        LS.addCoins(m.rewardCoins);
+        LS.addXP(m.rewardXp);
+        LS.showToast('🌟 Cozy Mission Done: ' + m.title + ' (+' + m.rewardCoins + 'c, +' + m.rewardXp + ' XP)!');
+      }
+    });
+    if (hit) {
+      const allDone = LS.state.cozyMissions.every(m => m.done);
+      if (allDone) {
+        LS.state.cozyMissionSeed = (LS.state.cozyMissionSeed || 1) + 1;
+        setTimeout(() => {
+          LS.state.cozyMissions = buildCozyMissions(LS.state.cozyMissionSeed);
+          LS.saveState();
+          LS.showToast('📋 Fresh Cozy Missions posted in your Storybook Journal!');
+        }, 1800);
+      }
+      LS.saveState();
+    }
+    return hit;
+  };
+
+  LS.refreshCozyMissions = function () {
+    LS.state.cozyMissionSeed = (LS.state.cozyMissionSeed || 1) + 1;
+    LS.state.cozyMissions = buildCozyMissions(LS.state.cozyMissionSeed);
+    LS.saveState();
+  };
+
   LS.resetProgress = function () {
     const keepSound = !!LS.state.soundEnabled;
     const keepGrain = LS.state.grainEnabled !== false;
+    const keepQuality = LS.state.quality || 'balanced';
     try {
       localStorage.removeItem(SAVE_KEY);
     } catch (e) {}
 
-    // Fresh state with brand-new arrays while preserving audio & paper-grain preferences
+    // Fresh state with brand-new arrays while preserving audio, grain & quality preferences
     const fresh = makeDefaultState();
     fresh.soundEnabled = keepSound;
     fresh.grainEnabled = keepGrain;
+    fresh.quality = keepQuality;
     Object.keys(LS.state).forEach(k => { delete LS.state[k]; });
     Object.assign(LS.state, fresh);
 
@@ -236,16 +398,25 @@ window.LailaSalma = window.LailaSalma || {};
       LS.applyOutfit('salma', LS.state.equippedSalma);
     }
     if (LS.closeAllModals) LS.closeAllModals();
-    if (LS.loadWorld) LS.loadWorld('tokyo', false);
+    if (LS.loadWorld) LS.loadWorld('home_neighborhood', false);
     LS.updateHUD();
     LS.playSFX('coin');
-    LS.showToast('🔄 Progress reset! Welcome to a brand-new adventure, Laila & Salma!');
+    LS.showToast('🔄 Progress reset! Welcome back home, Laila & Salma!');
   };
 
   // 2-Hour Animal Hide-and-Seek Reset Logic
   LS.checkAnimalReset = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
     const now = Date.now();
+    if (wid === 'home_neighborhood' && LS.state.foundHomePets && LS.state.foundHomePets.length >= 5 && LS.state.homePetsCompletedAt > 0) {
+      if (now - LS.state.homePetsCompletedAt >= ANIMAL_RESET_MS) {
+        LS.state.foundHomePets = [];
+        LS.state.homePetsCompletedAt = 0;
+        LS.state.homePetsRound = (LS.state.homePetsRound || 0) + 1;
+        LS.saveState();
+        return true;
+      }
+    }
     if (wid === 'tokyo' && LS.state.foundCats.length >= 5 && LS.state.catsCompletedAt > 0) {
       if (now - LS.state.catsCompletedAt >= ANIMAL_RESET_MS) {
         LS.state.foundCats = [];
@@ -279,6 +450,9 @@ window.LailaSalma = window.LailaSalma || {};
   LS.getAnimalResetRemainingMs = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
     const now = Date.now();
+    if (wid === 'home_neighborhood' && LS.state.foundHomePets && LS.state.foundHomePets.length >= 5 && LS.state.homePetsCompletedAt > 0) {
+      return Math.max(0, ANIMAL_RESET_MS - (now - LS.state.homePetsCompletedAt));
+    }
     if (wid === 'tokyo' && LS.state.foundCats.length >= 5 && LS.state.catsCompletedAt > 0) {
       return Math.max(0, ANIMAL_RESET_MS - (now - LS.state.catsCompletedAt));
     }
@@ -293,7 +467,11 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.startNewAnimalRound = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
-    if (wid === 'kyoto') {
+    if (wid === 'home_neighborhood') {
+      LS.state.foundHomePets = [];
+      LS.state.homePetsCompletedAt = 0;
+      LS.state.homePetsRound = (LS.state.homePetsRound || 0) + 1;
+    } else if (wid === 'kyoto') {
       LS.state.foundKitsune = [];
       LS.state.kitsuneCompletedAt = 0;
       LS.state.kitsuneRound = (LS.state.kitsuneRound || 0) + 1;
@@ -311,11 +489,13 @@ window.LailaSalma = window.LailaSalma || {};
       LS.loadWorld(wid, false);
     }
     LS.playSFX('animal');
-    LS.showToast(wid === 'safari'
-      ? '🦁 New Hide-and-Seek Round! All 5 Safari Lion Cubs hid in brand-new spots!'
-      : (wid === 'kyoto'
-        ? '🦊 New Hide-and-Seek Round! All 5 Kyoto Kitsune hid in brand-new spots!'
-        : '🐱 New Hide-and-Seek Round! All 5 Tokyo Cats hid in brand-new spots!'));
+    LS.showToast(wid === 'home_neighborhood'
+      ? '🐶 New Hide-and-Seek Round! All 5 Community Puppies hid in brand-new spots!'
+      : (wid === 'safari'
+        ? '🦁 New Hide-and-Seek Round! All 5 Safari Lion Cubs hid in brand-new spots!'
+        : (wid === 'kyoto'
+          ? '🦊 New Hide-and-Seek Round! All 5 Kyoto Kitsune hid in brand-new spots!'
+          : '🐱 New Hide-and-Seek Round! All 5 Tokyo Cats hid in brand-new spots!')));
   };
 
   // Deterministic seeded pick of 5 hiding spots from a larger curated list based on round number
@@ -384,9 +564,11 @@ window.LailaSalma = window.LailaSalma || {};
   LS.getQuizCooldownMs = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
     const cur = LS.getCurrentQuizWindow();
-    const last = wid === 'safari'
-      ? LS.state.lastCompletedWindowSafari
-      : (wid === 'kyoto' ? LS.state.lastCompletedWindowKyoto : LS.state.lastCompletedWindowTokyo);
+    const last = wid === 'home_neighborhood'
+      ? LS.state.lastCompletedWindowHome
+      : (wid === 'safari'
+        ? LS.state.lastCompletedWindowSafari
+        : (wid === 'kyoto' ? LS.state.lastCompletedWindowKyoto : LS.state.lastCompletedWindowTokyo));
     if (last < cur) return 0;
     const realWindow = Math.floor(Date.now() / QUIZ_WINDOW_MS);
     const nextRealBoundary = (realWindow + 1) * QUIZ_WINDOW_MS;
@@ -396,21 +578,29 @@ window.LailaSalma = window.LailaSalma || {};
   LS.markQuizCompleted = function (worldId) {
     const wid = worldId || LS.state.currentWorld;
     const cur = LS.getCurrentQuizWindow();
-    if (wid === 'safari') {
+    if (wid === 'home_neighborhood') {
+      LS.state.lastCompletedWindowHome = cur;
+      LS.unlockStamp('home_school');
+    } else if (wid === 'safari') {
       LS.state.lastCompletedWindowSafari = cur;
+      LS.advanceStoryStep('safari', 'safari_teacher');
     } else if (wid === 'kyoto') {
       LS.state.lastCompletedWindowKyoto = cur;
+      LS.advanceStoryStep('kyoto', 'kyoto_teacher');
     } else {
       LS.state.lastCompletedWindowTokyo = cur;
       LS.unlockStamp('tokyo_quiz');
+      LS.advanceStoryStep('tokyo', 'tokyo_teacher');
     }
+    LS.completeCozyMission('quiz');
     LS.saveState();
   };
 
   LS.updateHUD = function () {
-    const worldMeta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
+    const worldMeta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.home_neighborhood;
+    const isHomeContext = LS.state.currentWorld === 'home_neighborhood' || LS.state.currentWorld === 'home_apartment';
     const isKyotoContext = LS.state.currentWorld === 'kyoto' || LS.state.currentWorld === 'kyoto_room';
-    const isSafariContext = LS.state.currentWorld === 'safari';
+    const isSafariContext = LS.state.currentWorld === 'safari' || LS.state.currentWorld === 'safari_tent';
     const lvEl = document.getElementById('hud-level');
     const worldBadge = document.getElementById('hud-world-badge');
     const xpBar = document.getElementById('xp-bar');
@@ -423,9 +613,18 @@ window.LailaSalma = window.LailaSalma || {};
     const stampEl = document.getElementById('stamp-count');
     const buffPill = document.getElementById('buff-pill');
     const mochiHud = document.getElementById('mochi-game-banner');
+    const questHint = document.getElementById('hud-quest-hint');
+    const swapBtn = document.getElementById('btn-swap-sister');
 
     const need = LS.xpForLevel(LS.state.level);
-    if (lvEl) lvEl.textContent = 'Lv. ' + LS.state.level + ' • Laila (9) & Salma (5)';
+    const leaderTxt = LS.state.activeLeader === 'salma' ? '🧒 Salma Leading' : '👧 Laila Leading';
+    if (lvEl) lvEl.textContent = 'Lv. ' + LS.state.level + ' • ' + leaderTxt;
+    if (swapBtn) {
+      swapBtn.textContent = LS.state.activeLeader === 'salma' ? '🧒⇄👧' : '👧⇄🧒';
+      swapBtn.title = LS.state.activeLeader === 'salma'
+        ? 'Currently playing as Salma — Tap to switch to Laila!'
+        : 'Currently playing as Laila — Tap to switch to Salma!';
+    }
     if (worldBadge) {
       worldBadge.textContent = worldMeta.emoji + ' ' + worldMeta.title;
       worldBadge.style.background = worldMeta.badgeColor;
@@ -437,7 +636,11 @@ window.LailaSalma = window.LailaSalma || {};
     if (coinEl) coinEl.textContent = LS.state.coins;
 
     if (animalPill) {
-      if (isSafariContext) {
+      if (isHomeContext) {
+        const hCount = LS.state.foundHomePets ? LS.state.foundHomePets.length : 0;
+        animalPill.innerHTML = '🐶 <span id="cat-count">' + hCount + '/5</span>';
+        animalPill.title = 'Hidden Community Puppies Found (resets 2h after 5/5)';
+      } else if (isSafariContext) {
         const sCount = LS.state.foundLionCubs ? LS.state.foundLionCubs.length : 0;
         animalPill.innerHTML = '🦁 <span id="cat-count">' + sCount + '/5</span>';
         animalPill.title = 'Hidden Safari Lion Cubs Found (resets 2h after 5/5)';
@@ -449,6 +652,17 @@ window.LailaSalma = window.LailaSalma || {};
         const cCount = LS.state.foundCats ? LS.state.foundCats.length : 0;
         animalPill.innerHTML = '🐱 <span id="cat-count">' + cCount + '/5</span>';
         animalPill.title = 'Hidden Tokyo Cats Found (resets 2h after 5/5)';
+      }
+    }
+
+    if (questHint) {
+      const activeQ = LS.getActiveStoryStep(LS.state.currentWorld);
+      if (activeQ) {
+        questHint.textContent = '📖 ' + (activeQ.index + 1) + '/' + activeQ.total + ': ' + activeQ.step.title;
+        questHint.classList.remove('hidden');
+      } else {
+        questHint.textContent = '📖 Chapter Complete! Tap 📖 for Cozy Missions';
+        questHint.classList.remove('hidden');
       }
     }
 
@@ -513,6 +727,11 @@ window.LailaSalma = window.LailaSalma || {};
     return audioCtx;
   }
 
+  LS.unlockAudio = function () {
+    LS.runtime.audioUnlocked = true;
+    getAudio();
+  };
+
   LS.playTone = function (freq, duration, type, delaySec, gainVal) {
     if (!LS.state.soundEnabled) return;
     try {
@@ -530,6 +749,18 @@ window.LailaSalma = window.LailaSalma || {};
       osc.start(now);
       osc.stop(now + (duration || 0.15) + 0.02);
     } catch (e) {}
+  };
+
+  // Laila's warm upright acoustic piano synthesizer (8-key C4..C5 scale!)
+  const PIANO_FREQS = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+  LS.playPianoNote = function (idx, delaySec, vol) {
+    if (!LS.state.soundEnabled) return;
+    const freq = PIANO_FREQS[Math.max(0, Math.min(PIANO_FREQS.length - 1, idx || 0))];
+    const d = delaySec || 0;
+    const v = vol || 0.11;
+    // Fundamental + warm harmonic overtone for rich Ghibli upright piano timbre!
+    LS.playTone(freq, 0.72, 'triangle', d, v);
+    LS.playTone(freq * 2, 0.42, 'sine', d, v * 0.34);
   };
 
   LS.playSFX = function (kind) {
@@ -607,7 +838,6 @@ window.LailaSalma = window.LailaSalma || {};
         gain.gain.setValueAtTime(0.11, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
       } else {
-        // Warm wooden savanna marimba chord note!
         const notes = [392, 440, 523.25, 587.33, 659.25];
         const f = notes[Math.floor(Math.random() * notes.length)];
         osc.type = 'sine';
@@ -641,7 +871,6 @@ window.LailaSalma = window.LailaSalma || {};
       gain.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 0.95);
-      // Warm friendly golden savanna marimba echo
       LS.playTone(392, 0.22, 'triangle', 0.32, 0.06);
       LS.playTone(523.25, 0.32, 'sine', 0.48, 0.07);
     } catch (e) {}
@@ -654,30 +883,56 @@ window.LailaSalma = window.LailaSalma || {};
     LS.playTone(1174.66, 0.14, 'sine', 0.08, 0.07);
   };
 
+  // Studio Ghibli Gentle Procedural WebAudio Music Engine (Joe Hisaishi-inspired piano/celesta, koto, kalimba!)
+  let musicTimer = 0.8;
+  let musicStep = 0;
+  const GHIBLI_THEMES = {
+    home:   { tempo: 0.62, type: 'triangle', vol: 0.028, notes: [523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 440.00, 523.25, 392.00, 523.25, 659.25, 880.00, 783.99, 659.25, 587.33, 0] },
+    indoor: { tempo: 0.72, type: 'sine',     vol: 0.024, notes: [523.25, 659.25, 783.99, 987.77, 880.00, 783.99, 659.25, 0, 440.00, 523.25, 659.25, 783.99, 659.25, 587.33, 523.25, 0] },
+    tokyo:  { tempo: 0.56, type: 'triangle', vol: 0.026, notes: [587.33, 659.25, 739.99, 880.00, 987.77, 880.00, 739.99, 659.25, 587.33, 493.88, 587.33, 739.99, 880.00, 739.99, 659.25, 0] },
+    kyoto:  { tempo: 0.74, type: 'sine',     vol: 0.026, notes: [440.00, 493.88, 523.25, 659.25, 783.99, 659.25, 523.25, 493.88, 440.00, 0, 523.25, 659.25, 783.99, 659.25, 493.88, 0] },
+    safari: { tempo: 0.52, type: 'sine',     vol: 0.028, notes: [392.00, 440.00, 523.25, 659.25, 587.33, 523.25, 440.00, 392.00, 523.25, 587.33, 659.25, 783.99, 659.25, 523.25, 440.00, 0] }
+  };
+
+  LS.tickGhibliMusic = function (dt) {
+    if (!LS.state.soundEnabled || !LS.runtime.audioUnlocked) return;
+    if (LS.runtime.modalOpen) return; // stay quiet while playing piano or quizzes!
+    musicTimer -= dt;
+    if (musicTimer > 0) return;
+
+    const wid = LS.state.currentWorld;
+    const meta = LS.WORLDS[wid];
+    const themeKey = (meta && meta.isInterior) ? 'indoor'
+      : (wid === 'kyoto' ? 'kyoto' : (wid === 'safari' ? 'safari' : (wid === 'tokyo' ? 'tokyo' : 'home')));
+    const theme = GHIBLI_THEMES[themeKey] || GHIBLI_THEMES.home;
+    musicTimer = theme.tempo;
+
+    const freq = theme.notes[musicStep % theme.notes.length];
+    if (freq > 0) {
+      LS.playTone(freq, theme.tempo * 1.45, theme.type, 0, theme.vol);
+      // Warm soft bass root every 4 beats
+      if (musicStep % 4 === 0) {
+        LS.playTone(freq * 0.5, theme.tempo * 2.2, 'sine', 0, theme.vol * 0.65);
+      }
+    }
+    musicStep = (musicStep + 1) % 64;
+  };
+
   // Gentle ambient African Savanna soundscape (soft periodic bird chirps & warm marimba breeze notes)
   let safariAmbTimer = 3.5;
   LS.tickSafariAmbience = function (dt) {
-    if (!LS.state.soundEnabled || LS.state.currentWorld !== 'safari') return;
+    if (!LS.state.soundEnabled || !LS.runtime.audioUnlocked || LS.state.currentWorld !== 'safari') return;
     safariAmbTimer -= dt;
     if (safariAmbTimer > 0) return;
-    safariAmbTimer = 5.5 + Math.random() * 5.0;
+    safariAmbTimer = 6.5 + Math.random() * 5.0;
     const roll = Math.random();
-    if (roll < 0.48) {
-      // Soft distant savanna bird chirp
+    if (roll < 0.6) {
       const f = 1480 + Math.random() * 520;
-      LS.playTone(f, 0.07, 'sine', 0, 0.025);
-      LS.playTone(f * 1.18, 0.09, 'sine', 0.09, 0.022);
-    } else if (roll < 0.82) {
-      // Warm gentle wooden marimba breeze motif
-      const scale = [392, 440, 523.25, 587.33, 659.25];
-      const a = scale[Math.floor(Math.random() * scale.length)];
-      const b = scale[Math.floor(Math.random() * scale.length)];
-      LS.playTone(a, 0.26, 'sine', 0, 0.028);
-      LS.playTone(b, 0.30, 'sine', 0.24, 0.024);
+      LS.playTone(f, 0.07, 'sine', 0, 0.022);
+      LS.playTone(f * 1.18, 0.09, 'sine', 0.09, 0.018);
     } else {
-      // Soft distant savanna water shimmer
-      LS.playTone(520, 0.14, 'sine', 0, 0.018);
-      LS.playTone(690, 0.18, 'sine', 0.12, 0.016);
+      LS.playTone(520, 0.14, 'sine', 0, 0.016);
+      LS.playTone(690, 0.18, 'sine', 0.12, 0.014);
     }
   };
 })(window.LailaSalma);

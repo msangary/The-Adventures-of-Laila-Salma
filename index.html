@@ -3,22 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>The Adventures of Laila &amp; Salma — Tokyo &amp; Kyoto</title>
+  <title>The Adventures of Laila &amp; Salma — Studio Ghibli Edition</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>" />
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 </head>
-<body>
+<body class="on-title-screen">
   <div id="game-container"></div>
   <div id="grain-overlay" class="grain-active"></div>
   <div id="camera-flash" class="hidden"></div>
 
-  <!-- Shinkansen Bullet Train World Transition Overlay -->
+  <!-- Live 3D Studio Ghibli Home / Title Screen Overlay (Laila & Salma run around live behind!) -->
+  <div id="title-screen">
+    <div class="title-top-banner">
+      <div class="title-badge">✨ Studio Ghibli Edition ✨</div>
+      <h1 class="title-logo">The Adventures of<br /><span>Laila &amp; Salma</span></h1>
+      <p class="title-tagline">🏡 Home Community • 🗼 Tokyo • ⛩️ Kyoto • 🦁 African Safari</p>
+    </div>
+    <div class="title-bottom-cta">
+      <button id="btn-play-adventure" class="btn-play-hero" type="button">🌸 Play Adventure</button>
+      <div class="title-sub-hint">Tap to start with gentle Studio Ghibli music 🎹</div>
+    </div>
+  </div>
+
+  <!-- World Transition Overlay (Magic Globe / Shinkansen / Flight) -->
   <div id="travel-overlay" class="hidden">
     <div class="travel-card parchment-card">
-      <div class="train-anim">🚅💨</div>
-      <h2 id="travel-title">Shinkansen Express</h2>
-      <p id="travel-sub">Zooming across Japan with Laila, Salma &amp; Mochi...</p>
+      <div class="train-anim">🌍✨</div>
+      <h2 id="travel-title">Magic World Globe</h2>
+      <p id="travel-sub">Whooshing across the world with Laila &amp; Salma...</p>
     </div>
   </div>
 
@@ -39,11 +60,11 @@
         <div class="hud-title-row">
           <span class="player-name">Laila &amp; Salma</span>
           <span style="display:flex;align-items:center;gap:4px;">
-            <span id="hd-badge" class="hd-badge hidden">HD</span>
-            <span id="hud-world-badge" class="world-badge">🗼 Tokyo</span>
+            <span id="hd-badge" class="hd-badge">GHIBLI</span>
+            <span id="hud-world-badge" class="world-badge">🏡 Home</span>
           </span>
         </div>
-        <div class="player-sub" id="hud-level">Lv. 1 • Laila (9) &amp; Salma (5)</div>
+        <div class="player-sub" id="hud-level">Lv. 1 • 👧 Laila Leading</div>
       </div>
       <button id="btn-hud-collapse" class="hud-collapse-btn" type="button" title="Collapse/Expand HUD (H)" aria-label="Collapse or expand status box">▾</button>
     </div>
@@ -60,22 +81,25 @@
       </div>
       <div class="hud-footer">
         <span class="coin-pill">🪙 <span id="coin-count">200</span>c</span>
-        <span id="cat-pill" class="cat-pill" title="Hidden Friends Found">🐱 <span id="cat-count">0/5</span></span>
-        <span id="stamp-pill" class="stamp-pill" title="Travel Passport Stamps">🛂 <span id="stamp-count">0/8</span></span>
-        <span id="toy-pill" class="toy-pill" title="Capsule Toys Collected">🎁 <span id="toy-count">0/6</span></span>
+        <span id="cat-pill" class="cat-pill" title="Hidden Friends Found">🐶 <span id="cat-count">0/5</span></span>
+        <span id="stamp-pill" class="stamp-pill" title="Travel Passport Stamps">🛂 <span id="stamp-count">0/25</span></span>
+        <span id="toy-pill" class="toy-pill" title="Capsule Toys Collected">🎁 <span id="toy-count">0/18</span></span>
       </div>
+      <div id="hud-quest-hint" class="quest-hint-pill" title="Tap to open Storybook Journal (B)">📖 Chapter 1</div>
       <div id="buff-pill" class="buff-pill hidden">🧃 Buff</div>
     </div>
   </div>
 
-  <!-- Top-Right Round Icon Buttons -->
+  <!-- Top-Right Round Icon Buttons (Android Phone-Friendly!) -->
   <div id="hud-top-right">
-    <button id="btn-graphics-mode" class="graphics-btn" title="Switch Graphics Edition">✨ HD</button>
+    <button id="btn-graphics-mode" class="graphics-btn hd-active" title="Cycle Graphics Quality: High / Balanced / Lite">⚖️ Balanced</button>
+    <button id="btn-swap-sister" class="icon-btn swap-btn" title="Swap Leader: Play as Laila or Salma (T)">👧⇄🧒</button>
+    <button id="btn-quests" class="icon-btn quest-btn" title="Storybook Adventure Journal &amp; Cozy Missions (B)">📖</button>
     <button id="btn-safari-camera" class="icon-btn hidden" title="Safari Wildlife Camera &amp; 7-Animal Field Guide (F to Snap)">📸</button>
     <button id="btn-passport" class="icon-btn passport-btn" title="World Map &amp; Travel Passport (P)">🗺️</button>
     <button id="btn-time" class="icon-btn" title="Cycle Time of Day">🌤️</button>
     <button id="btn-grain" class="icon-btn active" title="Toggle Watercolor Paper Grain">🎨</button>
-    <button id="btn-sound" class="icon-btn" title="Toggle Sound">🔇</button>
+    <button id="btn-sound" class="icon-btn" title="Toggle Music &amp; Sound">🔊</button>
     <button id="btn-front-cam" class="icon-btn" title="Front View Camera (C): Laila -> Salma -> Off">📷</button>
     <button id="btn-pose" class="icon-btn" title="Sister Jump High-Five &amp; Friend Hint (V)">👋</button>
   </div>
@@ -576,12 +600,156 @@
     </div>
   </div>
 
-  <!-- Load Shared Engine & World Modules -->
+  <!-- Home Apartment Kitchen Healthy Snacks Modal -->
+  <div id="kitchen-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>🍎 Home Kitchen — Healthy Snacks</h2>
+        <button class="close-btn" data-close="kitchen-modal">✕</button>
+      </div>
+      <p class="ramen-sub">Pick a delicious, healthy snack from Laila &amp; Salma's home kitchen for full energy, fun boosts &amp; +15 XP!</p>
+      <div class="ramen-menu">
+        <div class="ramen-item">
+          <div>
+            <strong>🍎 Crisp Apple Slices &amp; Almond Butter</strong>
+            <div class="ramen-desc">Crunchy &amp; sweet • +24% Run Speed &amp; Infinite Stamina (90s)</div>
+          </div>
+          <button class="btn-primary pick-snack" data-snack="apple">Enjoy 🍎</button>
+        </div>
+        <div class="ramen-item">
+          <div>
+            <strong>🫐 Berry Yogurt Parfait</strong>
+            <div class="ramen-desc">Blueberries &amp; honey • Sparkle Trail + Speed Boost (90s)</div>
+          </div>
+          <button class="btn-primary pick-snack" data-snack="yogurt">Enjoy 🫐</button>
+        </div>
+        <div class="ramen-item featured">
+          <div>
+            <strong>🥕 Rainbow Veggies &amp; Hummus ⭐</strong>
+            <div class="ramen-desc">Super healthy energy • Super-Jump + Infinite Stamina (90s)</div>
+          </div>
+          <button class="btn-primary pick-snack" data-snack="veggies">Enjoy 🥕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Laila's Dining Room Piano Modal -->
+  <div id="piano-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>🎹 Laila's Upright Piano</h2>
+        <button class="close-btn" data-close="piano-modal">✕</button>
+      </div>
+      <p class="ramen-sub">Mom &amp; Dad are sitting at the dining table sipping warm coffee ☕ — tap the keys to play a melody for them!</p>
+      <div class="piano-keyboard">
+        <button class="piano-key" data-note="0" type="button">C</button>
+        <button class="piano-key" data-note="1" type="button">D</button>
+        <button class="piano-key" data-note="2" type="button">E</button>
+        <button class="piano-key" data-note="3" type="button">F</button>
+        <button class="piano-key" data-note="4" type="button">G</button>
+        <button class="piano-key" data-note="5" type="button">A</button>
+        <button class="piano-key" data-note="6" type="button">B</button>
+        <button class="piano-key" data-note="7" type="button">C5</button>
+      </div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button id="btn-play-ghibli-song" class="btn-primary" type="button">✨ Play Laila's Ghibli Song! (+15c, +20 XP)</button>
+      </div>
+      <div id="piano-msg" class="ramen-msg"></div>
+    </div>
+  </div>
+
+  <!-- TV & Video Game Room Modal -->
+  <div id="tv-game-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>📺 Sisters' TV &amp; Game Room 🎮</h2>
+        <button class="close-btn" data-close="tv-game-modal">✕</button>
+      </div>
+      <p class="ramen-sub">Relax on the cozy sofa! Watch a Studio Ghibli cartoon or play the 15-second Star-Catcher video game!</p>
+      <div id="tv-stage" class="tv-screen-box"></div>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button id="btn-watch-cartoon" class="btn-secondary" type="button">📺 Watch Cozy Cartoon</button>
+        <button id="btn-start-tv-game" class="btn-primary" type="button">🎮 Play Star-Catcher (15s)</button>
+      </div>
+      <div id="tv-game-msg" class="ramen-msg"></div>
+    </div>
+  </div>
+
+  <!-- Bella Bistro Family Dinner Modal -->
+  <div id="home-restaurant-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>🍽️ Bella Bistro — Family Dinner</h2>
+        <button class="close-btn" data-close="home-restaurant-modal">✕</button>
+      </div>
+      <p class="ramen-sub">“Buonasera, Laila &amp; Salma! Sit together at our candlelit patio table for a cozy family dinner!”</p>
+      <div class="ramen-menu">
+        <div class="ramen-item">
+          <div>
+            <strong>🍝 Creamy Tomato Pasta</strong>
+            <div class="ramen-desc">Warm homemade pasta • Speed +28% &amp; Infinite Stamina (+20 XP)</div>
+          </div>
+          <button class="btn-primary buy-bistro" data-bistro="pasta">25c</button>
+        </div>
+        <div class="ramen-item">
+          <div>
+            <strong>🐟 Lemon Herb Grilled Salmon</strong>
+            <div class="ramen-desc">Fresh &amp; healthy dinner • Speed +28% &amp; Infinite Stamina (+25 XP)</div>
+          </div>
+          <button class="btn-primary buy-bistro" data-bistro="grilled_salmon">35c</button>
+        </div>
+        <div class="ramen-item featured">
+          <div>
+            <strong>🍕 Family Wood-Fired Pizza ⭐</strong>
+            <div class="ramen-desc">Sharing favorite for Mom, Dad, Laila &amp; Salma • +30 Bonus XP!</div>
+          </div>
+          <button class="btn-primary buy-bistro" data-bistro="family_pizza">40c</button>
+        </div>
+      </div>
+      <div id="bistro-msg" class="ramen-msg"></div>
+    </div>
+  </div>
+
+  <!-- Magic World Globe Travel Modal -->
+  <div id="globe-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>🌍 Laila &amp; Salma's Magic World Globe</h2>
+        <button class="close-btn" data-close="globe-modal">✕</button>
+      </div>
+      <p class="ramen-sub">Spin the glowing bedroom globe to travel anywhere in the world — your coins, outfits, and stamps come with you!</p>
+      <div id="globe-worlds-list" class="ramen-menu"></div>
+    </div>
+  </div>
+
+  <!-- Storybook Adventure Journal & Cozy Mission Board Modal -->
+  <div id="quest-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal passport-box">
+      <div class="modal-top">
+        <h2>📖 Storybook Adventure Journal</h2>
+        <button class="close-btn" data-close="quest-modal">✕</button>
+      </div>
+      <p class="ramen-sub">Follow the glowing golden trail in each world to complete illustrated chapters, or finish Cozy Missions anytime!</p>
+      <h3 class="passport-section-title">✨ Illustrated Story Chapters</h3>
+      <div id="quest-chapters-list" class="passport-worlds-list"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+        <h3 class="passport-section-title" style="margin:0;">🌟 Repeatable Cozy Missions</h3>
+        <button id="btn-refresh-missions" class="btn-small" type="button">🔄 New Missions</button>
+      </div>
+      <div id="quest-missions-list" class="ramen-menu" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <!-- Load Unified Studio Ghibli Engine & World Modules -->
   <script src="worlds/registry.js"></script>
+  <script src="engine/core/ghibli.js"></script>
   <script src="engine/core/state.js"></script>
   <script src="engine/core/textures.js"></script>
+  <script src="engine/core/hd_pipeline.js"></script>
   <script src="engine/core/characters.js"></script>
   <script src="engine/gameplay/gameplay.js"></script>
+  <script src="worlds/home/world_home.js"></script>
   <script src="worlds/tokyo/world_tokyo.js"></script>
   <script src="worlds/kyoto/world_kyoto.js"></script>
   <script src="worlds/safari/world_safari.js"></script>

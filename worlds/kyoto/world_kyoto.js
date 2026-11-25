@@ -849,9 +849,44 @@ window.LailaSalma = window.LailaSalma || {};
 
       buildMachiya(10.8, -21.2, -Math.PI / 2 - 0.14, {
         wallHex: '#f7efe0', roofHex: '#7a3b34', norenColor: 0x3b6ea5,
-        signText: '📚 KYOTO TEMPLE ACADEMY', signBg: '#234232', signBorder: '#e0a458', signColor: '#fff8eb'
+        signText: '📜 KYOTO SCROLL LIBRARY', signBg: '#234232', signBorder: '#e0a458', signColor: '#fff8eb'
       });
-      W.zones.push({ id: 'kyoto_academy', label: 'Enter Kyoto Temple Academy Quiz 📚', pos: new THREE.Vector3(6.2, 0, -21.2), radius: 3.4 });
+      W.zones.push({ id: 'kyoto_teacher_quiz', label: 'Take a Kyoto Quiz with Sensei Kenji 👨‍🏫', pos: new THREE.Vector3(6.0, 0, -21.2), radius: 3.6 });
+
+      // NEW EXPANDED KYOTO AVENUE 1: East Gion Lantern Street (X = +52..+74, Z = -42..+24)
+      SC.addCurvedPath(worldGroup, [[46, -24], [60, -26], [68, -12], [68, 8], [58, 24], [34, 24]], 4.8, 'lane_kyoto', 0.03);
+      buildMachiya(74.0, -18.0, -Math.PI / 2, { wallHex: '#f5ead6', roofHex: '#3d302a', norenColor: 0xc83e37, signText: '🍡 GION WAGASHI SWEETS', width: 6.4, depth: 5.4, height: 4.8 });
+      W.zones.push({ id: 'kyoto_wagashi', label: 'Visit Gion Wagashi Sweet Shop 🍡', pos: new THREE.Vector3(68.8, 0, -18.0), radius: 3.4 });
+      buildMachiya(74.0, -3.0, -Math.PI / 2, { wallHex: '#efe2ce', roofHex: '#4a3b35', norenColor: 0x2d6a4f, width: 6.2, depth: 5.4, height: 4.8 });
+      buildMachiya(72.0, 12.0, -Math.PI / 2 + 0.18, { wallHex: '#f7eee0', roofHex: '#3c4552', norenColor: 0xd97706, width: 6.2, depth: 5.4, height: 4.6 });
+      [[64, -22], [64, -8], [64, 6], [62, 18]].forEach(lp => addStoneLantern(lp[0], lp[1], 0));
+      [[58, -34, 'maple', 1.25], [76, -32, 'sakura', 1.3], [76, 22, 'maple', 1.28], [52, 32, 'sakura', 1.22]].forEach(t => buildKyotoTree(t[0], t[1], t[2], t[3]));
+
+      // NEW EXPANDED KYOTO AVENUE 2: West Arashiyama Moss Road & 3-Tier Scenic Pagoda (X = -56..-76)
+      SC.addCurvedPath(worldGroup, [[-46, 4], [-62, 6], [-72, 18], [-66, 34], [-40, 38], [-22, 27]], 4.6, 'lane_kyoto', 0.03);
+      buildMachiya(-74.0, 10.0, Math.PI / 2 - 0.14, { wallHex: '#f4ead8', roofHex: '#3b4a44', norenColor: 0x3b6ea5, width: 6.2, depth: 5.2, height: 4.5 });
+      buildMachiya(-68.0, 28.0, Math.PI / 2 + 0.32, { wallHex: '#f8efe2', roofHex: '#5a3a45', norenColor: 0xc83e37, width: 6.2, depth: 5.2, height: 4.5 });
+      // 3-Tiered Scenic Kyoto Wooden Pagoda Landmark!
+      const pagG = new THREE.Group(); pagG.position.set(-72.0, 0, -6.0);
+      const pagWood = LS.makeToonMat(0x7c362c);
+      const pagRoof = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#2d3740') });
+      for (let tier = 0; tier < 3; tier++) {
+        const sc = 1.0 - tier * 0.22;
+        const tb = new THREE.Mesh(new THREE.BoxGeometry(4.2 * sc, 2.3, 4.2 * sc), pagWood);
+        tb.position.y = 1.15 + tier * 2.9; tb.castShadow = true; pagG.add(tb);
+        const tr = new THREE.Mesh(new THREE.ConeGeometry(4.4 * sc, 1.35, 4), pagRoof);
+        tr.position.y = 2.65 + tier * 2.9; tr.rotation.y = Math.PI / 4; tr.castShadow = true; pagG.add(tr);
+      }
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.14, 2.4, 8), LS.makeToonMat(0xe9c46a));
+      spire.position.y = 10.6; pagG.add(spire);
+      worldGroup.add(pagG);
+      addCollider(-72.0, -6.0, 2.6, 2.6);
+      [[-64, -12, 'maple', 1.3], [-76, 2, 'sakura', 1.25], [-76, 24, 'maple', 1.3], [-54, 42, 'sakura', 1.22]].forEach(t => buildKyotoTree(t[0], t[1], t[2], t[3]));
+
+      // NEW EXPANDED KYOTO AVENUE 3: South Tea-Merchant Lane (Z = +44)
+      SC.addCurvedPath(worldGroup, [[-40, 38], [-16, 46], [16, 46], [42, 42], [58, 24]], 4.6, 'lane_kyoto', 0.028);
+      buildMachiya(-18.0, 50.0, Math.PI, { wallHex: '#f6edd9', roofHex: '#3d4c42', norenColor: 0x2d6a4f, width: 6.2, depth: 5.0, height: 4.4 });
+      buildMachiya(18.0, 50.0, Math.PI, { wallHex: '#f8efe0', roofHex: '#593b35', norenColor: 0xe07a34, width: 6.2, depth: 5.0, height: 4.4 });
 
       // MEANDERING EAST YOUSUIRO STREAM with 3 arched cedar footbridges at natural bends!
       const bridgeSpecs = [
@@ -1082,8 +1117,8 @@ window.LailaSalma = window.LailaSalma || {};
           line: 'Ohayo! Cross any of our 3 willow canal bridges to reach Kyoto Blossom Park & the Foothill Hamlet!',
           char: { scale: 0.94, hairColor: 0x4a3b32, topColor: 0x74c69d, bottomColor: 0x2d6a4f, hairBun: true,
             faceOpts: { glasses: true, eyeColor: '#255c42', eyeHighlight: '#6cc494', blush: 'rgba(244, 134, 146, 0.42)' } } },
-        { name: 'Sensei Kenji', pos: new THREE.Vector3(6.2, 0, -21.0), baseRot: -Math.PI / 2,
-          line: 'Welcome to Kyoto Temple Academy! Test your Kyoto knowledge for XP & coins!',
+        { name: 'Sensei Kenji', pos: new THREE.Vector3(6.2, 0, -21.0), baseRot: -Math.PI / 2, waveOnNear: true,
+          line: 'Konnichiwa Laila & Salma! I am Kyoto teacher Sensei Kenji — ready for a Kyoto Discovery Quiz? 👨‍🏫⛩️',
           char: { scale: 0.98, hairColor: 0x9ca3af, topColor: 0x3b6ea5, bottomColor: 0x1e293b, pants: true,
             faceOpts: { elder: true, glasses: true, mustache: true, eyeColor: '#3d332a', eyeHighlight: '#8a7660', blush: 'rgba(224, 132, 122, 0.24)' } } },
         { name: 'Miko Aiko', pos: new THREE.Vector3(-42.5, 0.75, -24.5), baseRot: Math.PI / 2, waveOnNear: true,
@@ -1091,12 +1126,12 @@ window.LailaSalma = window.LailaSalma || {};
           char: { scale: 0.92, hairColor: 0x1f191a, topColor: 0xffffff, bottomColor: 0xd62828, longHair: true,
             faceOpts: { eyeColor: '#3b245c', eyeHighlight: '#a67de0', blush: 'rgba(248, 128, 152, 0.48)' } } },
         { name: 'Ren', pos: new THREE.Vector3(-3.4, 0, -6.0), patrol: { axis: 'z', center: -6.0, range: 6.5, speed: 0.85 },
-          line: '5 kitsune hide across 20 natural Kyoto spots — and 2 hours after you find them all, they hide in brand-new places!',
+          line: 'Explore our expanded Gion Lantern Street in the east & Pagoda Moss Road in the west!',
           char: { scale: 0.88, hairColor: 0x382820, topColor: 0x2a9d8f, bottomColor: 0x264653, pants: true, backpackColor: 0xe9c46a,
             faceOpts: { eyeColor: '#1f5452', eyeHighlight: '#5ec2b6', blush: 'rgba(236, 132, 132, 0.30)' } } }
       ]);
 
-      // AAA 16,000 wind-swept 3D instanced grass tufts across Kyoto open meadows (1 GPU draw call!)
+      // Wind-swept 3D instanced grass tufts across Kyoto open meadows (quality-scaled!)
       if (LS.isHD && LS.hdAssets && LS.hdAssets.addInstancedGrass) {
         const laneSp = SC.sampleSpline(KYOTO_LANE_PTS, 5);
         const streamSp = SC.sampleSpline(KYOTO_STREAM_PTS, 5);
@@ -1112,8 +1147,8 @@ window.LailaSalma = window.LailaSalma || {};
           }
           return false;
         };
-        LS.hdAssets.addInstancedGrass(worldGroup, { minX: -58, maxX: 52, minZ: -50, maxZ: 32 }, (x, z) => {
-          if (z > 31.5) return false;
+        LS.hdAssets.addInstancedGrass(worldGroup, { minX: -72, maxX: 68, minZ: -54, maxZ: 44 }, (x, z) => {
+          if (z > 40.0) return false;
           if (x < -12.5 && x > -32.8 && z < -15.2 && z > -39.8) return false; // Koi Lake
           if (x < -2.2 && x > -14.8 && Math.abs(z + 27.5) < 3.2) return false; // Stone path to bridge
           if (x < -40.2 && z < -17.2 && z > -37.8) return false; // Sakurako Shrine Courtyard
@@ -1137,6 +1172,9 @@ window.LailaSalma = window.LailaSalma || {};
     W.getMochiIdleAnchor = function () { return { pos: new THREE.Vector3(-3.6, 0, -18.5), rotY: Math.PI / 3 }; };
 
     W.getZoneLabel = function (px, pz) {
+      if (px > 54) return 'Gion Lantern Street 🏮';
+      if (px < -56) return 'Arashiyama Moss Road & Pagoda';
+      if (pz > 40) return 'South Tea-Merchant Lane';
       if (px > 38) return 'East Foothill Hamlet';
       if (px > 18 && pz > -10 && pz < 12) return 'Kyoto Blossom Park';
       if (px > 18 && pz <= -10) return 'East Canal Plaza';
@@ -1147,7 +1185,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (px < -30.5) return 'Sakurako Shrine';
       if (px < -13.5 && Math.abs(pz + 27.5) < 4) return 'Arched Koi Bridge';
       if (px < -4 && Math.abs(pz + 29.0) < 4) return 'Sakura Sushi';
-      if (px > 4 && Math.abs(pz + 21.0) < 5) return 'Temple Academy';
+      if (px > 4 && Math.abs(pz + 21.0) < 5) return 'Sensei Kenji Library 👨‍🏫';
       if (px > 4 && Math.abs(pz + 5.0) < 5) return 'Uji Tea House';
       if (px < -4 && Math.abs(pz + 12.5) < 5) return 'Kyoto Ryokan';
       if (px < -4 && Math.abs(pz - 2.0) < 5) return 'Kimono Boutique';
@@ -1225,7 +1263,7 @@ window.LailaSalma = window.LailaSalma || {};
         for (let i = 0; i < pos.count; i++) {
           let y = pos.getY(i) - dt * 0.58;
           let x = pos.getX(i) + Math.sin(elapsed + i) * dt * 0.42;
-          if (y < 0.2) { y = 12.0; x = -62 + Math.random() * 116; }
+          if (y < 0.2) { y = 12.0; x = -72 + Math.random() * 144; }
           pos.setXY(i, x, y);
         }
         pos.needsUpdate = true;
@@ -1245,28 +1283,26 @@ window.LailaSalma = window.LailaSalma || {};
 
     W.drawMiniMap = function (ctx, cw, ch, toMapX, toMapY) {
       ctx.fillStyle = '#629152'; ctx.fillRect(0, 0, cw, ch);
-      // Soft open meadow clearings
       ctx.fillStyle = '#75a661';
-      [[-22, -6, 13], [-52, 16, 14], [35, 16, 13], [26, -34, 13]].forEach(m => {
+      [[-22, -6, 11], [-52, 16, 12], [35, 16, 11], [26, -34, 11]].forEach(m => {
         ctx.beginPath(); ctx.arc(toMapX(m[0]), toMapY(m[1]), m[2], 0, Math.PI * 2); ctx.fill();
       });
-      // Bamboo Woods
       ctx.fillStyle = '#366f40';
-      ctx.beginPath(); ctx.ellipse(toMapX(-37), toMapY(-48), 28, 11, -0.08, 0, Math.PI * 2); ctx.fill();
-      // Koi Lake & Meandering East Yousuiro Stream
+      ctx.beginPath(); ctx.ellipse(toMapX(-37), toMapY(-48), 24, 9, -0.08, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#2b7a8c';
-      ctx.beginPath(); ctx.ellipse(toMapX(-22.5), toMapY(-27.5), 11.5, 14, 0, 0, Math.PI * 2); ctx.fill();
-      strokeMapSpline(ctx, KYOTO_STREAM_PTS, toMapX, toMapY, '#348ea3', 4.5);
-      // Winding trails & curving Kyoto village lane
+      ctx.beginPath(); ctx.ellipse(toMapX(-22.5), toMapY(-27.5), 9.5, 12, 0, 0, Math.PI * 2); ctx.fill();
+      strokeMapSpline(ctx, KYOTO_STREAM_PTS, toMapX, toMapY, '#348ea3', 4.0);
       [KYOTO_SW_TRAIL_PTS, KYOTO_EAST_LOOP_PTS, KYOTO_PARK_TRAIL_PTS].forEach(t => {
-        strokeMapSpline(ctx, t, toMapX, toMapY, '#9e927d', 2.8);
+        strokeMapSpline(ctx, t, toMapX, toMapY, '#9e927d', 2.4);
       });
-      strokeMapSpline(ctx, KYOTO_LANE_PTS, toMapX, toMapY, '#877e6f', 6.0);
-      // Organic Oval Zen Rock Garden & East Blossom Park
+      strokeMapSpline(ctx, KYOTO_LANE_PTS, toMapX, toMapY, '#877e6f', 5.0);
+      // Expanded Kyoto avenues on minimap!
+      strokeMapSpline(ctx, [[46, -24], [68, -12], [68, 8], [58, 24], [34, 24]], toMapX, toMapY, '#9e927d', 3.8);
+      strokeMapSpline(ctx, [[-46, 4], [-72, 18], [-66, 34], [-40, 38], [-16, 46], [16, 46], [42, 42], [58, 24]], toMapX, toMapY, '#9e927d', 3.6);
+
       ctx.fillStyle = '#d4cec0';
-      ctx.beginPath(); ctx.ellipse(toMapX(-35.5), toMapY(18.0), 10, 6.2, 0.22, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.arc(toMapX(29.5), toMapY(-1.0), 10, 0, Math.PI * 2); ctx.fill();
-      // Bridge, Shrine & Station
+      ctx.beginPath(); ctx.ellipse(toMapX(-35.5), toMapY(18.0), 8, 5, 0.22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.arc(toMapX(29.5), toMapY(-1.0), 8.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#8b6343'; ctx.fillRect(toMapX(-43), toMapY(-29.2), toMapX(-3.1) - toMapX(-43), toMapY(-25.8) - toMapY(-29.2));
       ctx.fillStyle = '#c83e37'; ctx.fillRect(toMapX(-54.5), toMapY(-34.5), toMapX(-44.5) - toMapX(-54.5), toMapY(-20.5) - toMapY(-34.5));
       ctx.fillStyle = '#1d4ed8'; ctx.fillRect(toMapX(-7.5), toMapY(34.5), toMapX(7.5) - toMapX(-7.5), toMapY(39.5) - toMapY(34.5));
@@ -1274,8 +1310,8 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 6.5px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('🎋', toMapX(-35), toMapY(-46));
       ctx.fillText('⛩️', toMapX(-49.5), toMapY(-26));
-      ctx.fillText('🪨', toMapX(-35.5), toMapY(19));
-      ctx.fillText('🛝', toMapX(29.5), toMapY(0));
+      ctx.fillText('👨‍🏫', toMapX(8), toMapY(-20));
+      ctx.fillText('🏮', toMapX(68), toMapY(-12));
       ctx.fillText('🚅 TOKYO', toMapX(0), toMapY(38.0));
     };
 

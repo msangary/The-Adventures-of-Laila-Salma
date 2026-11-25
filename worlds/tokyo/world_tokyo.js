@@ -560,32 +560,64 @@ window.LailaSalma = window.LailaSalma || {};
       W.zones.push({ id: 'shop', label: 'Browse Tokyo Outfits & Hats', pos: new THREE.Vector3(-5.6, 0, -10.8), radius: 3.4 });
     });
 
-    // 6. Sakura Elementary School (North Academic Hill: X=0, Z=-42)
-    safeRun('school', () => {
-      const g = new THREE.Group(); g.position.set(0, 0, -42);
-      const useHDSchool = LS.isHD && LS.hdAssets && LS.hdAssets.has('sakura_school');
-      if (useHDSchool) {
-        g.add(LS.hdAssets.clone('sakura_school'));
-      } else {
-        const main = new THREE.Mesh(new THREE.BoxGeometry(18, 6.6, 7.8), LS.makeToonMat(0xf7efe0)); main.position.y = 3.3; main.castShadow = true; main.receiveShadow = true; g.add(main);
-        const roof = new THREE.Mesh(new THREE.BoxGeometry(19.2, 1.1, 8.8), LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#8a3e3b') })); roof.position.y = 7.1; g.add(roof);
-        const clock = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.2, 16), LS.makeToonMat(0xffffff)); clock.rotation.x = Math.PI / 2; clock.position.set(0, 5.4, 3.98); g.add(clock);
-        const winMat = LS.makeEmissiveMat(0x8ec9ed, 0xffe4a0, 0.25);
-        for (let x = -6.5; x <= 6.5; x += 2.6) {
-          if (Math.abs(x) < 1.2) continue;
-          const w1 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.14), winMat); w1.position.set(x, 2.0, 3.94); g.add(w1);
-          const w2 = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.14), winMat); w2.position.set(x, 4.3, 3.94); g.add(w2);
-        }
-        const entrance = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.6, 0.3), LS.makeToonMat(0x7c5333)); entrance.position.set(0, 1.3, 3.92); g.add(entrance);
-      }
-      [-3.8, 3.8].forEach(px => { const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 2.5, 0.85), LS.makeToonMat(0xd4ccb8)); pillar.position.set(px, 1.25, 8.2); pillar.castShadow = true; g.add(pillar); });
-      const sign = new THREE.Mesh(
-        new THREE.BoxGeometry(5.2, 0.95, 0.18),
-        new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🏫 SAKURA ELEMENTARY', { bg: '#fdf6e7', border: '#8a3e3b', color: '#3d2c1e', font: 'bold 34px sans-serif' }) })
+    // 6. Harajuku Crêpe & Sakura Tea Plaza + Sensei Haruka (Local Tokyo Teacher!) + Expanded Tokyo Streets!
+    safeRun('expanded_tokyo_streets', () => {
+      // Replace old north school with a vibrant Harajuku Crêpe & Sakura Tea Plaza (X=0, Z=-42)!
+      const plazaPad = new THREE.Mesh(new THREE.CylinderGeometry(11.5, 11.8, 0.08, 28), LS.makeToonMat(0xf4e8d6));
+      plazaPad.position.set(0, 0.04, -42.0); plazaPad.receiveShadow = true; worldGroup.add(plazaPad);
+
+      buildMiniShop(0, -45.5, 0, '🍓 HARAJUKU CRÊPE & TEA', '#fff2f6', 0xf472b6, '#9d174d', {
+        kind: 'bakery', zoneId: 'tokyo_crepes', zoneLabel: 'Order Sweet Crêpes at Harajuku Plaza 🍓'
+      });
+
+      // Decorative Sakura Lantern Pergola flanking the North Plaza
+      [-6.5, 6.5].forEach(px => {
+        SC.addBench(worldGroup, px, -39.5, px < 0 ? 0.45 : -0.45);
+        buildTree(px * 1.45, -46.0, 'sakura', 1.25);
+      });
+
+      // Local Tokyo Teacher Quiz Spot: Sensei Haruka right in Central Sakura Plaza!
+      const deskG = new THREE.Group();
+      deskG.position.set(-4.2, 0, -23.5);
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.95, 0.72), LS.makeToonMat(0x8c5a3c));
+      stand.position.y = 0.48; stand.castShadow = true; deskG.add(stand);
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(2.1, 0.9, 0.12),
+        new THREE.MeshBasicMaterial({ map: LS.createSignTexture('👩‍🏫 SENSEI HARUKA QUIZ', { bg: '#234232', border: '#e5a94c', color: '#fff8eb', font: 'bold 28px sans-serif' }) })
       );
-      sign.position.set(0, 3.25, useHDSchool ? 6.02 : 4.05); g.add(sign);
-      worldGroup.add(g); addCollider(0, -42, 9.2, 4.2);
-      W.zones.push({ id: 'school', label: 'Enter Sakura Elementary Quiz', pos: new THREE.Vector3(0, 0, -34.0), radius: 4.2 });
+      board.position.set(0, 1.55, -0.35); deskG.add(board);
+      worldGroup.add(deskG);
+      addCollider(-4.2, -23.5, 0.9, 0.6);
+      W.zones.push({ id: 'tokyo_teacher_quiz', label: 'Take a Tokyo Quiz with Sensei Haruka 👩‍🏫', pos: new THREE.Vector3(-2.4, 0, -22.5), radius: 3.5 });
+
+      // NEW EXPANDED TOKYO AVENUE 1: North Sakura Hill Overlook Boulevard (Z = -58)
+      SC.addCurvedPath(worldGroup, [[-34, -56], [-14, -59], [0, -56], [16, -59], [36, -54]], 5.4, 'lane_tokyo', 0.03);
+      SC.addCurvedPath(worldGroup, [[0, -35], [0, -44], [0, -56]], 4.4, 'lane_tokyo', 0.03);
+      buildHouse(-22, -64, 0.15, '#fdf3e3', '#455a75', { stories: 2 });
+      buildHouse(22, -64, -0.18, '#eef6ee', '#3d5c50', { stories: 2 });
+      buildHouse(0, -66, 0, '#fff0f3', '#a84468', { stories: 1 });
+      [[-32, -62, 'sakura', 1.3], [32, -60, 'gold', 1.25], [-10, -64, 'sakura', 1.2], [11, -64, 'green', 1.2]].forEach(t => buildTree(t[0], t[1], t[2], t[3]));
+
+      // NEW EXPANDED TOKYO AVENUE 2: West Lantern Canal & Cat Café Street (X = -52..-78)
+      SC.addCurvedPath(worldGroup, [[-47, 3.0], [-60, 4.0], [-72, 2.0], [-74, -18], [-64, -36], [-34, -56]], 5.2, 'lane_tokyo', 0.03);
+      SC.addCurvedPath(worldGroup, [[-60, 4.0], [-68, 22.0], [-52, 36.0]], 4.6, 'lane_tokyo', 0.028);
+      buildMiniShop(-66.0, -5.0, Math.PI / 2, '🐱 NEKO CAT CAFÉ', '#fff7eb', 0xf59e0b, '#78350f', {
+        kind: 'bakery', zoneId: 'tokyo_cat_cafe', zoneLabel: 'Visit Neko Cat Café 🐱☕'
+      });
+      buildHouse(-74, 10, Math.PI / 2 - 0.12, '#f9f1e2', '#4c5c72', { stories: 2 });
+      buildHouse(-76, -24, Math.PI / 2 + 0.18, '#f0f7f2', '#3c5e54', { stories: 2 });
+      buildHouse(-60, 29, Math.PI - 0.25, '#fff0f5', '#b54c74', { stories: 1 });
+      [[-62, -16, 'sakura', 1.25], [-68, -32, 'gold', 1.2], [-76, 20, 'green', 1.25], [-56, 36, 'sakura', 1.2]].forEach(t => buildTree(t[0], t[1], t[2], t[3]));
+
+      // NEW EXPANDED TOKYO AVENUE 3: East Origami & Arcade Alley (X = +36..+76, Z = -46..-10)
+      SC.addCurvedPath(worldGroup, [[32, -19], [46, -22], [62, -20], [72, -32], [66, -48], [36, -54]], 5.0, 'lane_tokyo', 0.03);
+      buildMiniShop(58.0, -27.0, -Math.PI / 2 + 0.2, '🕊️ ORIGAMI STUDIO', '#f0f7ff', 0x3b82f6, '#1e3a8a', {
+        kind: 'bookshop', zoneId: 'tokyo_origami', zoneLabel: 'Visit Tokyo Origami Studio 🕊️'
+      });
+      buildHouse(72, -18, -Math.PI / 2, '#fcf3e6', '#5a4358', { stories: 2 });
+      buildHouse(68, -42, -Math.PI / 2 - 0.22, '#f4efe6', '#3d5467', { stories: 2 });
+      buildHouse(48, -44, 0.22, '#fff0f5', '#c24d78', { stories: 1 });
+      [[44, -34, 'sakura', 1.2], [74, -28, 'gold', 1.25], [56, -50, 'sakura', 1.25], [72, -52, 'green', 1.3]].forEach(t => buildTree(t[0], t[1], t[2], t[3]));
     });
 
     // 7. Natural Expanded Tokyo Pocket Park (Picnic blanket, benches, wildflowers, slide, swing, hopscotch)
@@ -867,20 +899,20 @@ window.LailaSalma = window.LailaSalma || {};
         { name: 'Master Ken', pos: new THREE.Vector3(6.6, 0, -3.2), baseRot: -Math.PI / 2, waveOnNear: true,
           line: 'Irasshaimase, Laila & Salma! Two steaming bowls ready at Ichiban Ramen!',
           char: { scale: 1.02, hairColor: 0x29231f, topColor: 0x2b3a55, bottomColor: 0x222630, pants: true, headband: true, faceOpts: { mustache: true, eyeColor: '#3a2214', eyeHighlight: '#915b30', blush: 'rgba(232, 128, 118, 0.28)' } } },
-        { name: 'Ms. Aoi', pos: new THREE.Vector3(-2.6, 0, -33.0),
-          line: 'Hello Laila & Salma! Step up anytime for Laila or Salma quiz fun!',
+        { name: 'Sensei Haruka', pos: new THREE.Vector3(-4.0, 0, -22.2), baseRot: Math.PI * 0.35, waveOnNear: true,
+          line: 'Konnichiwa Laila & Salma! I am Tokyo teacher Sensei Haruka — ready for a fun quiz? 👩‍🏫🌸',
           char: { scale: 0.98, hairColor: 0x382820, topColor: 0xe8d5c4, bottomColor: 0x4a5b70, hairBun: true, faceOpts: { glasses: true, eyeColor: '#2a5a4e', eyeHighlight: '#64b898', blush: 'rgba(244, 136, 150, 0.42)' } } },
         { name: 'Mina', pos: new THREE.Vector3(-6.4, 0, -10.8), baseRot: Math.PI / 2, waveOnNear: true,
           line: 'Welcome to Tokyo Boutique! Try cute hats & dresses, or walk inside your pink house to decorate in 3D!',
           char: { scale: 0.9, hairColor: 0x6b3e2e, topColor: 0xffb3c6, bottomColor: 0x723d46, hatType: 'beret', hatColor: 0xd95d88,
             faceOpts: { eyeColor: '#6d356b', eyeHighlight: '#d17bc2', blush: 'rgba(250, 126, 154, 0.52)' } } },
         { name: 'Captain Sora', pos: new THREE.Vector3(25.5, 0, 21.5), baseRot: -Math.PI / 2, waveOnNear: true,
-          line: 'Welcome to Haneda International Airport! Check our departures board for Safari, Egypt, Paris & Outer Space!',
+          line: 'Welcome to Haneda International Airport! Check our departures board for Home, Kyoto, Safari & future worlds!',
           char: { scale: 1.0, hairColor: 0x24262b, topColor: 0x1d3557, bottomColor: 0x16243b, pants: true, hatType: 'cap', hatColor: 0x1d3557,
             faceOpts: { eyeColor: '#1e4268', eyeHighlight: '#5ea4db', blush: 'rgba(225, 130, 125, 0.25)' } } }
       ]);
 
-      // AAA 6,500 wind-swept 3D instanced grass tufts across Tokyo open meadows (1 GPU draw call!)
+      // Wind-swept 3D instanced grass tufts across Tokyo open meadows (quality-scaled!)
       if (LS.isHD && LS.hdAssets && LS.hdAssets.addInstancedGrass) {
         const laneSp = SC.sampleSpline(MAIN_LANE_PTS, 5);
         const creekSp = SC.sampleSpline(CREEK_PTS, 5);
@@ -898,11 +930,12 @@ window.LailaSalma = window.LailaSalma || {};
           }
           return false;
         };
-        LS.hdAssets.addInstancedGrass(worldGroup, { minX: -58, maxX: 41, minZ: -48, maxZ: 36 }, (x, z) => {
+        LS.hdAssets.addInstancedGrass(worldGroup, { minX: -76, maxX: 74, minZ: -64, maxZ: 38 }, (x, z) => {
           if (z > 35.0) return false;
-          if (x > 42.0 || (x > 25.5 && z > 12.5)) return false; // Haneda Airport apron & runway
+          if (x > 42.0 && z > -14.0) return false; // Haneda Airport apron & runway
+          if (x > 25.5 && z > 12.5) return false;
           if (Math.hypot(x + 27.5, z + 2.5) < 7.3) return false; // West Fountain Plaza
-          if (Math.abs(x) < 11.5 && z < -31.5 && z > -47.5) return false; // Sakura Elementary yard
+          if (Math.hypot(x, z + 42.0) < 12.2) return false; // Harajuku Crepe Plaza
           if (Math.hypot(x - 21.4, z + 9.2) < 2.4) return false; // Hopscotch
           if (nearSp(laneSp, x, z, 4.1 * 4.1)) return false;
           if (nearSp(creekSp, x, z, 3.6 * 3.6)) return false;
@@ -937,6 +970,9 @@ window.LailaSalma = window.LailaSalma || {};
     };
 
     W.getZoneLabel = function (px, pz) {
+      if (px < -56) return 'Lantern Canal & Cat Café Street';
+      if (px > 46 && pz < -12) return 'East Origami & Arcade Alley';
+      if (pz < -50) return 'Sakura Hill Overlook Boulevard';
       if (px < -46) return 'West Flower Meadow';
       if (px < -39 && Math.abs(pz - 2) < 6) return 'Sakura Creek Bridge';
       if (px > 20 && pz > 12) return 'Haneda Airport ✈️';
@@ -944,10 +980,11 @@ window.LailaSalma = window.LailaSalma || {};
       if (px > 16 && pz <= -2) return 'Sakura Pocket Park';
       if (px < -18) return 'West Sakura Plaza';
       if (pz > 32) return 'Tokyo Shinkansen';
-      if (pz < -28) return 'Sakura Elementary';
+      if (pz < -34) return 'Harajuku Crêpe Plaza 🍓';
+      if (Math.abs(px + 3) < 6 && Math.abs(pz + 23) < 6) return 'Sensei Haruka Plaza 👩‍🏫';
       if (px > 4 && Math.abs(pz + 5.5) < 6) return 'Ichiban Ramen';
       if (px < -4 && Math.abs(pz + 10.8) < 5) return 'Tokyo Boutique';
-      if (px < -4 && Math.abs(pz + 1.5) < 4) return "Sisters' House";
+      if (px < -4 && Math.abs(pz + 1.5) < 4) return "Sisters' Tokyo Clubhouse";
       return 'Tokyo Main Street';
     };
 
@@ -973,7 +1010,7 @@ window.LailaSalma = window.LailaSalma || {};
         for (let i = 0; i < pos.count; i++) {
           let y = pos.getY(i) - dt * 0.65;
           let x = pos.getX(i) + Math.sin(elapsed + i) * dt * 0.35;
-          if (y < 0.2) { y = 12.0; x = -58 + Math.random() * 116; }
+          if (y < 0.2) { y = 12.0; x = -74 + Math.random() * 148; }
           pos.setXY(i, x, y);
         }
         pos.needsUpdate = true;
@@ -993,33 +1030,35 @@ window.LailaSalma = window.LailaSalma || {};
 
     W.drawMiniMap = function (ctx, cw, ch, toMapX, toMapY) {
       ctx.fillStyle = '#74ad5c'; ctx.fillRect(0, 0, cw, ch);
-      // Soft open meadow clearings
       ctx.fillStyle = '#88c26d';
-      [[-22, 16, 15], [16, 10, 12], [-53, -8, 13], [-25, -33, 13]].forEach(m => {
+      [[-22, 16, 13], [16, 10, 10], [-53, -8, 11], [-25, -33, 11]].forEach(m => {
         ctx.beginPath(); ctx.arc(toMapX(m[0]), toMapY(m[1]), m[2], 0, Math.PI * 2); ctx.fill();
       });
-      // Meandering West Sakura Creek
-      strokeMapSpline(ctx, CREEK_PTS, toMapX, toMapY, '#3b9eb3', 6);
-      // Winding gravel footpaths & curving village lane
+      strokeMapSpline(ctx, CREEK_PTS, toMapX, toMapY, '#3b9eb3', 5);
       [TRAIL_WEST_PTS, TRAIL_MEADOW_PTS, TRAIL_WEST_FAR_PTS, TRAIL_EAST_PTS, TRAIL_NORTH_PTS].forEach(t => {
-        strokeMapSpline(ctx, t, toMapX, toMapY, '#cbbca0', 3.2);
+        strokeMapSpline(ctx, t, toMapX, toMapY, '#cbbca0', 2.8);
       });
-      strokeMapSpline(ctx, MAIN_LANE_PTS, toMapX, toMapY, '#9e9584', 6.8);
+      strokeMapSpline(ctx, MAIN_LANE_PTS, toMapX, toMapY, '#9e9584', 5.6);
+      // Expanded streets on minimap!
+      strokeMapSpline(ctx, [[-34, -56], [0, -56], [36, -54]], toMapX, toMapY, '#9e9584', 4.5);
+      strokeMapSpline(ctx, [[-47, 3.0], [-72, 2.0], [-74, -18], [-64, -36], [-34, -56]], toMapX, toMapY, '#9e9584', 4.2);
+      strokeMapSpline(ctx, [[32, -19], [62, -20], [72, -32], [66, -48], [36, -54]], toMapX, toMapY, '#9e9584', 4.2);
+
       // Airport Runway & Terminal
-      ctx.fillStyle = '#454a52'; ctx.fillRect(toMapX(44.5), toMapY(-44), toMapX(55.5) - toMapX(44.5), toMapY(40) - toMapY(-44));
+      ctx.fillStyle = '#454a52'; ctx.fillRect(toMapX(44.5), toMapY(-16), toMapX(55.5) - toMapX(44.5), toMapY(40) - toMapY(-16));
       ctx.fillStyle = '#1e3a5f'; ctx.fillRect(toMapX(27.5), toMapY(18), toMapX(39.5) - toMapX(27.5), toMapY(32) - toMapY(18));
-      // Park & West Plaza
-      ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.arc(toMapX(25.2), toMapY(-10.5), 11, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#e0d6c3'; ctx.beginPath(); ctx.arc(toMapX(-27.5), toMapY(-2.5), 8.5, 0, Math.PI * 2); ctx.fill();
-      // Landmarks
-      ctx.fillStyle = '#b84a46'; ctx.fillRect(toMapX(-9), toMapY(-46), toMapX(9) - toMapX(-9), toMapY(-38) - toMapY(-46));
+      // Park, West Plaza & Harajuku Crepe Plaza
+      ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.arc(toMapX(25.2), toMapY(-10.5), 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(toMapX(0), toMapY(-42), 8, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#d97724'; ctx.fillRect(toMapX(8), toMapY(-9), toMapX(14.5) - toMapX(8), toMapY(-2) - toMapY(-9));
       ctx.fillStyle = '#e05780'; ctx.fillRect(toMapX(-15.5), toMapY(-5), toMapX(-8) - toMapX(-15.5), toMapY(2) - toMapY(-5));
       ctx.fillStyle = '#1d4ed8'; ctx.fillRect(toMapX(-8), toMapY(39), toMapX(8) - toMapX(-8), toMapY(44) - toMapY(39));
 
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 6.5px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('🏫', toMapX(0), toMapY(-40));
-      ctx.fillText('🛝', toMapX(25.2), toMapY(-9));
+      ctx.fillText('🍓', toMapX(0), toMapY(-40));
+      ctx.fillText('👩‍🏫', toMapX(-3), toMapY(-22));
+      ctx.fillText('🐱', toMapX(-66), toMapY(-4));
+      ctx.fillText('🕊️', toMapX(58), toMapY(-26));
       ctx.fillText('✈️', toMapX(33.5), toMapY(26));
       ctx.fillText('🚅 KYOTO', toMapX(0), toMapY(42.5));
     };

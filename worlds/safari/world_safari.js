@@ -306,7 +306,7 @@ window.LailaSalma = window.LailaSalma || {};
 
         // East Base Camp: Savanna Ranger Academy
         buildSafariLodge(11.5, 14.5, -Math.PI * 0.32, { isTent: false, sign: '📚 RANGER ACADEMY', bg: '#234232' });
-        W.zones.push({ id: 'safari_academy', label: 'Enter Savanna Ranger Academy Quiz 🦁', pos: new THREE.Vector3(8.6, 0, 16.0), radius: 3.4 });
+        W.zones.push({ id: 'safari_academy', label: 'Take a Wildlife Quiz with Dr. Kofi 👨‍🏫🦁', pos: new THREE.Vector3(8.6, 0, 16.0), radius: 3.4 });
 
         // West Camp Grove: Enterable 3D Luxury Safari Glamping Tent (Laila & Salma's Savanna Lodge!)
         const glamp = new THREE.Group();

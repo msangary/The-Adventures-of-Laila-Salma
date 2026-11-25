@@ -12,6 +12,9 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.makeToonMat = function (color, opts) {
     const cfg = Object.assign({ color: color }, opts || {});
+    if (LS.ghibli && LS.ghibli.createGhibliMat) {
+      return LS.ghibli.createGhibliMat(color, cfg);
+    }
     if (LS.isHD) {
       const std = Object.assign({
         roughness: cfg.map ? 0.68 : 0.74,
@@ -30,6 +33,12 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.makeSurfaceMat = function (tex, opts) {
     const cfg = Object.assign({ map: tex }, opts || {});
+    if (LS.ghibli && LS.ghibli.createGhibliMat) {
+      return LS.ghibli.createGhibliMat(cfg.color !== undefined ? cfg.color : 0xffffff, Object.assign({
+        bumpMap: tex,
+        bumpScale: 0.032
+      }, cfg));
+    }
     if (LS.isHD) {
       const std = Object.assign({
         roughness: 0.80,
@@ -46,37 +55,23 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.makeWaterMat = function (opacity, side) {
     const op = opacity !== undefined ? opacity : 0.9;
+    if (LS.ghibli && LS.ghibli.createGhibliWaterMat) {
+      return LS.ghibli.createGhibliWaterMat(op, side || THREE.DoubleSide);
+    }
     if (LS.isHD && LS.createAAAWaterMaterial) {
       return LS.createAAAWaterMaterial(op, side || THREE.DoubleSide);
     }
     const tex = LS.createWaterTexture();
-    if (LS.isHD) {
-      return new THREE.MeshStandardMaterial({
-        map: tex,
-        bumpMap: tex,
-        bumpScale: 0.09,
-        roughness: 0.12,
-        metalness: 0.28,
-        envMapIntensity: 1.35,
-        transparent: true,
-        opacity: op,
-        side: side || THREE.FrontSide
-      });
-    }
     return new THREE.MeshLambertMaterial({ map: tex, transparent: true, opacity: op, side: side || THREE.FrontSide });
   };
 
   LS.makeEmissiveMat = function (color, emissiveHex, intensity) {
     const em = emissiveHex !== undefined ? emissiveHex : color;
     const emI = intensity !== undefined ? intensity : 0.72;
-    if (LS.isHD) {
-      return new THREE.MeshStandardMaterial({
-        color: color,
+    if (LS.ghibli && LS.ghibli.createGhibliMat) {
+      return LS.ghibli.createGhibliMat(color, {
         emissive: em,
-        emissiveIntensity: emI * 1.15,
-        roughness: 0.22,
-        metalness: 0.18,
-        envMapIntensity: 1.05
+        emissiveIntensity: emI * 1.05
       });
     }
     return new THREE.MeshLambertMaterial({

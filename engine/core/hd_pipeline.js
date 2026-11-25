@@ -47,16 +47,18 @@ window.LailaSalma = window.LailaSalma || {};
   }
 
   function getAnimeGradientMap() {
+    if (LS.ghibli && LS.ghibli.getToonRamp) return LS.ghibli.getToonRamp();
     if (toonGradientMap) return toonGradientMap;
-    // Rich 5-band Makoto Shinkai / Genshin Impact cel-toon ramp
+    // Pure Studio Ghibli 3-band painterly cel ramp fallback
     const data = new Uint8Array([
-      108, 120, 158, 255,   // Deep cool indigo-violet shadow band
-      146, 154, 182, 255,   // Soft cool mid-shadow
-      202, 204, 212, 255,   // Crisp daylight midtone
-      240, 238, 228, 255,   // Warm sunlit afternoon band
-      255, 252, 238, 255    // Creamy golden highlight
+      132, 140, 174, 255,
+      132, 140, 174, 255,
+      208, 212, 222, 255,
+      208, 212, 222, 255,
+      255, 251, 236, 255,
+      255, 251, 236, 255
     ]);
-    const tex = new THREE.DataTexture(data, 5, 1, THREE.RGBAFormat);
+    const tex = new THREE.DataTexture(data, 6, 1, THREE.RGBAFormat);
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
     tex.needsUpdate = true;
@@ -415,11 +417,14 @@ window.LailaSalma = window.LailaSalma || {};
       return cloned;
     },
 
-    // 16,000+ Slender Wind-Swept 3D Grass Blade Clusters in 1 GPU Draw Call (Breath of the Wild / Genshin trick!)
+    // Wind-Swept 3D Grass Blade Clusters in 1 GPU Draw Call (quality-scaled for Android phones!)
     addInstancedGrass: function (parent, bounds, isClearFn, style) {
-      const count = 16000;
+      const qCfg = (LS.ghibli && LS.ghibli.getQualityConfig) ? LS.ghibli.getQualityConfig() : { grassScale: 1.0 };
+      if (qCfg.grassScale <= 0) return null;
+      const count = Math.round(14000 * qCfg.grassScale);
       const isKyoto = style === 'kyoto';
       const isSafari = style === 'safari';
+      const isHome = style === 'home';
       // Delicate 4-blade fanning grass tuft (slender blades, natural uneven heights & lean!)
       const positions = [
         -0.036, 0, -0.02,   0.036, 0, -0.02,  -0.06, 0.34, -0.05,
@@ -442,8 +447,8 @@ window.LailaSalma = window.LailaSalma || {};
         uTime: { value: 0.0 },
         uTimeMode: { value: LS.state ? LS.state.timeMode : 0.0 },
         // Seamlessly blended root-to-meadow color -> sunlit golden-green or amber savanna tips!
-        uRootCol: { value: new THREE.Color(isSafari ? 0x9c823c : (isKyoto ? 0x4b773c : 0x5c9648)) },
-        uTipCol: { value: new THREE.Color(isSafari ? 0xe4c25e : (isKyoto ? 0x86ba5c : 0x98d062)) }
+        uRootCol: { value: new THREE.Color(isSafari ? 0x9c823c : (isHome ? 0x4f9b4c : (isKyoto ? 0x4b773c : 0x5c9648))) },
+        uTipCol: { value: new THREE.Color(isSafari ? 0xe4c25e : (isHome ? 0x9ee066 : (isKyoto ? 0x86ba5c : 0x98d062))) }
       };
       animatedUniforms.push(uniforms);
 
@@ -790,6 +795,7 @@ window.LailaSalma = window.LailaSalma || {};
     bloomPass: null,
     gradePass: null,
     fxaaPass: null,
+    enabled: true,
 
     init: function (renderer, scene, camera) {
       if (!LS.isHD || typeof THREE.EffectComposer === 'undefined') return false;
@@ -800,7 +806,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (typeof THREE.UnrealBloomPass !== 'undefined') {
           const bloom = new THREE.UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            0.14, 0.48, 0.90
+            0.13, 0.48, 0.90
           );
           composer.addPass(bloom);
           LS.hdPost.bloomPass = bloom;
@@ -821,11 +827,24 @@ window.LailaSalma = window.LailaSalma || {};
         }
 
         LS.hdPost.composer = composer;
+        LS.hdPost.applyQuality();
         return true;
       } catch (e) {
         console.warn('[HD Post]', e);
         return false;
       }
+    },
+
+    applyQuality: function (q) {
+      const qCfg = (LS.ghibli && LS.ghibli.getQualityConfig) ? LS.ghibli.getQualityConfig(q) : { usePost: true, useBloom: true };
+      LS.hdPost.enabled = !!qCfg.usePost;
+      if (LS.hdPost.bloomPass) {
+        LS.hdPost.bloomPass.enabled = !!qCfg.useBloom;
+      }
+    },
+
+    registerAnimatedUniform: function (u) {
+      if (u) animatedUniforms.push(u);
     },
 
     setSize: function (w, h, pr) {
@@ -841,7 +860,7 @@ window.LailaSalma = window.LailaSalma || {};
         LS.hdPost.gradePass.uniforms.uTimeMode.value = mode;
       }
       if (LS.hdPost.bloomPass) {
-        LS.hdPost.bloomPass.strength = mode === 1 ? 0.26 : (mode === 2 ? 0.36 : 0.14);
+        LS.hdPost.bloomPass.strength = mode === 1 ? 0.24 : (mode === 2 ? 0.34 : 0.13);
         LS.hdPost.bloomPass.threshold = mode === 2 ? 0.74 : (mode === 1 ? 0.86 : 0.90);
       }
       animatedUniforms.forEach(u => {
@@ -860,7 +879,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
 
     render: function () {
-      if (LS.hdPost.composer) {
+      if (LS.hdPost.composer && LS.hdPost.enabled) {
         LS.hdPost.composer.render();
         return true;
       }
