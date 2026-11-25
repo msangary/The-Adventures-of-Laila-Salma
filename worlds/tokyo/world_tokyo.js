@@ -54,6 +54,28 @@ window.LailaSalma = window.LailaSalma || {};
       const bd = cfg.depth || (oneStory ? 5.4 : 6.2);
       const bh = oneStory ? 3.5 : 5.4;
 
+      const glbKey = oneStory ? 'tokyo_house_1f' : 'tokyo_house_2f';
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has(glbKey)) {
+        const model = LS.hdAssets.clone(glbKey, { wallTint: wallHex, roofTint: roofHex });
+        g.add(model);
+        if (cfg.clubhouseSign) {
+          const sign = new THREE.Mesh(
+            new THREE.BoxGeometry(4.0, 0.9, 0.18),
+            new THREE.MeshBasicMaterial({
+              map: LS.createSignTexture("🏡 LAILA & SALMA'S ROOM", {
+                bg: '#fff0f6', border: '#d95d88', color: '#6b2144', font: 'bold 30px sans-serif'
+              })
+            })
+          );
+          sign.position.set(-1.3, 2.85, 3.22);
+          g.add(sign);
+        }
+        worldGroup.add(g);
+        const colHalf = Math.max(bw, bd) * 0.5 + 0.4;
+        addCollider(x, z, colHalf, colHalf);
+        return;
+      }
+
       const wallMat = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture(wallHex) });
       const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture(roofHex) });
       const woodMat = LS.makeToonMat(cfg.doorColor || 0x7c5333);
@@ -151,6 +173,16 @@ window.LailaSalma = window.LailaSalma || {};
 
     function buildTree(x, z, kind, scale, noCol) {
       const s = scale || 1;
+      const hdKey = kind === 'sakura' ? 'anime_tree_sakura' : (kind === 'gold' ? 'anime_tree_maple' : 'anime_tree_green');
+      if (LS.isHD && kind !== 'willow' && LS.hdAssets && LS.hdAssets.has(hdKey)) {
+        const m = LS.hdAssets.clone(hdKey);
+        m.position.set(x, 0, z);
+        m.rotation.y = x * 0.73 + z * 0.41;
+        m.scale.setScalar(s * 1.05);
+        worldGroup.add(m);
+        if (!noCol) addCollider(x, z, 0.55 * s, 0.55 * s);
+        return;
+      }
       const g = new THREE.Group();
       g.position.set(x, 0, z);
       g.scale.setScalar(s);
@@ -558,10 +590,18 @@ window.LailaSalma = window.LailaSalma || {};
       worldGroup.add(vm); addCollider(-5.8, -15.6, 0.7, 0.6);
       W.zones.push({ id: 'gachapon', label: 'Spin Tokyo Capsule Toy Machine (15c) 🎁', pos: new THREE.Vector3(-4.5, 0, -15.6), radius: 2.8 });
 
-      const drinkVm = new THREE.Group(); drinkVm.position.set(-5.8, 0, -13.6);
-      const dBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.95, 0.74), LS.makeToonMat(0xef4444)); dBody.position.y = 0.98; dBody.castShadow = true; drinkVm.add(dBody);
-      const dWindow = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.86, 0.08), new THREE.MeshBasicMaterial({ color: 0xa7f3d0 })); dWindow.position.set(0, 1.3, 0.36); drinkVm.add(dWindow);
-      worldGroup.add(drinkVm); addCollider(-5.8, -13.6, 0.68, 0.58);
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_vending')) {
+        const dVm = LS.hdAssets.clone('anime_vending');
+        dVm.position.set(-5.8, 0, -13.6);
+        dVm.rotation.y = Math.PI / 2;
+        worldGroup.add(dVm);
+      } else {
+        const drinkVm = new THREE.Group(); drinkVm.position.set(-5.8, 0, -13.6);
+        const dBody = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.95, 0.74), LS.makeToonMat(0xef4444)); dBody.position.y = 0.98; dBody.castShadow = true; drinkVm.add(dBody);
+        const dWindow = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.86, 0.08), new THREE.MeshBasicMaterial({ color: 0xa7f3d0 })); dWindow.position.set(0, 1.3, 0.36); drinkVm.add(dWindow);
+        worldGroup.add(drinkVm);
+      }
+      addCollider(-5.8, -13.6, 0.68, 0.58);
       W.zones.push({ id: 'drink_vending', label: 'Japanese Drink & Snack Machine 🧃', pos: new THREE.Vector3(-4.5, 0, -13.6), radius: 2.6 });
 
       W.zones.push({ id: 'clubhouse', label: "Enter Laila & Salma's 3D Room 🏡", pos: new THREE.Vector3(-6.2, 0, -1.5), radius: 3.1 });
@@ -569,16 +609,43 @@ window.LailaSalma = window.LailaSalma || {};
       const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), LS.makeToonMat(0xffbe0b));
       ballMesh.position.set(-2.5, 0.14, -5.2); ballMesh.visible = false; worldGroup.add(ballMesh); W.mochiBall = ballMesh;
 
-      // Asymmetrical village lamps tucked at gentle lane bends (never mirrored pairs!)
-      const poleMat = LS.makeToonMat(0x5c4f44), lampBulb = new THREE.MeshBasicMaterial({ color: 0xffe4a0 });
-      [[-4.8, 23.5], [5.8, 12.0], [-5.2, -4.5], [6.4, -18.5], [-4.5, -28.0], [18.5, -16.5], [-21.0, 2.5]].forEach(p => {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 6.2, 8), poleMat); pole.position.set(p[0], 3.1, p[1]); pole.castShadow = true; worldGroup.add(pole);
-        const lx = p[0] + (p[0] < 0 ? 0.35 : -0.35);
-        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), lampBulb); lamp.position.set(lx, 5.6, p[1]); worldGroup.add(lamp);
-        if (LS.isHD) {
-          const halo = LS.createGlowSprite(0xffe090, 2.0); halo.position.set(lx, 5.6, p[1]); worldGroup.add(halo);
-        }
-      });
+      // Utility poles + sagging Shinkai catenary power lines in HD mode (simple warm lamps in Classic!)
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('utility_pole')) {
+        const westPoles = [
+          { x: -4.6, z: 24.5, rotY: 0 },
+          { x: -4.2, z: 8.5, rotY: 0.12 },
+          { x: -5.2, z: -7.5, rotY: -0.08 },
+          { x: -4.4, z: -24.5, rotY: 0.05 }
+        ];
+        const eastPoles = [
+          { x: 5.4, z: 16.5, rotY: Math.PI },
+          { x: 5.6, z: -1.5, rotY: Math.PI - 0.1 },
+          { x: 6.2, z: -18.5, rotY: Math.PI + 0.08 }
+        ];
+        westPoles.concat(eastPoles).forEach(pt => {
+          const pm = LS.hdAssets.clone('utility_pole');
+          pm.position.set(pt.x, 0, pt.z);
+          pm.rotation.y = pt.rotY;
+          worldGroup.add(pm);
+          const lx = pt.x + Math.cos(pt.rotY) * 1.15;
+          const halo = LS.createGlowSprite(0xffe090, 1.85);
+          halo.position.set(lx, 5.25, pt.z - Math.sin(pt.rotY) * 1.15);
+          worldGroup.add(halo);
+        });
+        LS.hdAssets.addPowerLines(worldGroup, westPoles);
+        LS.hdAssets.addPowerLines(worldGroup, eastPoles);
+        // Cross-street overhead wires (classic Japanese neighborhood silhouette!)
+        LS.hdAssets.addPowerLines(worldGroup, [westPoles[1], eastPoles[0]]);
+        LS.hdAssets.addPowerLines(worldGroup, [westPoles[2], eastPoles[1]]);
+        LS.hdAssets.addRidgeTowers(worldGroup, [[-26, 17, -110], [28, 16, -108]]);
+      } else {
+        const poleMat = LS.makeToonMat(0x5c4f44), lampBulb = new THREE.MeshBasicMaterial({ color: 0xffe4a0 });
+        [[-4.8, 23.5], [5.8, 12.0], [-5.2, -4.5], [6.4, -18.5], [-4.5, -28.0], [18.5, -16.5], [-21.0, 2.5]].forEach(p => {
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 6.2, 8), poleMat); pole.position.set(p[0], 3.1, p[1]); pole.castShadow = true; worldGroup.add(pole);
+          const lx = p[0] + (p[0] < 0 ? 0.35 : -0.35);
+          const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), lampBulb); lamp.position.set(lx, 5.6, p[1]); worldGroup.add(lamp);
+        });
+      }
 
       // Organic asymmetrical tree groves leaving wide sunlit meadows & clear sky views!
       [

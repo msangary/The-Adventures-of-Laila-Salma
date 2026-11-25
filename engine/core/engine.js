@@ -61,35 +61,35 @@ window.LailaSalma = window.LailaSalma || {};
       return;
     }
 
-    const hdBoost = LS.isHD ? 1.15 : 1.0;
     if (mode === 1) {
       scene.fog.color.setHex(wid === 'kyoto' ? 0xeb9b6c : 0xf2a772);
-      dirLight.color.setHex(0xffa45b);
-      dirLight.intensity = 1.08 * hdBoost;
+      dirLight.color.setHex(0xffa054);
+      dirLight.intensity = LS.isHD ? 1.28 : 1.05;
       hemiLight.color.setHex(0xffc99e);
-      hemiLight.groundColor.setHex(0x6e4b3a);
+      hemiLight.groundColor.setHex(0x523f5c);
       streetLight.intensity = 0.72;
       accentLight.intensity = 0.85;
       if (btn) btn.textContent = '🌇';
     } else if (mode === 2) {
       scene.fog.color.setHex(0x25355a);
       dirLight.color.setHex(0x88a8e6);
-      dirLight.intensity = 0.66 * hdBoost;
+      dirLight.intensity = LS.isHD ? 0.72 : 0.62;
       hemiLight.color.setHex(0x50689c);
       hemiLight.groundColor.setHex(0x1f2536);
       streetLight.intensity = 1.05;
       accentLight.intensity = 1.15;
       if (btn) btn.textContent = '🌙';
     } else {
-      scene.fog.color.setHex(wid === 'kyoto' ? 0xc8e4f2 : 0xcbe6f7);
-      dirLight.color.setHex(0xfff1d0);
-      dirLight.intensity = 1.16 * hdBoost;
-      hemiLight.color.setHex(0xbbe2ff);
-      hemiLight.groundColor.setHex(0x74855c);
+      scene.fog.color.setHex(LS.isHD ? 0xd8e8f5 : (wid === 'kyoto' ? 0xc8e4f2 : 0xcbe6f7));
+      dirLight.color.setHex(LS.isHD ? 0xffe4b3 : 0xfff1d0);
+      dirLight.intensity = LS.isHD ? 1.24 : 1.12;
+      hemiLight.color.setHex(LS.isHD ? 0x9ac8ff : 0xbbe2ff);
+      hemiLight.groundColor.setHex(LS.isHD ? 0x4f637a : 0x74855c);
       streetLight.intensity = 0.25;
       accentLight.intensity = 0.35;
       if (btn) btn.textContent = '🌤️';
     }
+    if (LS.hdPost && LS.hdPost.setTimeMode) LS.hdPost.setTimeMode(mode);
 
     if (hdCloudsGroup) {
       const cCol = mode === 1 ? 0xffd7b0 : (mode === 2 ? 0x5c6f9c : 0xfffdf8);
@@ -235,7 +235,7 @@ window.LailaSalma = window.LailaSalma || {};
       streetLight.position.set(0, 3.8, 0);
       accentLight.position.set(-3, 2.5, -2);
     } else if (worldId === 'kyoto') {
-      dirLight.position.set(16, 38, 16);
+      dirLight.position.set(LS.isHD ? 28 : 16, LS.isHD ? 24 : 38, LS.isHD ? 20 : 16);
       dirLight.shadow.camera.left = -64;
       dirLight.shadow.camera.right = 46;
       dirLight.shadow.camera.top = 46;
@@ -244,7 +244,7 @@ window.LailaSalma = window.LailaSalma || {};
       streetLight.position.set(0, 5.2, -10);
       accentLight.position.set(-22.0, 3.6, -27.5);
     } else {
-      dirLight.position.set(22, 38, 18);
+      dirLight.position.set(LS.isHD ? 34 : 22, LS.isHD ? 24 : 38, 18);
       dirLight.shadow.camera.left = -54;
       dirLight.shadow.camera.right = 56;
       dirLight.shadow.camera.top = 50;
@@ -1272,6 +1272,9 @@ window.LailaSalma = window.LailaSalma || {};
     scene.add(accentLight);
 
     initHDAtmosphere();
+    if (LS.isHD && LS.hdPost) {
+      LS.hdPost.init(renderer, scene, camera);
+    }
 
     worldGroup = new THREE.Group();
     scene.add(worldGroup);
@@ -1284,14 +1287,8 @@ window.LailaSalma = window.LailaSalma || {};
 
     const startWorld = LS.WORLDS[LS.state.currentWorld] && !LS.WORLDS[LS.state.currentWorld].isInterior
       ? LS.state.currentWorld : 'tokyo';
-    LS.loadWorld(startWorld, false);
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
+    let animStarted = false;
     function animate() {
       requestAnimationFrame(animate);
       try {
@@ -1309,12 +1306,38 @@ window.LailaSalma = window.LailaSalma || {};
         updateCamera(dt);
         LS.updateHUD();
         updateMiniMap();
-        renderer.render(scene, camera);
+        if (!LS.hdPost || !LS.hdPost.render()) {
+          renderer.render(scene, camera);
+        }
       } catch (err) {
         console.error(err);
       }
     }
-    animate();
+
+    const bootWorld = () => {
+      LS.loadWorld(startWorld, false);
+      if (LS.isHD) {
+        dirLight.position.set(34, 24, 18);
+      }
+      if (!animStarted) {
+        animStarted = true;
+        clock.getDelta();
+        animate();
+      }
+    };
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (LS.hdPost) LS.hdPost.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    if (LS.isHD && LS.hdAssets && LS.hdAssets.preloadAll) {
+      LS.hdAssets.preloadAll().then(bootWorld);
+    } else {
+      bootWorld();
+    }
   }
 
   window.addEventListener('DOMContentLoaded', () => {

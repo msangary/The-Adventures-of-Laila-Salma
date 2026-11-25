@@ -504,6 +504,11 @@ window.LailaSalma = window.LailaSalma || {};
   LS.createSkyTexture = function (mode, worldId) {
     const key = 'sky_' + mode + '_' + (worldId || 'tokyo');
     if (texCache[key]) return texCache[key];
+    if (LS.isHD && LS.createShinkaiSkyTexture) {
+      const hdTex = LS.createShinkaiSkyTexture(mode, worldId);
+      texCache[key] = hdTex;
+      return hdTex;
+    }
 
     const c = document.createElement('canvas');
     c.width = 1024;
@@ -1066,6 +1071,14 @@ window.LailaSalma = window.LailaSalma || {};
 
     addShrub: function (parent, x, z, scale, flowerHex) {
       const s = scale || 1;
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_shrub')) {
+        const m = LS.hdAssets.clone('anime_shrub');
+        m.position.set(x, 0, z);
+        m.rotation.y = x * 0.7 + z * 0.3;
+        m.scale.setScalar(s * 1.15);
+        parent.add(m);
+        return;
+      }
       const g = new THREE.Group();
       g.position.set(x, 0, z);
       g.scale.setScalar(s);
@@ -1182,6 +1195,13 @@ window.LailaSalma = window.LailaSalma || {};
     },
 
     addBike: function (parent, x, z, rotY, colorHex) {
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_bike')) {
+        const m = LS.hdAssets.clone('anime_bike');
+        m.position.set(x, 0, z);
+        m.rotation.y = rotY || 0;
+        parent.add(m);
+        return;
+      }
       const bike = new THREE.Group();
       bike.position.set(x, 0, z);
       bike.rotation.y = rotY || 0;

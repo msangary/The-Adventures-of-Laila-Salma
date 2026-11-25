@@ -158,87 +158,108 @@ window.LailaSalma = window.LailaSalma || {};
 
     const bodyPivot = new THREE.Group();
     root.add(bodyPivot);
+    const hd = !!LS.isHD;
+    const legH = hd ? 0.66 : 0.52;
+    const hipY = hd ? 0.72 : 0.58;
 
     function makeLeg(sideX) {
       const leg = new THREE.Group();
-      leg.position.set(sideX, 0.58, 0);
-      const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.072, 0.52, 10), cfg.pants ? bottomMat : skinMat);
-      limb.position.y = -0.26;
+      leg.position.set(sideX, hipY, 0);
+      const limb = new THREE.Mesh(
+        new THREE.CylinderGeometry(hd ? 0.072 : 0.085, hd ? 0.056 : 0.072, legH, hd ? 14 : 10),
+        cfg.pants ? bottomMat : skinMat
+      );
+      limb.position.y = -legH * 0.5;
       limb.castShadow = true;
       leg.add(limb);
 
       if (!cfg.pants) {
-        const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.072, 0.16, 10), LS.makeToonMat(0xffffff));
-        sock.position.y = -0.44;
+        const sockCol = (hd && cfg.sailorCollar) ? 0x262d3d : 0xffffff;
+        const sockH = hd ? 0.28 : 0.16;
+        const sock = new THREE.Mesh(new THREE.CylinderGeometry(hd ? 0.064 : 0.078, hd ? 0.058 : 0.072, sockH, hd ? 12 : 10), LS.makeToonMat(sockCol));
+        sock.position.y = -legH + sockH * 0.5 + 0.02;
         leg.add(sock);
       }
 
-      const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), shoeMat);
-      shoe.scale.set(0.95, 0.65, 1.4);
-      shoe.position.set(0, -0.54, 0.04);
+      const shoe = new THREE.Mesh(new THREE.SphereGeometry(hd ? 0.095 : 0.11, 12, 8), shoeMat);
+      shoe.scale.set(0.92, 0.62, 1.45);
+      shoe.position.set(0, -legH - 0.02, 0.04);
       leg.add(shoe);
       return leg;
     }
 
-    const leftLeg = makeLeg(-0.13);
-    const rightLeg = makeLeg(0.13);
+    const leftLeg = makeLeg(hd ? -0.105 : -0.13);
+    const rightLeg = makeLeg(hd ? 0.105 : 0.13);
     bodyPivot.add(leftLeg, rightLeg);
 
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.23, 0.56, 12), topMat);
-    torso.position.y = 0.88;
+    const torsoY = hd ? 1.03 : 0.88;
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(hd ? 0.165 : 0.19, hd ? 0.185 : 0.23, hd ? 0.58 : 0.56, hd ? 16 : 12), topMat);
+    torso.position.y = torsoY;
     torso.castShadow = true;
     bodyPivot.add(torso);
 
+    if (hd) {
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.068, 0.14, 10), skinMat);
+      neck.position.y = torsoY + 0.33;
+      bodyPivot.add(neck);
+    }
+
     if (!cfg.pants) {
-      const skirt = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.36, 14), bottomMat);
-      skirt.position.y = 0.64;
+      const skirt = new THREE.Mesh(new THREE.ConeGeometry(hd ? 0.28 : 0.32, hd ? 0.40 : 0.36, hd ? 20 : 14), bottomMat);
+      skirt.position.y = hd ? 0.75 : 0.64;
       skirt.castShadow = true;
       bodyPivot.add(skirt);
     }
 
     if (cfg.sailorCollar) {
-      const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.24, 0.16, 12), bottomMat);
-      collar.position.y = 1.09;
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(hd ? 0.185 : 0.21, hd ? 0.22 : 0.24, 0.16, hd ? 16 : 12), bottomMat);
+      collar.position.y = torsoY + 0.21;
       bodyPivot.add(collar);
-      const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.06), LS.makeToonMat(0xd93848));
-      ribbon.position.set(0, 1.02, 0.21);
+      const ribbon = new THREE.Mesh(new THREE.BoxGeometry(hd ? 0.11 : 0.14, hd ? 0.18 : 0.14, 0.06), LS.makeToonMat(0xd93848));
+      ribbon.position.set(0, torsoY + 0.12, hd ? 0.19 : 0.21);
       bodyPivot.add(ribbon);
     }
 
     if (cfg.backpackColor) {
-      const bp = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.4, 0.19), bpMat);
-      bp.position.set(0, 0.92, -0.24);
+      const bp = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.38, 0.18), bpMat);
+      bp.position.set(0, torsoY + 0.04, hd ? -0.21 : -0.24);
       bp.castShadow = true;
       bodyPivot.add(bp);
       const clasp = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.04), LS.makeToonMat(0xf2c94c));
-      clasp.position.set(0, 0.78, -0.34);
+      clasp.position.set(0, torsoY - 0.10, hd ? -0.31 : -0.34);
       bodyPivot.add(clasp);
     }
 
     function makeArm(sideX) {
       const arm = new THREE.Group();
-      arm.position.set(sideX, 1.1, 0);
-      const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), topMat);
+      arm.position.set(sideX, torsoY + 0.22, 0);
+      const shoulder = new THREE.Mesh(new THREE.SphereGeometry(hd ? 0.075 : 0.085, 10, 8), topMat);
       arm.add(shoulder);
-      const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.058, 0.44, 10), skinMat);
-      limb.position.y = -0.24;
+      if (hd) {
+        const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.064, 0.060, 0.20, 10), topMat);
+        sleeve.position.y = -0.10;
+        arm.add(sleeve);
+      }
+      const limb = new THREE.Mesh(new THREE.CylinderGeometry(hd ? 0.054 : 0.068, hd ? 0.045 : 0.058, hd ? 0.48 : 0.44, 10), skinMat);
+      limb.position.y = hd ? -0.26 : -0.24;
       limb.castShadow = true;
       arm.add(limb);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), skinMat);
-      hand.position.y = -0.47;
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(hd ? 0.052 : 0.065, 8, 8), skinMat);
+      hand.position.y = hd ? -0.51 : -0.47;
       arm.add(hand);
       return arm;
     }
 
-    const leftArm = makeArm(-0.26);
-    const rightArm = makeArm(0.26);
+    const leftArm = makeArm(hd ? -0.22 : -0.26);
+    const rightArm = makeArm(hd ? 0.22 : 0.26);
     bodyPivot.add(leftArm, rightArm);
 
     const headGroup = new THREE.Group();
-    headGroup.position.y = 1.44;
+    headGroup.position.y = hd ? 1.56 : 1.44;
+    if (hd) headGroup.scale.set(0.84, 0.88, 0.84);
     bodyPivot.add(headGroup);
 
-    const headSphere = new THREE.Mesh(new THREE.SphereGeometry(0.29, 18, 14), skinMat);
+    const headSphere = new THREE.Mesh(new THREE.SphereGeometry(0.29, hd ? 24 : 18, hd ? 18 : 14), skinMat);
     headSphere.castShadow = true;
     headGroup.add(headSphere);
 
@@ -254,13 +275,24 @@ window.LailaSalma = window.LailaSalma || {};
     facePlane.rotation.y = Math.PI / 2;
     headGroup.add(facePlane);
 
-    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.305, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
+    const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.305, hd ? 22 : 16, hd ? 16 : 12, 0, Math.PI * 2, 0, Math.PI * 0.58), hairMat);
     hairTop.position.y = 0.02;
     headGroup.add(hairTop);
 
+    if (hd) {
+      // Sculpted anime side bangs framing the face!
+      [-0.22, 0.22].forEach(bx => {
+        const strand = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.36, 7), hairMat);
+        strand.position.set(bx, -0.06, 0.14);
+        strand.rotation.x = Math.PI;
+        strand.rotation.z = bx < 0 ? 0.14 : -0.14;
+        headGroup.add(strand);
+      });
+    }
+
     if (cfg.longHair) {
-      const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.31, 0.42, 12), hairMat);
-      backHair.position.set(0, -0.14, -0.08);
+      const backHair = new THREE.Mesh(new THREE.CylinderGeometry(0.27, hd ? 0.34 : 0.31, hd ? 0.54 : 0.42, hd ? 16 : 12), hairMat);
+      backHair.position.set(0, hd ? -0.20 : -0.14, -0.08);
       headGroup.add(backHair);
     }
     if (cfg.pigtails) {

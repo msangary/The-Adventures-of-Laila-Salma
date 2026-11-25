@@ -63,6 +63,16 @@ window.LailaSalma = window.LailaSalma || {};
 
     function buildKyotoTree(x, z, kind, scale, baseY, noCol) {
       const s = scale || 1;
+      const hdKey = kind === 'maple' ? 'anime_tree_maple' : (kind === 'sakura' ? 'anime_tree_sakura' : 'anime_tree_green');
+      if (LS.isHD && kind !== 'cedar' && kind !== 'willow' && LS.hdAssets && LS.hdAssets.has(hdKey)) {
+        const m = LS.hdAssets.clone(hdKey);
+        m.position.set(x, baseY || 0, z);
+        m.rotation.y = x * 0.67 + z * 0.39;
+        m.scale.setScalar(s * 1.08);
+        worldGroup.add(m);
+        if (!noCol) addCollider(x, z, 0.55 * s, 0.55 * s);
+        return m;
+      }
       const g = new THREE.Group();
       g.position.set(x, baseY || 0, z);
       g.scale.setScalar(s);
@@ -111,15 +121,47 @@ window.LailaSalma = window.LailaSalma || {};
       g.position.set(x, 0, z);
       g.rotation.y = rotY;
 
+      const w = cfg.width || 7.0;
+      const d = cfg.depth || 6.0;
+      const h = cfg.height || 5.0;
+
+      if (LS.isHD && LS.hdAssets && LS.hdAssets.has('kyoto_machiya')) {
+        const model = LS.hdAssets.clone('kyoto_machiya', { wallTint: cfg.wallHex, roofTint: cfg.roofHex });
+        model.scale.set(w / 6.6, h / 5.0, d / 5.6);
+        g.add(model);
+        const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), new THREE.MeshBasicMaterial({ color: cfg.lanternColor || 0xffd27d }));
+        lantern.scale.set(1, 1.35, 1); lantern.position.set(1.25, 2.35, d / 2 + 0.52); g.add(lantern);
+        const halo = LS.createGlowSprite(cfg.lanternColor || 0xffd27d, 1.75);
+        halo.position.copy(lantern.position); g.add(halo);
+        if (cfg.signText) {
+          const sign = new THREE.Mesh(
+            new THREE.BoxGeometry(4.0, 0.85, 0.18),
+            new THREE.MeshBasicMaterial({
+              map: LS.createSignTexture(cfg.signText, {
+                bg: cfg.signBg || '#3a2315', border: cfg.signBorder || '#e0a458', color: cfg.signColor || '#fff5dc', font: 'bold 31px sans-serif'
+              })
+            })
+          );
+          sign.position.set(0, h * 0.52 + 0.62, d / 2 + 0.62); g.add(sign);
+        }
+        if (cfg.norenColor) {
+          const nMat = LS.makeToonMat(cfg.norenColor, { side: THREE.DoubleSide });
+          for (let i = -1; i <= 1; i++) {
+            const cloth = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.78, 0.05), nMat);
+            cloth.position.set(i * 0.72, 2.0, d / 2 + 0.45); g.add(cloth);
+            W.norenPanels.push({ mesh: cloth, phase: i * 0.8 + z });
+          }
+        }
+        worldGroup.add(g);
+        addCollider(x, z, Math.max(w, d) * 0.5 + 0.35, Math.max(w, d) * 0.5 + 0.35);
+        return g;
+      }
+
       const darkWood = LS.makeToonMat(cfg.woodColor || 0x4b3322);
       const plaster = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture(cfg.wallHex || '#efe5d1') });
       const lattice = LS.makeToonMat(0xffffff, { map: LS.createWoodLatticeTexture('#4a3120', cfg.shojiHex || '#f7ecd4') });
       const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture(cfg.roofHex || '#363b45'), roughness: 0.48 });
       const glowWin = LS.makeEmissiveMat(0xffe9b5, 0xffc870, 0.55);
-
-      const w = cfg.width || 7.0;
-      const d = cfg.depth || 6.0;
-      const h = cfg.height || 5.0;
 
       const lower = new THREE.Mesh(new THREE.BoxGeometry(w, h * 0.52, d), lattice);
       lower.position.y = h * 0.26; lower.castShadow = true; lower.receiveShadow = true; g.add(lower);
