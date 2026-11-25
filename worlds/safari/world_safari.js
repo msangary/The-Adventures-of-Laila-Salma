@@ -402,7 +402,7 @@ window.LailaSalma = window.LailaSalma || {};
             inner = LS.hdAssets.clone('anime_giraffe');
           } else {
             inner = new THREE.Group();
-            const hideM = LS.makeToonMat(0xeab654), spotM = LS.makeToonMat(0x8d4e24), creamM = LS.makeToonMat(0xf8ebd0), darkM = LS.makeToonMat(0x281e18);
+            const hideM = LS.makeToonMat(0xffffff, { map: LS.createGiraffeHideTexture() }), spotM = LS.makeToonMat(0x8d4e24), creamM = LS.makeToonMat(0xf8ebd0), darkM = LS.makeToonMat(0x281e18);
             const body = new THREE.Mesh(new THREE.SphereGeometry(0.68, 12, 8), hideM); body.scale.set(0.82, 0.85, 1.5); body.position.y = 2.05; body.castShadow = true; inner.add(body);
             [[-0.3, 0.58], [0.3, 0.58], [-0.28, -0.62], [0.28, -0.62]].forEach(l => {
               const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 2.0, 8), creamM); leg.position.set(l[0], 1.0, l[1]); inner.add(leg);
@@ -517,12 +517,18 @@ window.LailaSalma = window.LailaSalma || {};
         // 6 Graceful Pink Flamingos wading in the watering hole shallows!
         const flamMat = LS.makeToonMat(0xff7aa2), flamDark = LS.makeToonMat(0x281e1c), flamLeg = LS.makeToonMat(0xe8658c);
         [[-34.0, -33.2], [-35.5, -31.4], [-32.2, -35.0], [-27.8, -21.2], [-25.6, -22.5], [-30.0, -20.8]].forEach((fp, idx) => {
-          const fg = new THREE.Group(); fg.position.set(fp[0], 0.02, fp[1]); fg.rotation.y = idx * 1.1;
-          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.78, 5), flamLeg); leg.position.y = 0.39; fg.add(leg);
-          const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), flamMat); body.scale.set(0.75, 0.72, 1.35); body.position.y = 0.85; fg.add(body);
-          const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.65, 6), flamMat); neck.position.set(0, 1.24, 0.22); neck.rotation.x = 0.16; fg.add(neck);
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 6), flamMat); head.position.set(0, 1.56, 0.28); fg.add(head);
-          const beak = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.14, 5), flamDark); beak.position.set(0, 1.52, 0.38); beak.rotation.x = 1.9; fg.add(beak);
+          const fg = new THREE.Group(); fg.position.set(fp[0], 0.04, fp[1]); fg.rotation.y = idx * 1.1;
+          if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_flamingo')) {
+            const mdl = LS.hdAssets.clone('anime_flamingo');
+            mdl.scale.setScalar(0.95 + (idx % 3) * 0.06);
+            fg.add(mdl);
+          } else {
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.78, 5), flamLeg); leg.position.y = 0.39; fg.add(leg);
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), flamMat); body.scale.set(0.75, 0.72, 1.35); body.position.y = 0.85; fg.add(body);
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.65, 6), flamMat); neck.position.set(0, 1.24, 0.22); neck.rotation.x = 0.16; fg.add(neck);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 6), flamMat); head.position.set(0, 1.56, 0.28); fg.add(head);
+            const beak = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.14, 5), flamDark); beak.position.set(0, 1.52, 0.38); beak.rotation.x = 1.9; fg.add(beak);
+          }
           worldGroup.add(fg);
           W.flamingos.push({ root: fg, phase: idx * 0.9 });
         });
@@ -544,45 +550,68 @@ window.LailaSalma = window.LailaSalma || {};
           crag.scale.set(c[4], c[5], c[6]); crag.rotation.y = c[7];
           crag.position.set(c[0], c[1], c[2]); crag.castShadow = true; crag.receiveShadow = true; kopje.add(crag);
         });
-        const ledge = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.15, 7.8), rockC);
-        ledge.position.set(0.4, 4.65, 2.1); ledge.rotation.x = -0.24; ledge.castShadow = true; kopje.add(ledge);
+        const ledge = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.05, 7.6), rockC);
+        ledge.position.set(0.4, 3.65, 2.2); ledge.rotation.x = -0.22; ledge.castShadow = true; kopje.add(ledge);
         worldGroup.add(kopje);
         addCollider(3.0, -40.5, 7.6, 6.2);
 
-        // Majestic Resting King Lion + Lioness perched atop Pride Rock!
-        const furM = LS.makeToonMat(0xe5a94c), maneM = LS.makeToonMat(0x7c3e18), creamM = LS.makeToonMat(0xfbe8c2), darkM = LS.makeToonMat(0x1e1612);
-        const king = new THREE.Group(); king.position.set(3.4, 5.72, -35.8); king.rotation.y = 0.06;
-        const kBody = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 8), furM); kBody.scale.set(0.82, 0.75, 1.55); kBody.position.y = 0.45; kBody.castShadow = true; king.add(kBody);
-        const kMane = new THREE.Mesh(new THREE.DodecahedronGeometry(0.74, 1), maneM); kMane.position.set(0, 0.94, 0.72); kMane.castShadow = true; king.add(kMane);
-        const kHead = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), furM); kHead.position.set(0, 0.96, 0.98); king.add(kHead);
-        const kSnout = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), creamM); kSnout.scale.set(1.05, 0.78, 1.15); kSnout.position.set(0, 0.88, 1.34); king.add(kSnout);
-        const kNose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), darkM); kNose.position.set(0, 0.94, 1.54); king.add(kNose);
-        [-0.28, 0.28].forEach(ex => {
-          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), furM); ear.position.set(ex, 1.32, 0.90); king.add(ear);
-          const paw = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), furM); paw.scale.set(0.85, 0.55, 1.6); paw.position.set(ex * 1.1, 0.14, 1.05); king.add(paw);
-        });
-        [-0.17, 0.17].forEach(ex => {
-          const e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); e.position.set(ex, 1.04, 1.35); king.add(e);
-        });
-        const kTail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.85, 6), furM);
-        kTail.rotation.x = 1.18; kTail.position.set(0.18, 0.36, -1.05); king.add(kTail);
-        const kTuft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), maneM); kTuft.position.set(0.26, 0.22, -1.42); king.add(kTuft);
+        // Majestic Resting King Lion + Lioness perched atop Pride Rock (clearly visible from road & Jeep!)
+        const king = new THREE.Group(); king.position.set(3.4, 4.48, -35.6); king.rotation.y = 0.08;
+        if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_lion_king')) {
+          const kMdl = LS.hdAssets.clone('anime_lion_king');
+          kMdl.scale.setScalar(1.16);
+          king.add(kMdl);
+        } else {
+          const furM = LS.makeToonMat(0xe5a94c), maneM = LS.makeToonMat(0x7c3e18), creamM = LS.makeToonMat(0xfbe8c2), darkM = LS.makeToonMat(0x1e1612);
+          const kBody = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 8), furM); kBody.scale.set(0.82, 0.75, 1.55); kBody.position.y = 0.45; kBody.castShadow = true; king.add(kBody);
+          const kMane = new THREE.Mesh(new THREE.DodecahedronGeometry(0.74, 1), maneM); kMane.position.set(0, 0.94, 0.72); kMane.castShadow = true; king.add(kMane);
+          const kHead = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), furM); kHead.position.set(0, 0.96, 0.98); king.add(kHead);
+          const kSnout = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), creamM); kSnout.scale.set(1.05, 0.78, 1.15); kSnout.position.set(0, 0.88, 1.34); king.add(kSnout);
+          const kNose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), darkM); kNose.position.set(0, 0.94, 1.54); king.add(kNose);
+          [-0.28, 0.28].forEach(ex => {
+            const ear = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), furM); ear.position.set(ex, 1.32, 0.90); king.add(ear);
+            const paw = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), furM); paw.scale.set(0.85, 0.55, 1.6); paw.position.set(ex * 1.1, 0.14, 1.05); king.add(paw);
+          });
+          [-0.17, 0.17].forEach(ex => {
+            const e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); e.position.set(ex, 1.04, 1.35); king.add(e);
+          });
+          const kTail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.85, 6), furM);
+          kTail.rotation.x = 1.18; kTail.position.set(0.18, 0.36, -1.05); king.add(kTail);
+          const kTuft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), maneM); kTuft.position.set(0.26, 0.22, -1.42); king.add(kTuft);
+        }
         worldGroup.add(king);
 
-        const queen = new THREE.Group(); queen.position.set(1.2, 5.25, -37.6); queen.rotation.y = 0.35;
-        const qBody = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 8), furM); qBody.scale.set(0.78, 0.72, 1.48); qBody.position.y = 0.38; qBody.castShadow = true; queen.add(qBody);
-        const qHead = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), furM); qHead.position.set(0, 0.78, 0.74); queen.add(qHead);
-        const qSnout = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), creamM); qSnout.position.set(0, 0.72, 1.02); queen.add(qSnout);
-        const qNose = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); qNose.position.set(0, 0.77, 1.16); queen.add(qNose);
-        [-0.22, 0.22].forEach(ex => {
-          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), furM); ear.position.set(ex, 1.06, 0.68); queen.add(ear);
-          const paw = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), furM); paw.scale.set(0.85, 0.55, 1.55); paw.position.set(ex * 1.1, 0.12, 0.85); queen.add(paw);
-          const eye = new THREE.Mesh(new THREE.SphereGeometry(0.048, 6, 6), darkM); eye.position.set(ex * 0.65, 0.84, 1.04); queen.add(eye);
-        });
-        const qTail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.72, 6), furM);
-        qTail.rotation.x = 1.22; qTail.position.set(-0.15, 0.28, -0.88); queen.add(qTail);
-        const qTuft = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 6), maneM); qTuft.position.set(-0.22, 0.18, -1.18); queen.add(qTuft);
+        const queen = new THREE.Group(); queen.position.set(1.5, 4.18, -36.8); queen.rotation.y = 0.28;
+        if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_lioness')) {
+          const qMdl = LS.hdAssets.clone('anime_lioness');
+          qMdl.scale.setScalar(1.12);
+          queen.add(qMdl);
+        } else {
+          const furM = LS.makeToonMat(0xe5a94c), maneM = LS.makeToonMat(0x7c3e18), creamM = LS.makeToonMat(0xfbe8c2), darkM = LS.makeToonMat(0x1e1612);
+          const qBody = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 8), furM); qBody.scale.set(0.78, 0.72, 1.48); qBody.position.y = 0.38; qBody.castShadow = true; queen.add(qBody);
+          const qHead = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), furM); qHead.position.set(0, 0.78, 0.74); queen.add(qHead);
+          const qSnout = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), creamM); qSnout.position.set(0, 0.72, 1.02); queen.add(qSnout);
+          const qNose = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); qNose.position.set(0, 0.77, 1.16); queen.add(qNose);
+          [-0.22, 0.22].forEach(ex => {
+            const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), furM); ear.position.set(ex, 1.06, 0.68); queen.add(ear);
+            const paw = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), furM); paw.scale.set(0.85, 0.55, 1.55); paw.position.set(ex * 1.1, 0.12, 0.85); queen.add(paw);
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.048, 6, 6), darkM); eye.position.set(ex * 0.65, 0.84, 1.04); queen.add(eye);
+          });
+          const qTail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.72, 6), furM);
+          qTail.rotation.x = 1.22; qTail.position.set(-0.15, 0.28, -0.88); queen.add(qTail);
+          const qTuft = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 6), maneM); qTuft.position.set(-0.22, 0.18, -1.18); queen.add(qTuft);
+        }
         worldGroup.add(queen);
+
+        // Friendly resting Savanna Lioness sunbathing at the grassy eastern base of Pride Rock!
+        const sunLioness = new THREE.Group(); sunLioness.position.set(8.6, 0, -33.6); sunLioness.rotation.y = -0.52;
+        if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_lioness')) {
+          const sMdl = LS.hdAssets.clone('anime_lioness');
+          sMdl.scale.setScalar(1.08);
+          sunLioness.add(sMdl);
+          worldGroup.add(sunLioness);
+          addCollider(8.6, -33.6, 1.1, 1.1);
+        }
 
         addBaobab(-9.5, -42.0, 1.15);
         addBaobab(16.5, -38.5, 1.05);
@@ -590,39 +619,47 @@ window.LailaSalma = window.LailaSalma || {};
 
       // 6. Zebra Open Savanna Meadow (East: X=20..48, Z=-24..8)
       safeRun('zebra_meadow', () => {
+        const coatMat = LS.makeToonMat(0xffffff, { map: LS.createZebraHideTexture() });
         const wMat = LS.makeToonMat(0xf8f6f0), bMat = LS.makeToonMat(0x232022);
         const zebraCoords = [
-          [31.0, -14.0, 0.6], [35.5, -9.5, -0.8], [39.0, -16.5, 1.9], [33.5, -2.5, -1.4], [41.5, -5.0, 2.5]
+          [31.0, -14.0, 0.6, 1.06], [35.5, -9.5, -0.8, 1.02], [39.0, -16.5, 1.9, 0.98], [33.5, -2.5, -1.4, 1.04], [41.5, -5.0, 2.5, 0.78]
         ];
         zebraCoords.forEach((zc, idx) => {
           const zg = new THREE.Group(); zg.position.set(zc[0], 0, zc[1]); zg.rotation.y = zc[2];
-          const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 8), wMat); body.scale.set(0.82, 0.82, 1.52); body.position.y = 1.05; body.castShadow = true; zg.add(body);
-          for (let s = -0.55; s <= 0.55; s += 0.27) {
-            const st = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.055, 6, 12), bMat);
-            st.position.set(0, 1.05, s); zg.add(st);
-          }
-          [[-0.24, 0.45], [0.24, 0.45], [-0.24, -0.45], [0.24, -0.45]].forEach(l => {
-            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.84, 6), wMat); leg.position.set(l[0], 0.50, l[1]); zg.add(leg);
-            const hoof = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.12, 6), bMat); hoof.position.set(l[0], 0.06, l[1]); zg.add(hoof);
-          });
-          const zTail = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.032, 0.48, 5), wMat);
-          zTail.position.set(0, 0.88, -0.86); zTail.rotation.x = 0.35; zg.add(zTail);
-          const zTuft = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 6), bMat);
-          zTuft.position.set(0, 0.65, -0.96); zg.add(zTuft);
+          let neckPivot = null;
+          let inner = null;
+          if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_zebra')) {
+            inner = LS.hdAssets.clone('anime_zebra');
+            inner.scale.setScalar(zc[3]);
+            zg.add(inner);
+          } else {
+            inner = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 14, 10), coatMat); body.scale.set(0.80, 0.80, 1.52); body.position.y = 1.05; body.castShadow = true; inner.add(body);
+            [[-0.24, 0.45], [0.24, 0.45], [-0.24, -0.45], [0.24, -0.45]].forEach(l => {
+              const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.84, 8), coatMat); leg.position.set(l[0], 0.50, l[1]); inner.add(leg);
+              const hoof = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.12, 8), bMat); hoof.position.set(l[0], 0.06, l[1]); inner.add(hoof);
+            });
+            const zTail = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.032, 0.48, 5), wMat);
+            zTail.position.set(0, 0.88, -0.86); zTail.rotation.x = 0.35; inner.add(zTail);
+            const zTuft = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 6), bMat);
+            zTuft.position.set(0, 0.65, -0.96); inner.add(zTuft);
 
-          const neckPivot = new THREE.Group(); neckPivot.position.set(0, 1.25, 0.58);
-          const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.68, 8), wMat); neck.position.set(0, 0.28, 0.14); neck.rotation.x = 0.35; neckPivot.add(neck);
-          const mane = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.56, 0.16), bMat); mane.position.set(0, 0.36, 0.02); mane.rotation.x = 0.35; neckPivot.add(mane);
-          const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), wMat); head.scale.set(0.75, 0.82, 1.45); head.position.set(0, 0.58, 0.36); neckPivot.add(head);
-          const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), bMat); muzzle.position.set(0, 0.54, 0.62); neckPivot.add(muzzle);
-          [-0.12, 0.12].forEach(ex => {
-            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.20, 6), wMat); ear.position.set(ex, 0.80, 0.26); ear.rotation.z = -ex * 1.4; neckPivot.add(ear);
-            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.038, 6, 6), bMat); eye.position.set(ex * 1.15, 0.62, 0.44); neckPivot.add(eye);
-          });
-          zg.add(neckPivot);
+            neckPivot = new THREE.Group(); neckPivot.position.set(0, 1.25, 0.58);
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.68, 8), coatMat); neck.position.set(0, 0.28, 0.14); neck.rotation.x = 0.35; neckPivot.add(neck);
+            const mane = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.56, 0.16), bMat); mane.position.set(0, 0.36, 0.02); mane.rotation.x = 0.35; neckPivot.add(mane);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), coatMat); head.scale.set(0.75, 0.82, 1.45); head.position.set(0, 0.58, 0.36); neckPivot.add(head);
+            const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), bMat); muzzle.position.set(0, 0.54, 0.62); neckPivot.add(muzzle);
+            [-0.12, 0.12].forEach(ex => {
+              const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.20, 6), wMat); ear.position.set(ex, 0.80, 0.26); ear.rotation.z = -ex * 1.4; neckPivot.add(ear);
+              const eye = new THREE.Mesh(new THREE.SphereGeometry(0.038, 6, 6), bMat); eye.position.set(ex * 1.15, 0.62, 0.44); neckPivot.add(eye);
+            });
+            inner.add(neckPivot);
+            inner.scale.setScalar(zc[3]);
+            zg.add(inner);
+          }
           worldGroup.add(zg);
-          addCollider(zc[0], zc[1], 0.85, 0.85);
-          W.zebras.push({ root: zg, neck: neckPivot, phase: idx * 1.3 });
+          addCollider(zc[0], zc[1], 0.85 * zc[3], 0.85 * zc[3]);
+          W.zebras.push({ root: zg, inner, neck: neckPivot, baseRot: zc[2], phase: idx * 1.3 });
         });
 
         // Sculpted red-ochre Savanna Termite Mounds
@@ -882,9 +919,14 @@ window.LailaSalma = window.LailaSalma || {};
           f.root.rotation.z = Math.sin(elapsed * 1.4 + f.phase) * 0.06;
         });
 
-        // Zebras grazing gently
+        // Zebras grazing gently (works smoothly in both HD GLB & Classic!)
         W.zebras.forEach(z => {
-          z.neck.rotation.x = 0.18 + Math.sin(elapsed * 1.3 + z.phase) * 0.24;
+          if (z.neck) {
+            z.neck.rotation.x = 0.18 + Math.sin(elapsed * 1.3 + z.phase) * 0.24;
+          } else if (z.inner) {
+            z.root.rotation.y = z.baseRot + Math.sin(elapsed * 0.65 + z.phase) * 0.14;
+            z.inner.rotation.x = Math.sin(elapsed * 1.2 + z.phase) * 0.045;
+          }
         });
 
         // Bush plane propeller + windsock

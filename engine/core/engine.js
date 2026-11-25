@@ -701,6 +701,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (k === 'q') recenterCamera();
       if (k === 'v') triggerSisterPose();
       if (k === 'm') toggleMiniMap();
+      if (k === 'h') toggleHudCard();
       if (k === 'p') LS.openPassportModal();
       if (k === 'r') toggleRunButton();
       if (k === 'e') triggerInteract();
@@ -820,6 +821,25 @@ window.LailaSalma = window.LailaSalma || {};
 
     document.getElementById('btn-front-cam').addEventListener('click', cycleCameraMode);
     document.getElementById('btn-pose').addEventListener('click', triggerSisterPose);
+    const hudCard = document.getElementById('hud-left');
+    const hudHdr = document.getElementById('hud-left-header');
+    function applyHudCollapsed(collapsed) {
+      if (!hudCard) return;
+      hudCard.classList.toggle('collapsed', collapsed);
+      const btn = document.getElementById('btn-hud-collapse');
+      if (btn) btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+    function toggleHudCard() {
+      if (!hudCard) return;
+      const next = !hudCard.classList.contains('collapsed');
+      applyHudCollapsed(next);
+      try { localStorage.setItem('laila_salma_hud_collapsed', next ? '1' : '0'); } catch (e) {}
+    }
+    try {
+      if (localStorage.getItem('laila_salma_hud_collapsed') === '1') applyHudCollapsed(true);
+    } catch (e) {}
+    if (hudHdr) hudHdr.addEventListener('click', toggleHudCard);
+
     const mmCard = document.getElementById('minimap-card');
     if (mmCard) mmCard.addEventListener('click', toggleMiniMap);
     document.getElementById('btn-run').addEventListener('click', toggleRunButton);

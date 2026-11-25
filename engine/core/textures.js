@@ -1509,4 +1509,60 @@ window.LailaSalma = window.LailaSalma || {};
       return train;
     }
   };
+
+  let _giraffeHideTex = null;
+  LS.createGiraffeHideTexture = function () {
+    if (_giraffeHideTex) return _giraffeHideTex;
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f4de9e';
+    ctx.fillRect(0, 0, 128, 128);
+    // Warm chestnut polygonal spots separated by cream network lines
+    const cols = ['#9c5526', '#8d4a20', '#ab602b', '#944f22'];
+    for (let gy = 0; gy < 5; gy++) {
+      for (let gx = 0; gx < 5; gx++) {
+        const cx = gx * 26 + ((gy % 2) * 12) + 8;
+        const cy = gy * 26 + 10;
+        ctx.fillStyle = cols[(gx + gy * 3) % cols.length];
+        ctx.beginPath();
+        ctx.moveTo(cx - 10, cy - 6);
+        ctx.lineTo(cx + 2, cy - 11);
+        ctx.lineTo(cx + 11, cy - 3);
+        ctx.lineTo(cx + 8, cy + 9);
+        ctx.lineTo(cx - 5, cy + 10);
+        ctx.lineTo(cx - 11, cy + 2);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    _giraffeHideTex = new THREE.CanvasTexture(c);
+    _giraffeHideTex.wrapS = _giraffeHideTex.wrapT = THREE.RepeatWrapping;
+    return _giraffeHideTex;
+  };
+
+  let _zebraHideTex = null;
+  LS.createZebraHideTexture = function () {
+    if (_zebraHideTex) return _zebraHideTex;
+    const c = document.createElement('canvas');
+    c.width = 128; c.height = 128;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#f8f5ee';
+    ctx.fillRect(0, 0, 128, 128);
+    ctx.fillStyle = '#232022';
+    for (let x = 0; x < 128; x += 14) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.quadraticCurveTo(x + 5, 42, x + 2, 84);
+      ctx.quadraticCurveTo(x - 1, 108, x + 2, 128);
+      ctx.lineTo(x + 8, 128);
+      ctx.quadraticCurveTo(x + 5, 108, x + 8, 84);
+      ctx.quadraticCurveTo(x + 11, 42, x + 6, 0);
+      ctx.closePath();
+      ctx.fill();
+    }
+    _zebraHideTex = new THREE.CanvasTexture(c);
+    _zebraHideTex.wrapS = _zebraHideTex.wrapT = THREE.RepeatWrapping;
+    return _zebraHideTex;
+  };
 })(window.LailaSalma);

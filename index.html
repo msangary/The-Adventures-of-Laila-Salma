@@ -30,9 +30,9 @@
     </div>
   </div>
 
-  <!-- Top-Left Laila & Salma HUD Card -->
+  <!-- Top-Left Laila & Salma HUD Card (Transparent & Collapsible) -->
   <div id="hud-left" class="parchment-card">
-    <div class="hud-header">
+    <div class="hud-header" id="hud-left-header" title="Click to collapse or expand (H)">
       <div class="avatar-badge">🌸</div>
       <div class="hud-title-block">
         <div class="hud-title-row">
@@ -44,24 +44,27 @@
         </div>
         <div class="player-sub" id="hud-level">Lv. 1 • Laila (9) &amp; Salma (5)</div>
       </div>
+      <button id="btn-hud-collapse" class="hud-collapse-btn" type="button" title="Collapse/Expand HUD (H)" aria-label="Collapse or expand status box">▾</button>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">XP</span>
-      <div class="bar-track"><div id="xp-bar" class="bar-fill xp-fill" style="width:0%"></div></div>
-      <span id="xp-text" class="stat-val">0/100</span>
+    <div id="hud-left-body">
+      <div class="stat-row">
+        <span class="stat-label">XP</span>
+        <div class="bar-track"><div id="xp-bar" class="bar-fill xp-fill" style="width:0%"></div></div>
+        <span id="xp-text" class="stat-val">0/100</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">RUN</span>
+        <div class="bar-track"><div id="stamina-bar" class="bar-fill stamina-fill" style="width:100%"></div></div>
+        <span id="stamina-text" class="stat-val">100%</span>
+      </div>
+      <div class="hud-footer">
+        <span class="coin-pill">🪙 <span id="coin-count">200</span>c</span>
+        <span id="cat-pill" class="cat-pill" title="Hidden Friends Found">🐱 <span id="cat-count">0/5</span></span>
+        <span id="stamp-pill" class="stamp-pill" title="Travel Passport Stamps">🛂 <span id="stamp-count">0/8</span></span>
+        <span id="toy-pill" class="toy-pill" title="Capsule Toys Collected">🎁 <span id="toy-count">0/6</span></span>
+      </div>
+      <div id="buff-pill" class="buff-pill hidden">🧃 Buff</div>
     </div>
-    <div class="stat-row">
-      <span class="stat-label">RUN</span>
-      <div class="bar-track"><div id="stamina-bar" class="bar-fill stamina-fill" style="width:100%"></div></div>
-      <span id="stamina-text" class="stat-val">100%</span>
-    </div>
-    <div class="hud-footer">
-      <span class="coin-pill">🪙 <span id="coin-count">200</span>c</span>
-      <span id="cat-pill" class="cat-pill" title="Hidden Friends Found">🐱 <span id="cat-count">0/5</span></span>
-      <span id="stamp-pill" class="stamp-pill" title="Travel Passport Stamps">🛂 <span id="stamp-count">0/8</span></span>
-      <span id="toy-pill" class="toy-pill" title="Capsule Toys Collected">🎁 <span id="toy-count">0/6</span></span>
-    </div>
-    <div id="buff-pill" class="buff-pill hidden">🧃 Buff</div>
   </div>
 
   <!-- Top-Right Round Icon Buttons -->

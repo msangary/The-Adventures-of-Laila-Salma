@@ -27,6 +27,10 @@ window.LailaSalma = window.LailaSalma || {};
     anime_giraffe: 'assets/hd/anime_giraffe.glb',
     anime_elephant: 'assets/hd/anime_elephant.glb',
     anime_lion_cub: 'assets/hd/anime_lion_cub.glb',
+    anime_zebra: 'assets/hd/anime_zebra.glb',
+    anime_lion_king: 'assets/hd/anime_lion_king.glb',
+    anime_lioness: 'assets/hd/anime_lioness.glb',
+    anime_flamingo: 'assets/hd/anime_flamingo.glb',
     anime_safari_jeep: 'assets/hd/anime_safari_jeep.glb'
   };
 

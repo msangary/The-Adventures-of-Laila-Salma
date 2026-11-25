@@ -459,6 +459,105 @@ class GLBBuilder:
             self.add_tri(mat_idx, pc, (v0[0] + cx, v0[1] + cy, v0[2] + cz), (v1[0] + cx, v1[1] + cy, v1[2] + cz),
                          rn_top, [(0.5, 0.5), (1, 0), (0, 0)], (c_top, c_top, c_top))
 
+    def add_curved_tube(self, mat_idx, pts, radii, segs=12, ao_bot=0.80, ao_top=1.0, uv_v_scale=1.0, cap_end=True):
+        """Smoothly loft a circular/elliptical tube along a 3D spine using parallel-transport frames."""
+        n_pts = len(pts)
+        if n_pts < 2:
+            return
+        p = self._p(mat_idx)
+        base = len(p["pos"]) // 3
+
+        def norm3(v):
+            l = math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]) or 1.0
+            return (v[0] / l, v[1] / l, v[2] / l)
+
+        def cross3(a, b):
+            return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+        def dot3(a, b):
+            return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+        # Compute tangents along spine
+        tangents = []
+        for i in range(n_pts):
+            if i == 0:
+                t = (pts[1][0] - pts[0][0], pts[1][1] - pts[0][1], pts[1][2] - pts[0][2])
+            elif i == n_pts - 1:
+                t = (pts[-1][0] - pts[-2][0], pts[-1][1] - pts[-2][1], pts[-1][2] - pts[-2][2])
+            else:
+                t = (pts[i + 1][0] - pts[i - 1][0], pts[i + 1][1] - pts[i - 1][1], pts[i + 1][2] - pts[i - 1][2])
+            tangents.append(norm3(t))
+
+        # Initial normal/binormal frame (preferring +X as side axis so animal symmetry stays crisp)
+        t0 = tangents[0]
+        ref = (1.0, 0.0, 0.0) if abs(t0[0]) < 0.85 else (0.0, 1.0, 0.0)
+        b_vec = norm3(cross3(t0, ref))
+        n_vec = norm3(cross3(b_vec, t0))
+
+        ring_frames = [(n_vec, b_vec)]
+        for i in range(1, n_pts):
+            ti = tangents[i]
+            # Project previous n_vec onto plane orthogonal to ti
+            d = dot3(n_vec, ti)
+            proj = (n_vec[0] - d * ti[0], n_vec[1] - d * ti[1], n_vec[2] - d * ti[2])
+            if math.sqrt(proj[0] ** 2 + proj[1] ** 2 + proj[2] ** 2) < 1e-4:
+                ref2 = (1.0, 0.0, 0.0) if abs(ti[0]) < 0.85 else (0.0, 1.0, 0.0)
+                b_vec = norm3(cross3(ti, ref2))
+                n_vec = norm3(cross3(b_vec, ti))
+            else:
+                n_vec = norm3(proj)
+                b_vec = norm3(cross3(ti, n_vec))
+            ring_frames.append((n_vec, b_vec))
+
+        for i in range(n_pts):
+            v_coord = (i / (n_pts - 1)) * uv_v_scale
+            ao = ao_bot + (ao_top - ao_bot) * (i / (n_pts - 1))
+            r_spec = radii[i]
+            rx_r, ry_r = (r_spec[0], r_spec[1]) if isinstance(r_spec, (tuple, list)) else (r_spec, r_spec)
+            cx, cy, cz = pts[i]
+            nv, bv = ring_frames[i]
+            for s in range(segs + 1):
+                u = s / segs
+                th = u * math.tau
+                ct, st = math.cos(th), math.sin(th)
+                ox = (nv[0] * ct * rx_r + bv[0] * st * ry_r)
+                oy = (nv[1] * ct * rx_r + bv[1] * st * ry_r)
+                oz = (nv[2] * ct * rx_r + bv[2] * st * ry_r)
+                nx, ny, nz = norm3((nv[0] * ct / max(1e-4, rx_r) + bv[0] * st / max(1e-4, ry_r),
+                                    nv[1] * ct / max(1e-4, rx_r) + bv[1] * st / max(1e-4, ry_r),
+                                    nv[2] * ct / max(1e-4, rx_r) + bv[2] * st / max(1e-4, ry_r)))
+                p["pos"].extend((cx + ox, cy + oy, cz + oz))
+                p["norm"].extend((nx, ny, nz))
+                p["uv"].extend((u, v_coord))
+                p["col"].extend((ao, ao, min(1.0, ao + 0.04)))
+
+        stride = segs + 1
+        for i in range(n_pts - 1):
+            for s in range(segs):
+                a = base + i * stride + s
+                b = a + 1
+                c = base + (i + 1) * stride + s
+                d = c + 1
+                p["idx"].extend([a, b, c, b, d, c])
+
+        if cap_end:
+            end_pt = pts[-1]
+            t_end = tangents[-1]
+            r_end = radii[-1]
+            rx_e, ry_e = (r_end[0], r_end[1]) if isinstance(r_end, (tuple, list)) else (r_end, r_end)
+            nv, bv = ring_frames[-1]
+            col_e = (ao_top, ao_top, ao_top)
+            for s in range(segs):
+                th0 = (s / segs) * math.tau
+                th1 = ((s + 1) / segs) * math.tau
+                v0 = (end_pt[0] + nv[0] * math.cos(th0) * rx_e + bv[0] * math.sin(th0) * ry_e,
+                      end_pt[1] + nv[1] * math.cos(th0) * rx_e + bv[1] * math.sin(th0) * ry_e,
+                      end_pt[2] + nv[2] * math.cos(th0) * rx_e + bv[2] * math.sin(th0) * ry_e)
+                v1 = (end_pt[0] + nv[0] * math.cos(th1) * rx_e + bv[0] * math.sin(th1) * ry_e,
+                      end_pt[1] + nv[1] * math.cos(th1) * rx_e + bv[1] * math.sin(th1) * ry_e,
+                      end_pt[2] + nv[2] * math.cos(th1) * rx_e + bv[2] * math.sin(th1) * ry_e)
+                self.add_tri(mat_idx, end_pt, v1, v0, t_end, [(0.5, 0.5), (1, 0), (0, 0)], (col_e, col_e, col_e))
+
     def add_gable_roof(self, mat_tile, mat_wall, mat_trim, cx, y_base, cz, w, d, ridge_h, overhang=0.72):
         hw = w * 0.5 + overhang
         hd = d * 0.5 + overhang
@@ -1363,19 +1462,143 @@ def build_anime_kitsune():
 
 
 def make_giraffe_spot_tex(w=256, h=256):
-    """Warm golden-ochre giraffe hide with soft organic chestnut-brown polygonal spots."""
-    img = Image.new("RGBA", (w, h), (238, 188, 92, 255))
-    draw = ImageDraw.Draw(img)
+    """True Voronoi reticulated giraffe hide: warm chestnut-amber polygonal patches separated by soft cream lines."""
+    img = Image.new("RGBA", (w, h), (246, 224, 166, 255))
+    px = img.load()
     rng = random.Random(404)
-    for _ in range(52):
-        cx = rng.randint(0, w - 1)
-        cy = rng.randint(0, h - 1)
-        rx = rng.randint(12, 26)
-        ry = rng.randint(10, 24)
-        col = (rng.randint(128, 152), rng.randint(72, 92), rng.randint(36, 48), 255)
-        for ox in (-w, 0, w):
-            for oy in (-h, 0, h):
-                draw.ellipse([cx + ox - rx, cy + oy - ry, cx + ox + rx, cy + oy + ry], fill=col)
+    # Periodic 6x6 jittered Voronoi seeds for crisp organic reticulated hide polygons
+    gx, gy = 6, 6
+    seeds = []
+    for iy in range(gy):
+        for ix in range(gx):
+            sx = (ix + 0.18 + rng.random() * 0.64) * (w / gx)
+            sy = (iy + 0.18 + rng.random() * 0.64) * (h / gy)
+            tone = rng.uniform(-12, 12)
+            seeds.append((sx, sy, tone))
+
+    for y in range(h):
+        for x in range(w):
+            d1 = 1e9
+            d2 = 1e9
+            best_tone = 0.0
+            for sx, sy, tone in seeds:
+                dx = abs(x - sx)
+                if dx > w * 0.5:
+                    dx = w - dx
+                dy = abs(y - sy)
+                if dy > h * 0.5:
+                    dy = h - dy
+                d = math.hypot(dx, dy)
+                if d < d1:
+                    d2 = d1
+                    d1 = d
+                    best_tone = tone
+                elif d < d2:
+                    d2 = d
+            edge = d2 - d1
+            if edge < 5.2:
+                # Warm creamy-golden reticulation border
+                t = max(0.0, min(1.0, edge / 5.2))
+                r = int(248 * (1 - t * 0.18) + 218 * (t * 0.18))
+                g = int(226 * (1 - t * 0.22) + 178 * (t * 0.22))
+                b_c = int(168 * (1 - t * 0.28) + 104 * (t * 0.28))
+            else:
+                # Rich warm mahogany-chestnut polygonal patch with subtle painterly shading
+                n = (hash01(x * 0.37 + y * 0.71) - 0.5) * 14
+                r = max(0, min(255, int(156 + best_tone + n)))
+                g = max(0, min(255, int(86 + best_tone * 0.6 + n * 0.6)))
+                b_c = max(0, min(255, int(38 + best_tone * 0.3 + n * 0.4)))
+            px[x, y] = (r, g, b_c, 255)
+    return img
+
+
+def make_elephant_hide_tex(size=256):
+    """Warm dusty-savanna wrinkled African elephant hide with horizontal skin-fold creases & organic grain."""
+    img = Image.new("RGBA", (size, size), (144, 140, 138, 255))
+    draw = ImageDraw.Draw(img)
+    rng = random.Random(707)
+    # Soft dusty warm mottling
+    for _ in range(180):
+        x, y = rng.randint(0, size - 1), rng.randint(0, size - 1)
+        r = rng.randint(6, 22)
+        d = rng.randint(-14, 14)
+        col = (max(0, min(255, 146 + d)), max(0, min(255, 142 + d)), max(0, min(255, 138 + d)), 120)
+        draw.ellipse([x - r, y - r, x + r, y + r], fill=col)
+    # Horizontal organic elephant skin wrinkles & subtle criss-cross pores
+    for y in range(6, size, 12):
+        pts = []
+        for x in range(0, size + 16, 16):
+            wy = y + int(math.sin(x * 0.07 + y * 0.19) * 3.0 + rng.uniform(-1.5, 1.5))
+            pts.append((x, wy))
+        draw.line(pts, fill=(104, 100, 98, 175), width=2)
+        pts_hi = [(px_i, py_i + 2) for px_i, py_i in pts]
+        draw.line(pts_hi, fill=(168, 162, 156, 135), width=1)
+    for _ in range(90):
+        x = rng.randint(0, size - 1)
+        y = rng.randint(0, size - 1)
+        draw.line([(x, y), (x + rng.randint(-5, 5), y + rng.randint(6, 18))], fill=(112, 108, 106, 110), width=1)
+    return img
+
+
+def make_zebra_animal_tex(w=256, h=256):
+    """Organic wavy painted zebra coat texture with tapering black-and-white vertical savanna stripes & fur grain."""
+    img = Image.new("RGBA", (w, h), (248, 245, 238, 255))
+    px = img.load()
+    for y in range(h):
+        ny = y / h
+        for x in range(w):
+            nx = x / w
+            # Wavy, organically tapering zebra stripes wrapping cleanly around the torso & neck
+            wave = math.sin(ny * math.tau * 2.0 + math.sin(nx * math.tau * 3.0) * 0.45) * 0.032
+            freq = 11.0
+            phase = (nx + wave) * freq * math.tau
+            s = math.sin(phase)
+            # Subtle shadow/fur hair variation
+            grain = (hash01(x * 1.9 + y * 7.3) - 0.5) * 14
+            if s > 0.14:
+                # Deep velvety charcoal-ebony stripe (warm dark, never harsh pure #000)
+                r = max(0, min(255, int(34 + grain * 0.45)))
+                g = max(0, min(255, int(31 + grain * 0.42)))
+                b_c = max(0, min(255, int(34 + grain * 0.45)))
+            elif s > -0.02:
+                # Crisp antialiased fur edge transition
+                t = (s + 0.02) / 0.16
+                r = int(246 * (1 - t) + 36 * t)
+                g = int(243 * (1 - t) + 33 * t)
+                b_c = int(236 * (1 - t) + 36 * t)
+            else:
+                # Warm sunlit ivory-white zebra coat
+                r = max(0, min(255, int(248 + grain * 0.5)))
+                g = max(0, min(255, int(244 + grain * 0.5)))
+                b_c = max(0, min(255, int(236 + grain * 0.5)))
+            px[x, y] = (r, g, b_c, 255)
+    return img
+
+
+def make_cub_fur_tex(size=256):
+    """Warm honey-gold lion cub fur with soft adorable baby cub rosettes."""
+    img = make_fur_tex((238, 184, 92), (206, 146, 62), size=size)
+    draw = ImageDraw.Draw(img)
+    rng = random.Random(818)
+    for _ in range(34):
+        cx, cy = rng.randint(10, size - 10), rng.randint(10, size - 10)
+        rx, ry = rng.randint(6, 12), rng.randint(5, 10)
+        draw.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=(196, 136, 56, 85))
+    return img
+
+
+def make_flamingo_feather_tex(size=256):
+    """Luminous coral-rose layered flamingo feather texture."""
+    img = Image.new("RGBA", (size, size), (252, 134, 162, 255))
+    draw = ImageDraw.Draw(img)
+    rng = random.Random(909)
+    for row in range(0, size, 14):
+        off = (row // 14 % 2) * 12
+        for col in range(-12, size + 12, 24):
+            cx = col + off
+            tone = rng.randint(-12, 14)
+            c = (max(0, min(255, 250 + tone)), max(0, min(255, 126 + tone)), max(0, min(255, 158 + tone)), 255)
+            draw.ellipse([cx - 12, row - 6, cx + 12, row + 12], fill=c, outline=(228, 98, 134, 160), width=1)
     return img
 
 
@@ -1455,130 +1678,418 @@ def build_anime_baobab():
 
 
 def build_anime_giraffe():
-    """Sculpted graceful African Giraffe (~4.8m tall) with spotted hide, long neck, ossicones & friendly anime eyes!"""
+    """Sculpted graceful Reticulated African Giraffe (~4.9m tall) with Voronoi reticulated hide, lofted organic neck, articulated knees & kind anime eyes!"""
     b = GLBBuilder()
     spot_tex = make_giraffe_spot_tex()
-    m_hide = b.add_material("giraffe_hide", (1, 1, 1, 1), spot_tex, normal_strength=1.2, roughness=0.76)
-    m_cream = b.add_material("giraffe_cream", (0.97, 0.91, 0.76, 1), roughness=0.82)
-    m_mane = b.add_material("giraffe_mane", (0.42, 0.24, 0.12, 1), roughness=0.88)
-    m_dark = b.add_material("giraffe_dark", (0.14, 0.10, 0.08, 1), roughness=0.45)
-    m_shine = b.add_material("giraffe_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.9, 0.9, 0.9))
+    m_hide = b.add_material("giraffe_hide", (1, 1, 1, 1), spot_tex, normal_strength=1.1, roughness=0.74)
+    m_cream = b.add_material("giraffe_cream", (0.97, 0.91, 0.78, 1), roughness=0.80)
+    m_ear_in = b.add_material("giraffe_pink", (0.92, 0.74, 0.70, 1), roughness=0.76)
+    m_mane = b.add_material("giraffe_mane", (0.40, 0.22, 0.11, 1), roughness=0.86)
+    m_dark = b.add_material("giraffe_dark", (0.14, 0.10, 0.08, 1), roughness=0.35)
+    m_eye = b.add_material("giraffe_eye_glass", (0.18, 0.11, 0.06, 1), roughness=0.10, metallic=0.15)
+    m_shine = b.add_material("giraffe_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.94, 0.94, 0.94))
 
-    # Sloped muscular body (higher at shoulders +Z, tapering gently toward rump -Z)
-    b.add_ellipsoid(m_hide, 0.0, 2.08, 0.0, 0.56, 0.58, 1.06, segs=18, rings=12, rx=-0.16)
-    b.add_ellipsoid(m_cream, 0.0, 1.72, 0.02, 0.42, 0.30, 0.85, segs=12, rings=8)
+    # Contoured sloped giraffe body: deep chest/withers at shoulders (+Z) tapering gently to rounded rump (-Z)
+    b.add_ellipsoid(m_hide, 0.0, 2.12, 0.04, 0.56, 0.58, 1.08, segs=22, rings=14, rx=-0.18)
+    b.add_ellipsoid(m_hide, 0.0, 2.34, 0.58, 0.46, 0.44, 0.52, segs=18, rings=12)  # Muscular shoulder withers
+    b.add_ellipsoid(m_hide, 0.0, 1.94, -0.68, 0.45, 0.44, 0.46, segs=16, rings=10)  # Rounded haunches
+    b.add_ellipsoid(m_cream, 0.0, 1.72, 0.04, 0.40, 0.28, 0.86, segs=14, rings=8)
 
-    # 4 tall slender legs with darker hooves
-    for lx, lz in ((-0.32, 0.62), (0.32, 0.62), (-0.30, -0.68), (0.30, -0.68)):
-        b.add_cylinder(m_hide, lx, 1.48, lz, 0.14, 0.10, 1.15, segs=10)
-        b.add_cylinder(m_cream, lx, 0.52, lz, 0.095, 0.075, 0.96, segs=10)
-        b.add_cylinder(m_dark, lx, 0.06, lz, 0.082, 0.092, 0.12, segs=10)
+    # 4 articulated slender legs with upper thighs, knee joints, cream stockings, fetlocks & dark hooves
+    for lx, lz, is_front in ((-0.32, 0.62, True), (0.32, 0.62, True), (-0.30, -0.70, False), (0.30, -0.70, False)):
+        knee_y = 1.06 if is_front else 1.00
+        b.add_ellipsoid(m_hide, lx, 1.84 if is_front else 1.72, lz, 0.17, 0.34, 0.20, segs=12, rings=8)
+        b.add_cylinder(m_hide, lx, (knee_y + 1.80) * 0.5, lz, 0.105, 0.145, 0.78, segs=12)
+        b.add_ellipsoid(m_cream, lx, knee_y, lz + (0.02 if is_front else -0.04), 0.105, 0.11, 0.115, segs=10, rings=8)
+        b.add_cylinder(m_cream, lx, knee_y * 0.52, lz, 0.072, 0.092, knee_y - 0.14, segs=12)
+        b.add_ellipsoid(m_cream, lx, 0.18, lz + 0.02, 0.082, 0.072, 0.088, segs=10, rings=6)
+        b.add_cylinder(m_dark, lx, 0.065, lz + 0.03, 0.088, 0.078, 0.13, segs=12)
 
-    # Sweeping graceful neck + dark crest mane along the back!
-    b.add_cylinder(m_hide, 0.0, 3.25, 0.96, 0.34, 0.19, 2.25, segs=14, rx=0.22)
-    for mi in range(7):
-        t = mi / 6.0
-        b.add_ellipsoid(m_mane, 0.0, 2.40 + t * 1.80, 0.55 + t * 0.44, 0.065, 0.14, 0.11, segs=8, rings=6)
+    # Smoothly lofted sweeping giraffe neck (zero cylinder seam!)
+    neck_pts = [
+        (0.0, 2.26, 0.62),
+        (0.0, 2.75, 0.80),
+        (0.0, 3.30, 0.96),
+        (0.0, 3.85, 1.12),
+        (0.0, 4.34, 1.26),
+    ]
+    neck_rads = [(0.34, 0.38), (0.28, 0.31), (0.23, 0.25), (0.19, 0.20), (0.16, 0.17)]
+    b.add_curved_tube(m_hide, neck_pts, neck_rads, segs=16, uv_v_scale=1.6, cap_end=False)
 
-    # Sculpted giraffe head, cream muzzle, ossicones (horns), floppy ears & big kind anime eyes!
-    b.add_ellipsoid(m_hide, 0.0, 4.44, 1.32, 0.24, 0.22, 0.30, segs=16, rings=10)
-    b.add_ellipsoid(m_cream, 0.0, 4.35, 1.62, 0.15, 0.14, 0.24, segs=14, rings=8, rx=0.14)
-    b.add_ellipsoid(m_dark, 0.0, 4.37, 1.83, 0.06, 0.045, 0.04, segs=8, rings=6)
+    # Short bristly dark chestnut mane running smoothly down the back of the neck
+    for mi in range(11):
+        t = mi / 10.0
+        b.add_ellipsoid(m_mane, 0.0, 2.48 + t * 1.92, 0.42 + t * 0.70, 0.052, 0.13, 0.10, segs=8, rings=6, rx=0.28)
+
+    # Sculpted giraffe head: gentle brow, slender cheeks, velvety cream muzzle, nostrils, smiling mouth!
+    b.add_ellipsoid(m_hide, 0.0, 4.46, 1.32, 0.23, 0.22, 0.31, segs=18, rings=12)
+    b.add_ellipsoid(m_hide, 0.0, 4.38, 1.56, 0.17, 0.15, 0.24, segs=16, rings=10, rx=0.12)
+    b.add_ellipsoid(m_cream, 0.0, 4.33, 1.76, 0.145, 0.125, 0.17, segs=14, rings=8, rx=0.14)
+    b.add_ellipsoid(m_cream, 0.0, 4.24, 1.66, 0.115, 0.075, 0.16, segs=12, rings=8)  # Lower jaw
     for side in (-1, 1):
-        b.add_cylinder(m_hide, side * 0.10, 4.72, 1.24, 0.032, 0.028, 0.24, segs=8, rz=side * -0.14)
-        b.add_ellipsoid(m_mane, side * 0.12, 4.85, 1.24, 0.045, 0.045, 0.045, segs=8, rings=6)
-        b.add_ellipsoid(m_hide, side * 0.28, 4.54, 1.18, 0.15, 0.065, 0.085, segs=10, rings=6, rz=side * 0.28)
-        b.add_ellipsoid(m_dark, side * 0.18, 4.48, 1.46, 0.052, 0.056, 0.042, segs=10, rings=8)
-        b.add_ellipsoid(m_shine, side * 0.20, 4.50, 1.495, 0.018, 0.022, 0.016, segs=8, rings=6)
+        # Soft dark nostrils
+        b.add_ellipsoid(m_dark, side * 0.068, 4.37, 1.90, 0.028, 0.022, 0.022, segs=8, rings=6)
+        # Fur-covered ossicones (horns) with dark chestnut pom-pom tufts
+        b.add_cylinder(m_hide, side * 0.105, 4.74, 1.24, 0.036, 0.028, 0.28, segs=10, rz=side * -0.14)
+        b.add_ellipsoid(m_mane, side * 0.125, 4.89, 1.24, 0.052, 0.052, 0.052, segs=10, rings=8)
+        # Graceful cupped giraffe ears with warm pink interior
+        b.add_ellipsoid(m_hide, side * 0.29, 4.54, 1.16, 0.17, 0.072, 0.095, segs=12, rings=8, rz=side * 0.26, ry=side * -0.25)
+        b.add_ellipsoid(m_ear_in, side * 0.29, 4.53, 1.21, 0.11, 0.044, 0.045, segs=10, rings=6, rz=side * 0.26, ry=side * -0.25)
+        # Big warm expressive eyes with brow ridge & bright double catchlights!
+        b.add_ellipsoid(m_hide, side * 0.18, 4.55, 1.44, 0.072, 0.036, 0.072, segs=10, rings=6)
+        b.add_ellipsoid(m_eye, side * 0.185, 4.48, 1.47, 0.058, 0.062, 0.044, segs=12, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.205, 4.505, 1.508, 0.022, 0.025, 0.016, segs=8, rings=6)
 
-    # Slender tail with fluffy dark tuft
-    b.add_cylinder(m_cream, 0.0, 1.65, -1.08, 0.045, 0.030, 0.78, segs=8, rx=-0.35)
-    b.add_ellipsoid(m_mane, 0.0, 1.24, -1.24, 0.085, 0.15, 0.085, segs=10, rings=6)
+    # Graceful curved swishing tail + dark silky tuft
+    tail_pts = [(0.0, 1.98, -1.04), (0.0, 1.72, -1.16), (0.0, 1.42, -1.24), (0.0, 1.14, -1.26)]
+    b.add_curved_tube(m_cream, tail_pts, [0.048, 0.038, 0.030, 0.024], segs=8)
+    b.add_ellipsoid(m_mane, 0.0, 1.04, -1.27, 0.088, 0.17, 0.088, segs=10, rings=8)
     b.save_glb(os.path.join(OUT_DIR, "anime_giraffe.glb"))
 
 
 def build_anime_elephant():
-    """Sculpted gentle African Elephant (~3.1m tall) with wrinkled normal-mapped hide, wide ears, curved ivory tusks & curling trunk!"""
+    """Sculpted gentle African Elephant (~3.1m tall) with wrinkled savanna hide, Africa-shaped multi-lobed ears, curved ivory tusks & silky 9-point S-curved trunk!"""
     b = GLBBuilder()
-    hide_tex = make_stucco_tex((144, 148, 156))
-    m_hide = b.add_material("ele_hide", (1, 1, 1, 1), hide_tex, normal_strength=2.2, roughness=0.86)
-    m_ear_in = b.add_material("ele_ear_in", (0.72, 0.64, 0.66, 1), roughness=0.85)
-    m_ivory = b.add_material("ele_ivory", (0.98, 0.95, 0.86, 1), roughness=0.35)
-    m_nail = b.add_material("ele_nail", (0.85, 0.82, 0.76, 1), roughness=0.72)
-    m_dark = b.add_material("ele_dark", (0.12, 0.10, 0.10, 1), roughness=0.30)
-    m_shine = b.add_material("ele_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.9, 0.9, 0.9))
+    hide_tex = make_elephant_hide_tex()
+    m_hide = b.add_material("ele_hide", (1, 1, 1, 1), hide_tex, normal_strength=2.5, roughness=0.86)
+    m_ear_in = b.add_material("ele_ear_in", (0.70, 0.61, 0.62, 1), roughness=0.86)
+    m_ivory = b.add_material("ele_ivory", (0.98, 0.95, 0.85, 1), roughness=0.30)
+    m_nail = b.add_material("ele_nail", (0.86, 0.83, 0.76, 1), roughness=0.72)
+    m_eye = b.add_material("ele_eye_glass", (0.14, 0.10, 0.08, 1), roughness=0.10, metallic=0.15)
+    m_dark = b.add_material("ele_dark", (0.15, 0.13, 0.12, 1), roughness=0.45)
+    m_shine = b.add_material("ele_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.94, 0.94, 0.94))
 
-    # Big warm rounded barrel torso
-    b.add_ellipsoid(m_hide, 0.0, 1.72, -0.10, 0.98, 0.92, 1.32, segs=22, rings=14)
-    # 4 sturdy pillar legs + cute light toenails
-    for lx, lz in ((-0.54, 0.64), (0.54, 0.64), (-0.52, -0.78), (0.52, -0.78)):
-        b.add_cylinder(m_hide, lx, 0.72, lz, 0.30, 0.28, 1.44, segs=12)
-        for ni in (-0.12, 0.0, 0.12):
-            b.add_ellipsoid(m_nail, lx + ni, 0.08, lz + 0.27, 0.055, 0.055, 0.045, segs=6, rings=5)
+    # Sculpted African elephant silhouette: high shoulder ridge, gentle saddle back, rounded belly & rump
+    b.add_ellipsoid(m_hide, 0.0, 1.72, -0.08, 1.00, 0.94, 1.38, segs=24, rings=16)
+    b.add_ellipsoid(m_hide, 0.0, 2.22, 0.56, 0.78, 0.52, 0.68, segs=18, rings=12)  # High shoulder dome
+    b.add_ellipsoid(m_hide, 0.0, 1.88, -0.96, 0.74, 0.68, 0.58, segs=18, rings=12)  # Rounded hindquarters
+    b.add_ellipsoid(m_hide, 0.0, 1.98, 0.88, 0.66, 0.60, 0.52, segs=16, rings=10)  # Thick neck bridge
 
-    # Big gentle domed head
-    b.add_ellipsoid(m_hide, 0.0, 2.28, 1.08, 0.66, 0.68, 0.64, segs=18, rings=12)
-    # Iconic wide African elephant ears!
+    # 4 sturdy sculpted pillar legs with muscular upper thighs, knee folds, wide ankle pads & 3 cute toenails each
+    for lx, lz in ((-0.54, 0.64), (0.54, 0.64), (-0.52, -0.82), (0.52, -0.82)):
+        b.add_ellipsoid(m_hide, lx, 1.38, lz, 0.36, 0.44, 0.38, segs=14, rings=10)
+        b.add_cylinder(m_hide, lx, 0.74, lz, 0.31, 0.28, 1.38, segs=14)
+        b.add_ellipsoid(m_hide, lx, 0.76, lz + 0.06, 0.30, 0.16, 0.31, segs=12, rings=8)  # Knee crease
+        b.add_cylinder(m_hide, lx, 0.12, lz, 0.34, 0.31, 0.24, segs=14)  # Cushion foot pad
+        for ni in (-0.13, 0.0, 0.13):
+            b.add_ellipsoid(m_nail, lx + ni, 0.08, lz + 0.31, 0.062, 0.058, 0.048, segs=8, rings=6)
+
+    # Big gentle domed African elephant head + brow ridges + smiling lower lip
+    b.add_ellipsoid(m_hide, 0.0, 2.34, 1.12, 0.68, 0.72, 0.68, segs=22, rings=14)
+    b.add_ellipsoid(m_hide, 0.0, 2.74, 1.06, 0.54, 0.34, 0.52, segs=16, rings=10)  # Crown dome
+    b.add_ellipsoid(m_hide, 0.0, 1.72, 1.24, 0.24, 0.16, 0.28, segs=12, rings=8, rx=0.25)  # Gentle chin/mouth
+
+    # Iconic multi-lobed Africa-shaped ears + truly curved lofted Ivory Tusks + expressive eyes!
     for side in (-1, 1):
-        b.add_ellipsoid(m_hide, side * 0.88, 2.24, 0.82, 0.56, 0.72, 0.14, segs=14, rings=10, ry=side * -0.42, rz=side * 0.12)
-        b.add_ellipsoid(m_ear_in, side * 0.86, 2.20, 0.89, 0.40, 0.52, 0.07, segs=12, rings=8, ry=side * -0.42, rz=side * 0.12)
-        b.add_cylinder(m_ivory, side * 0.28, 1.72, 1.66, 0.078, 0.032, 0.68, segs=10, rx=1.08, ry=side * 0.18)
-        b.add_ellipsoid(m_dark, side * 0.44, 2.38, 1.54, 0.075, 0.080, 0.055, segs=10, rings=8)
-        b.add_ellipsoid(m_shine, side * 0.46, 2.41, 1.585, 0.026, 0.030, 0.020, segs=8, rings=6)
+        # Upper broad ear lobe + lower tapered ear lobe + soft inner rose-gray shading
+        b.add_ellipsoid(m_hide, side * 0.94, 2.42, 0.78, 0.58, 0.62, 0.13, segs=16, rings=10, ry=side * -0.44, rz=side * 0.16)
+        b.add_ellipsoid(m_hide, side * 0.88, 1.92, 0.74, 0.42, 0.48, 0.11, segs=14, rings=8, ry=side * -0.40, rz=side * -0.18)
+        b.add_ellipsoid(m_ear_in, side * 0.92, 2.34, 0.85, 0.42, 0.48, 0.06, segs=14, rings=8, ry=side * -0.44, rz=side * 0.14)
+        # Gracefully curving 5-point ivory tusk!
+        tusk_pts = [
+            (side * 0.28, 1.88, 1.44),
+            (side * 0.34, 1.72, 1.72),
+            (side * 0.39, 1.66, 2.00),
+            (side * 0.41, 1.74, 2.26),
+            (side * 0.40, 1.92, 2.44),
+        ]
+        b.add_curved_tube(m_ivory, tusk_pts, [0.088, 0.076, 0.060, 0.038, 0.012], segs=10)
+        # Warm brow ridge + expressive kind eyes + catchlights!
+        b.add_ellipsoid(m_hide, side * 0.45, 2.52, 1.54, 0.14, 0.075, 0.12, segs=10, rings=6)
+        b.add_ellipsoid(m_eye, side * 0.46, 2.38, 1.60, 0.082, 0.088, 0.060, segs=12, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.485, 2.415, 1.648, 0.030, 0.034, 0.022, segs=8, rings=6)
 
-    # Gracefully curving multi-segment trunk (C-curl upward at the tip like a happy greeting!)
-    trunk_segs = [
-        (0.0, 1.94, 1.56, 0.23, 0.19, 0.42, 0.45),
-        (0.0, 1.58, 1.78, 0.19, 0.15, 0.44, 0.22),
-        (0.0, 1.24, 1.88, 0.15, 0.12, 0.42, -0.18),
-        (0.0, 1.08, 2.08, 0.12, 0.095, 0.34, -1.05),
-        (0.0, 1.18, 2.32, 0.095, 0.080, 0.26, -1.85),
+    # Silky 9-point organic S-curved Elephant Trunk (friendly upward greeting curl + twin grasping tips!)
+    trunk_pts = [
+        (0.0, 2.12, 1.54),
+        (0.0, 1.84, 1.74),
+        (0.0, 1.52, 1.86),
+        (0.0, 1.24, 1.94),
+        (0.0, 1.04, 2.06),
+        (0.0, 0.98, 2.24),
+        (0.0, 1.08, 2.40),
+        (0.0, 1.26, 2.46),
+        (0.0, 1.40, 2.42),
     ]
-    for tx, ty, tz, rb, rt, h, rx in trunk_segs:
-        b.add_cylinder(m_hide, tx, ty, tz, rb, rt, h, segs=12, rx=rx)
+    trunk_rads = [0.28, 0.24, 0.20, 0.165, 0.14, 0.12, 0.105, 0.092, 0.075]
+    b.add_curved_tube(m_hide, trunk_pts, trunk_rads, segs=14, uv_v_scale=2.2)
+    b.add_ellipsoid(m_hide, 0.0, 1.46, 2.43, 0.048, 0.058, 0.036, segs=8, rings=6)  # Upper trunk finger
 
-    # Little tail with dark tuft
-    b.add_cylinder(m_hide, 0.0, 1.52, -1.42, 0.055, 0.035, 0.68, segs=8, rx=-0.38)
-    b.add_ellipsoid(m_dark, 0.0, 1.16, -1.58, 0.085, 0.14, 0.085, segs=8, rings=6)
+    # Curved elephant tail + dark brush tuft
+    tail_pts = [(0.0, 1.68, -1.42), (0.0, 1.42, -1.56), (0.0, 1.12, -1.64), (0.0, 0.86, -1.66)]
+    b.add_curved_tube(m_hide, tail_pts, [0.062, 0.048, 0.038, 0.030], segs=8)
+    b.add_ellipsoid(m_dark, 0.0, 0.78, -1.67, 0.088, 0.16, 0.088, segs=10, rings=8)
     b.save_glb(os.path.join(OUT_DIR, "anime_elephant.glb"))
 
 
 def build_anime_lion_cub():
-    """Adorable playful African Lion Cub (5 hiding collectibles!) with honey-gold fur, cream belly/paws, fluffy ears & tufted tail!"""
+    """Adorable playful African Lion Cub (5 hiding collectibles!) with honey-gold rosette fur, plump paws, big luminous amber eyes & S-curved tufted tail!"""
     b = GLBBuilder()
-    fur_tex = make_fur_tex((234, 178, 86), (206, 146, 62))
-    m_fur = b.add_material("cub_fur", (1, 1, 1, 1), fur_tex, normal_strength=1.5, roughness=0.80)
-    m_cream = b.add_material("cub_cream", (0.98, 0.93, 0.80, 1), roughness=0.82)
-    m_tuft = b.add_material("cub_tuft", (0.52, 0.30, 0.14, 1), roughness=0.86)
-    m_nose = b.add_material("cub_nose", (0.76, 0.42, 0.42, 1), roughness=0.45)
-    m_eye = b.add_material("cub_eye", (0.86, 0.56, 0.14, 1), roughness=0.18, emissive=(0.14, 0.08, 0.02))
-    m_dark = b.add_material("cub_dark", (0.12, 0.09, 0.08, 1), roughness=0.25)
+    fur_tex = make_cub_fur_tex()
+    m_fur = b.add_material("cub_fur", (1, 1, 1, 1), fur_tex, normal_strength=1.5, roughness=0.78)
+    m_cream = b.add_material("cub_cream", (0.98, 0.94, 0.82, 1), roughness=0.80)
+    m_tuft = b.add_material("cub_tuft", (0.50, 0.28, 0.12, 1), roughness=0.86)
+    m_nose = b.add_material("cub_nose", (0.78, 0.42, 0.44, 1), roughness=0.40)
+    m_eye = b.add_material("cub_eye_glass", (0.88, 0.56, 0.12, 1), roughness=0.10, metallic=0.18, emissive=(0.12, 0.07, 0.01))
+    m_dark = b.add_material("cub_dark", (0.10, 0.08, 0.07, 1), roughness=0.22)
     m_shine = b.add_material("cub_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.95, 0.95, 0.95))
 
-    # Plump playful sitting-crouched cub body + cream belly
-    b.add_ellipsoid(m_fur, 0.0, 0.28, -0.04, 0.21, 0.19, 0.29, segs=18, rings=12)
-    b.add_ellipsoid(m_cream, 0.0, 0.24, 0.06, 0.15, 0.14, 0.19, segs=12, rings=8)
-    for lx, lz in ((-0.12, 0.15), (0.12, 0.15), (-0.13, -0.18), (0.13, -0.18)):
-        b.add_cylinder(m_fur, lx, 0.14, lz, 0.062, 0.052, 0.24, segs=10)
-        b.add_ellipsoid(m_cream, lx, 0.042, lz + 0.03, 0.064, 0.042, 0.075, segs=10, rings=6)
+    # Plump playful cub body + fluffy cream chest & underbelly + rounded haunches
+    b.add_ellipsoid(m_fur, 0.0, 0.29, -0.04, 0.22, 0.19, 0.30, segs=20, rings=14)
+    b.add_ellipsoid(m_cream, 0.0, 0.25, 0.08, 0.16, 0.15, 0.21, segs=14, rings=10)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.15, 0.24, -0.18, 0.11, 0.13, 0.14, segs=12, rings=8)
+    for lx, lz in ((-0.125, 0.16), (0.125, 0.16), (-0.135, -0.18), (0.135, -0.18)):
+        b.add_cylinder(m_fur, lx, 0.14, lz, 0.062, 0.056, 0.24, segs=12)
+        b.add_ellipsoid(m_cream, lx, 0.045, lz + 0.032, 0.068, 0.044, 0.078, segs=12, rings=8)
 
-    # Big cute anime cub head + cream muzzle + pink nose + forehead tuft
-    b.add_ellipsoid(m_fur, 0.0, 0.52, 0.20, 0.22, 0.20, 0.21, segs=18, rings=12)
-    b.add_ellipsoid(m_cream, 0.0, 0.46, 0.37, 0.115, 0.085, 0.095, segs=14, rings=8)
-    b.add_ellipsoid(m_nose, 0.0, 0.495, 0.455, 0.044, 0.032, 0.030, segs=10, rings=6)
-    b.add_ellipsoid(m_tuft, 0.0, 0.72, 0.22, 0.075, 0.055, 0.070, segs=10, rings=6)
+    # Big cute anime cub head + fluffy cheeks + whisker pads + pink-brown nose + forehead mane fluff!
+    b.add_ellipsoid(m_fur, 0.0, 0.53, 0.20, 0.23, 0.21, 0.22, segs=20, rings=14)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_cream, side * 0.062, 0.455, 0.39, 0.075, 0.062, 0.068, segs=12, rings=8)
+        b.add_ellipsoid(m_fur, side * 0.175, 0.47, 0.24, 0.092, 0.075, 0.082, segs=10, rings=6)
+    b.add_ellipsoid(m_cream, 0.0, 0.42, 0.38, 0.078, 0.052, 0.065, segs=10, rings=6)  # Chin
+    b.add_ellipsoid(m_nose, 0.0, 0.495, 0.462, 0.044, 0.030, 0.030, segs=10, rings=8)
+    # Layered baby forehead mane fluff
+    for tx, ty, tz, s in ((0.0, 0.73, 0.22, 1.0), (-0.065, 0.71, 0.19, 0.75), (0.065, 0.71, 0.19, 0.75)):
+        b.add_ellipsoid(m_tuft, tx, ty, tz, 0.065 * s, 0.052 * s, 0.068 * s, segs=10, rings=6)
 
     for side in (-1, 1):
-        b.add_ellipsoid(m_fur, side * 0.18, 0.67, 0.15, 0.082, 0.085, 0.055, segs=12, rings=8, rz=side * -0.25)
-        b.add_ellipsoid(m_cream, side * 0.18, 0.66, 0.185, 0.048, 0.052, 0.030, segs=10, rings=6, rz=side * -0.25)
-        b.add_ellipsoid(m_eye, side * 0.095, 0.545, 0.382, 0.048, 0.052, 0.032, segs=10, rings=8)
-        b.add_ellipsoid(m_dark, side * 0.095, 0.545, 0.402, 0.028, 0.036, 0.022, segs=8, rings=6)
-        b.add_ellipsoid(m_shine, side * 0.108, 0.562, 0.412, 0.016, 0.018, 0.014, segs=8, rings=6)
+        b.add_ellipsoid(m_fur, side * 0.19, 0.68, 0.15, 0.088, 0.090, 0.058, segs=12, rings=8, rz=side * -0.25)
+        b.add_ellipsoid(m_dark, side * 0.195, 0.685, 0.115, 0.062, 0.065, 0.030, segs=10, rings=6, rz=side * -0.25)  # Dark ear back
+        b.add_ellipsoid(m_cream, side * 0.185, 0.67, 0.188, 0.052, 0.055, 0.030, segs=10, rings=6, rz=side * -0.25)
+        b.add_ellipsoid(m_eye, side * 0.098, 0.552, 0.388, 0.052, 0.056, 0.034, segs=12, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.098, 0.552, 0.410, 0.030, 0.038, 0.022, segs=10, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.114, 0.570, 0.422, 0.017, 0.019, 0.014, segs=8, rings=6)
 
-    # Playful curved tail with dark brown lion tuft!
-    b.add_cylinder(m_fur, 0.0, 0.32, -0.34, 0.034, 0.028, 0.34, segs=8, rx=-0.95)
-    b.add_ellipsoid(m_tuft, 0.0, 0.44, -0.49, 0.068, 0.082, 0.068, segs=10, rings=8)
+    # Playful S-curved tail with dark chestnut plume!
+    tail_pts = [(0.0, 0.28, -0.30), (0.0, 0.35, -0.44), (0.0, 0.48, -0.52), (0.0, 0.56, -0.46)]
+    b.add_curved_tube(m_fur, tail_pts, [0.038, 0.032, 0.028, 0.024], segs=10)
+    b.add_ellipsoid(m_tuft, 0.0, 0.59, -0.44, 0.072, 0.085, 0.072, segs=10, rings=8)
     b.save_glb(os.path.join(OUT_DIR, "anime_lion_cub.glb"))
+
+
+def build_anime_zebra():
+    """Sculpted Plains Zebra (~1.65m tall) with flowing wavy zebra-stripe hide, lofted arched neck, upright striped mane, articulated hooves & kind eyes!"""
+    b = GLBBuilder()
+    zebra_tex = make_zebra_animal_tex()
+    m_coat = b.add_material("zebra_coat", (1, 1, 1, 1), zebra_tex, normal_strength=1.1, roughness=0.72)
+    m_white = b.add_material("zebra_white", (0.97, 0.96, 0.93, 1), roughness=0.76)
+    m_dark = b.add_material("zebra_dark", (0.14, 0.13, 0.14, 1), roughness=0.38)
+    m_ear_in = b.add_material("zebra_ear_in", (0.86, 0.72, 0.72, 1), roughness=0.78)
+    m_eye = b.add_material("zebra_eye_glass", (0.20, 0.13, 0.08, 1), roughness=0.10, metallic=0.16)
+    m_shine = b.add_material("zebra_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.94, 0.94, 0.94))
+
+    # Muscular contoured equine torso (barrel, broad chest, sloped withers, rounded hindquarters)
+    b.add_ellipsoid(m_coat, 0.0, 1.06, 0.0, 0.42, 0.44, 0.84, segs=22, rings=14)
+    b.add_ellipsoid(m_coat, 0.0, 1.14, 0.48, 0.36, 0.38, 0.40, segs=18, rings=12)  # Chest/shoulders
+    b.add_ellipsoid(m_coat, 0.0, 1.08, -0.52, 0.38, 0.39, 0.42, segs=18, rings=12)  # Haunches
+    b.add_ellipsoid(m_white, 0.0, 0.78, 0.0, 0.30, 0.18, 0.64, segs=14, rings=8)  # Crisp white belly
+
+    # 4 articulated striped equine legs with knees, pasterns & glossy dark hooves
+    for lx, lz, is_front in ((-0.23, 0.48, True), (0.23, 0.48, True), (-0.23, -0.52, False), (0.23, -0.52, False)):
+        b.add_ellipsoid(m_coat, lx, 0.84, lz, 0.125, 0.24, 0.145, segs=12, rings=8)
+        b.add_cylinder(m_coat, lx, 0.58, lz, 0.072, 0.098, 0.38, segs=12)
+        b.add_ellipsoid(m_coat, lx, 0.42, lz + (0.015 if is_front else -0.025), 0.078, 0.078, 0.082, segs=10, rings=6)
+        b.add_cylinder(m_white, lx, 0.24, lz, 0.056, 0.068, 0.32, segs=12)
+        b.add_cylinder(m_dark, lx, 0.065, lz + 0.02, 0.076, 0.064, 0.13, segs=12)
+
+    # Smooth lofted arched equine neck!
+    neck_pts = [
+        (0.0, 1.18, 0.48),
+        (0.0, 1.40, 0.66),
+        (0.0, 1.62, 0.80),
+        (0.0, 1.80, 0.90),
+    ]
+    neck_rads = [(0.26, 0.30), (0.21, 0.24), (0.17, 0.19), (0.14, 0.16)]
+    b.add_curved_tube(m_coat, neck_pts, neck_rads, segs=16, uv_v_scale=1.2, cap_end=False)
+
+    # Iconic zebra upright alternating black-and-white crest mane!
+    for mi in range(9):
+        t = mi / 8.0
+        mm = m_dark if mi % 2 == 0 else m_white
+        b.add_ellipsoid(mm, 0.0, 1.38 + t * 0.56, 0.34 + t * 0.46, 0.048, 0.12, 0.072, segs=8, rings=6, rx=0.52)
+
+    # Sculpted equine head, striped cheeks, velvety dark charcoal muzzle, cupped ears & kind amber eyes!
+    b.add_ellipsoid(m_coat, 0.0, 1.82, 0.98, 0.18, 0.19, 0.27, segs=18, rings=12, rx=0.22)
+    b.add_ellipsoid(m_coat, 0.0, 1.72, 1.22, 0.13, 0.13, 0.22, segs=16, rings=10, rx=0.25)
+    b.add_ellipsoid(m_dark, 0.0, 1.65, 1.40, 0.125, 0.11, 0.13, segs=14, rings=8)  # Velvety black muzzle
+    for side in (-1, 1):
+        b.add_ellipsoid(m_coat, side * 0.12, 2.04, 0.88, 0.058, 0.14, 0.052, segs=10, rings=8, rz=side * -0.22, rx=-0.12)
+        b.add_ellipsoid(m_dark, side * 0.13, 2.14, 0.87, 0.042, 0.055, 0.036, segs=8, rings=6, rz=side * -0.22)
+        b.add_ellipsoid(m_ear_in, side * 0.115, 2.02, 0.915, 0.032, 0.088, 0.024, segs=8, rings=6, rz=side * -0.22)
+        b.add_ellipsoid(m_eye, side * 0.148, 1.84, 1.12, 0.044, 0.048, 0.036, segs=12, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.165, 1.86, 1.15, 0.017, 0.019, 0.014, segs=8, rings=6)
+
+    # Gracefully draped zebra tail + dark brush plume!
+    tail_pts = [(0.0, 1.12, -0.88), (0.0, 0.92, -1.00), (0.0, 0.68, -1.05), (0.0, 0.46, -1.06)]
+    b.add_curved_tube(m_coat, tail_pts, [0.046, 0.038, 0.030, 0.025], segs=10)
+    b.add_ellipsoid(m_dark, 0.0, 0.36, -1.07, 0.082, 0.16, 0.082, segs=10, rings=8)
+    b.save_glb(os.path.join(OUT_DIR, "anime_zebra.glb"))
+
+
+def build_anime_lion_king():
+    """Majestic resting Pride Rock King Lion with multi-layered sculpted flowing auburn mane, sphinx forepaws, noble muzzle & glowing amber eyes!"""
+    b = GLBBuilder()
+    fur_tex = make_fur_tex((232, 174, 82), (198, 138, 56))
+    mane_tex = make_fur_tex((134, 66, 26), (92, 42, 14))
+    m_fur = b.add_material("lion_fur", (1, 1, 1, 1), fur_tex, normal_strength=1.5, roughness=0.78)
+    m_mane = b.add_material("lion_mane", (1, 1, 1, 1), mane_tex, normal_strength=2.0, roughness=0.84)
+    m_mane_hi = b.add_material("lion_mane_hi", (0.64, 0.34, 0.14, 1), roughness=0.84)
+    m_cream = b.add_material("lion_cream", (0.97, 0.92, 0.78, 1), roughness=0.80)
+    m_dark = b.add_material("lion_dark", (0.14, 0.10, 0.08, 1), roughness=0.28)
+    m_eye = b.add_material("lion_eye_glass", (0.88, 0.56, 0.12, 1), roughness=0.10, metallic=0.18, emissive=(0.14, 0.08, 0.01))
+    m_shine = b.add_material("lion_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.95, 0.95, 0.95))
+
+    # Regal sphinx-resting feline torso (paws & belly resting cleanly at y=0)
+    b.add_ellipsoid(m_fur, 0.0, 0.44, -0.08, 0.54, 0.44, 0.96, segs=22, rings=14)
+    b.add_ellipsoid(m_cream, 0.0, 0.24, 0.04, 0.40, 0.22, 0.78, segs=14, rings=8)
+    # Muscular tucked hind legs & extended regal sphinx forelegs + big sculpted paws!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.44, 0.34, -0.62, 0.26, 0.32, 0.46, segs=14, rings=10)
+        b.add_ellipsoid(m_fur, side * 0.40, 0.11, -0.34, 0.16, 0.11, 0.26, segs=10, rings=8)
+        # Extended sphinx front arms & big noble lion paws!
+        b.add_ellipsoid(m_fur, side * 0.32, 0.24, 0.78, 0.18, 0.16, 0.46, segs=14, rings=10)
+        b.add_ellipsoid(m_cream, side * 0.32, 0.12, 1.22, 0.19, 0.12, 0.24, segs=12, rings=8)
+
+    # Rich multi-layered sculpted flowing mane (22 overlapping contoured locks — regal & organic!)
+    b.add_ellipsoid(m_mane, 0.0, 0.88, 0.64, 0.64, 0.64, 0.52, segs=20, rings=14)  # Core mane volume
+    b.add_ellipsoid(m_mane, 0.0, 0.56, 0.72, 0.54, 0.42, 0.44, segs=16, rings=10)  # Majestic chest cascade
+    for i in range(14):
+        ang = (i / 14.0) * math.tau
+        rad_x = 0.58 + (0.06 if i % 2 == 0 else -0.02)
+        rad_y = 0.60 + (0.06 if i % 2 == 0 else -0.02)
+        mx = math.cos(ang) * rad_x
+        my = 0.94 + math.sin(ang) * rad_y
+        mz = 0.66 + math.cos(ang * 2.0) * 0.06
+        mat_lock = m_mane if i % 3 != 0 else m_mane_hi
+        b.add_ellipsoid(mat_lock, mx, my, mz, 0.22, 0.26, 0.24, segs=10, rings=8, rz=ang - math.pi / 2)
+    # Crown mane locks sweeping up over the forehead
+    for cx_m, cy_m, cz_m in ((0.0, 1.48, 0.76), (-0.22, 1.42, 0.78), (0.22, 1.42, 0.78)):
+        b.add_ellipsoid(m_mane_hi, cx_m, cy_m, cz_m, 0.20, 0.20, 0.22, segs=10, rings=8)
+
+    # Noble sculpted lion head, broad golden bridge, cream whisker pads, chin & dark triangle nose!
+    b.add_ellipsoid(m_fur, 0.0, 0.98, 0.98, 0.39, 0.37, 0.38, segs=20, rings=14)
+    b.add_ellipsoid(m_fur, 0.0, 0.96, 1.24, 0.20, 0.16, 0.24, segs=14, rings=10)  # Nose bridge
+    for side in (-1, 1):
+        b.add_ellipsoid(m_cream, side * 0.125, 0.85, 1.34, 0.145, 0.115, 0.135, segs=12, rings=8)  # Whisker pad
+    b.add_ellipsoid(m_cream, 0.0, 0.74, 1.28, 0.155, 0.095, 0.145, segs=12, rings=8)  # Noble chin
+    b.add_ellipsoid(m_dark, 0.0, 0.92, 1.48, 0.088, 0.062, 0.055, segs=10, rings=8)  # Lion nose
+
+    for side in (-1, 1):
+        # Rounded ears peeking out of the mane
+        b.add_ellipsoid(m_fur, side * 0.34, 1.32, 0.90, 0.135, 0.135, 0.085, segs=12, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.35, 1.33, 0.85, 0.095, 0.095, 0.045, segs=10, rings=6)
+        # Noble brow ridge + glowing amber eyes + catchlights
+        b.add_ellipsoid(m_fur, side * 0.19, 1.12, 1.26, 0.11, 0.055, 0.09, segs=10, rings=6)
+        b.add_ellipsoid(m_eye, side * 0.185, 1.03, 1.32, 0.068, 0.064, 0.048, segs=12, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.185, 1.03, 1.356, 0.032, 0.046, 0.025, segs=10, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.208, 1.052, 1.372, 0.020, 0.022, 0.015, segs=8, rings=6)
+
+    # Gracefully curving resting lion tail with chestnut plume!
+    tail_pts = [(0.0, 0.34, -0.96), (0.24, 0.22, -1.24), (0.56, 0.16, -1.16), (0.72, 0.20, -0.88)]
+    b.add_curved_tube(m_fur, tail_pts, [0.062, 0.050, 0.042, 0.036], segs=10)
+    b.add_ellipsoid(m_mane, 0.78, 0.22, -0.76, 0.13, 0.12, 0.18, segs=10, rings=8)
+    b.save_glb(os.path.join(OUT_DIR, "anime_lion_king.glb"))
+
+
+def build_anime_lioness():
+    """Sleek graceful Pride Rock Lioness in sphinx pose with sunlit golden-sand fur, cream chin, dark-rimmed amber eyes & curved tufted tail!"""
+    b = GLBBuilder()
+    fur_tex = make_fur_tex((238, 188, 102), (208, 156, 74))
+    m_fur = b.add_material("lioness_fur", (1, 1, 1, 1), fur_tex, normal_strength=1.4, roughness=0.76)
+    m_cream = b.add_material("lioness_cream", (0.98, 0.94, 0.82, 1), roughness=0.78)
+    m_tuft = b.add_material("lioness_tuft", (0.44, 0.25, 0.12, 1), roughness=0.84)
+    m_dark = b.add_material("lioness_dark", (0.14, 0.10, 0.08, 1), roughness=0.28)
+    m_eye = b.add_material("lioness_eye_glass", (0.88, 0.58, 0.14, 1), roughness=0.10, metallic=0.18, emissive=(0.12, 0.07, 0.01))
+    m_shine = b.add_material("lioness_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.95, 0.95, 0.95))
+
+    # Sleek athletic resting feline body
+    b.add_ellipsoid(m_fur, 0.0, 0.36, -0.06, 0.42, 0.36, 0.84, segs=22, rings=14)
+    b.add_ellipsoid(m_cream, 0.0, 0.22, 0.08, 0.32, 0.20, 0.68, segs=14, rings=8)
+    b.add_ellipsoid(m_cream, 0.0, 0.44, 0.52, 0.28, 0.28, 0.26, segs=14, rings=10)  # Graceful cream chest
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.35, 0.28, -0.54, 0.21, 0.26, 0.38, segs=14, rings=10)
+        b.add_ellipsoid(m_fur, side * 0.25, 0.19, 0.68, 0.14, 0.13, 0.38, segs=12, rings=8)
+        b.add_ellipsoid(m_cream, side * 0.25, 0.10, 1.04, 0.145, 0.095, 0.19, segs=12, rings=8)
+
+    # Graceful arched neck + sculpted lioness head
+    neck_pts = [(0.0, 0.48, 0.44), (0.0, 0.66, 0.58), (0.0, 0.80, 0.68)]
+    b.add_curved_tube(m_fur, neck_pts, [0.26, 0.22, 0.19], segs=14, cap_end=False)
+    b.add_ellipsoid(m_fur, 0.0, 0.84, 0.78, 0.31, 0.28, 0.32, segs=20, rings=14)
+    b.add_ellipsoid(m_fur, 0.0, 0.81, 1.02, 0.16, 0.13, 0.20, segs=14, rings=10)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_cream, side * 0.095, 0.73, 1.08, 0.115, 0.092, 0.11, segs=12, rings=8)
+    b.add_ellipsoid(m_cream, 0.0, 0.64, 1.03, 0.125, 0.075, 0.115, segs=10, rings=8)
+    b.add_ellipsoid(m_dark, 0.0, 0.79, 1.20, 0.068, 0.048, 0.044, segs=10, rings=8)
+
+    for side in (-1, 1):
+        b.add_ellipsoid(m_fur, side * 0.26, 1.08, 0.70, 0.115, 0.115, 0.072, segs=12, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.27, 1.09, 0.66, 0.082, 0.082, 0.040, segs=10, rings=6)
+        b.add_ellipsoid(m_cream, side * 0.255, 1.07, 0.74, 0.068, 0.068, 0.032, segs=10, rings=6)
+        b.add_ellipsoid(m_eye, side * 0.148, 0.88, 1.04, 0.056, 0.054, 0.040, segs=12, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.148, 0.88, 1.07, 0.026, 0.038, 0.022, segs=10, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.166, 0.898, 1.085, 0.017, 0.019, 0.014, segs=8, rings=6)
+
+    tail_pts = [(0.0, 0.28, -0.82), (-0.22, 0.18, -1.06), (-0.48, 0.14, -0.96), (-0.60, 0.18, -0.72)]
+    b.add_curved_tube(m_fur, tail_pts, [0.050, 0.042, 0.034, 0.028], segs=10)
+    b.add_ellipsoid(m_tuft, -0.64, 0.20, -0.62, 0.10, 0.095, 0.14, segs=10, rings=8)
+    b.save_glb(os.path.join(OUT_DIR, "anime_lioness.glb"))
+
+
+def build_anime_flamingo():
+    """Graceful wading African Pink Flamingo (~1.65m tall) with coral-rose feathered wings, smooth S-curved neck, hooked two-tone beak & one tucked leg!"""
+    b = GLBBuilder()
+    feat_tex = make_flamingo_feather_tex()
+    m_pink = b.add_material("flam_pink", (1, 1, 1, 1), feat_tex, normal_strength=1.1, roughness=0.72)
+    m_coral = b.add_material("flam_coral", (0.98, 0.42, 0.56, 1), roughness=0.70)
+    m_leg = b.add_material("flam_leg", (0.92, 0.44, 0.58, 1), roughness=0.58)
+    m_beak_hi = b.add_material("flam_beak_hi", (0.98, 0.82, 0.84, 1), roughness=0.35)
+    m_dark = b.add_material("flam_dark", (0.12, 0.10, 0.11, 1), roughness=0.22)
+    m_eye = b.add_material("flam_eye_glass", (0.98, 0.78, 0.18, 1), roughness=0.10, metallic=0.15)
+    m_shine = b.add_material("flam_shine", (1.0, 1.0, 1.0, 1), roughness=0.1, emissive=(0.95, 0.95, 0.95))
+
+    # Graceful teardrop avian body + layered folded coral wings + ruffled tail feathers
+    b.add_ellipsoid(m_pink, 0.0, 0.92, -0.02, 0.21, 0.20, 0.36, segs=18, rings=12, rx=0.10)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_coral, side * 0.17, 0.94, -0.04, 0.085, 0.15, 0.30, segs=14, rings=10, ry=side * -0.10)
+    b.add_ellipsoid(m_coral, 0.0, 0.88, -0.38, 0.13, 0.10, 0.18, segs=12, rings=8, rx=-0.22)
+
+    # One slender standing leg + one classic tucked-up flamingo leg!
+    b.add_cylinder(m_leg, -0.05, 0.40, 0.0, 0.020, 0.024, 0.80, segs=8)
+    b.add_ellipsoid(m_leg, -0.05, 0.42, -0.01, 0.032, 0.034, 0.034, segs=8, rings=6)  # Ankle joint
+    b.add_ellipsoid(m_leg, -0.05, 0.02, 0.04, 0.065, 0.018, 0.09, segs=8, rings=6)  # Webbed foot
+    # Tucked-up second leg (upper down-back, lower tucked forward!)
+    b.add_cylinder(m_leg, 0.07, 0.64, -0.06, 0.018, 0.022, 0.34, segs=8, rx=0.45)
+    b.add_cylinder(m_leg, 0.07, 0.56, 0.04, 0.016, 0.018, 0.28, segs=8, rx=-1.15)
+
+    # Iconic graceful 9-point S-curved flamingo neck!
+    neck_pts = [
+        (0.0, 0.96, 0.28),
+        (0.0, 1.02, 0.40),
+        (0.0, 1.14, 0.44),
+        (0.0, 1.28, 0.40),
+        (0.0, 1.42, 0.34),
+        (0.0, 1.54, 0.32),
+        (0.0, 1.62, 0.38),
+        (0.0, 1.64, 0.46),
+    ]
+    neck_rads = [0.075, 0.058, 0.048, 0.044, 0.042, 0.042, 0.044, 0.048]
+    b.add_curved_tube(m_pink, neck_pts, neck_rads, segs=12, uv_v_scale=1.5, cap_end=False)
+
+    # Sculpted head + bright golden eyes + iconic downward-hooked two-tone flamingo beak!
+    b.add_ellipsoid(m_pink, 0.0, 1.64, 0.50, 0.088, 0.084, 0.105, segs=14, rings=10)
+    beak_upper = [(0.0, 1.63, 0.58), (0.0, 1.61, 0.66), (0.0, 1.57, 0.71)]
+    b.add_curved_tube(m_beak_hi, beak_upper, [0.052, 0.044, 0.036], segs=10, cap_end=False)
+    beak_tip = [(0.0, 1.57, 0.71), (0.0, 1.50, 0.73), (0.0, 1.43, 0.70)]
+    b.add_curved_tube(m_dark, beak_tip, [0.036, 0.026, 0.010], segs=10)
+
+    for side in (-1, 1):
+        b.add_ellipsoid(m_eye, side * 0.072, 1.66, 0.54, 0.024, 0.024, 0.018, segs=10, rings=6)
+        b.add_ellipsoid(m_dark, side * 0.074, 1.66, 0.554, 0.012, 0.012, 0.010, segs=8, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.078, 1.668, 0.562, 0.007, 0.007, 0.006, segs=6, rings=5)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_flamingo.glb"))
 
 
 def build_anime_safari_jeep():
@@ -1633,7 +2144,7 @@ def build_anime_safari_jeep():
 
 
 if __name__ == "__main__":
-    print("Generating 26 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
+    print("Generating 30 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
     build_tokyo_house_2f()
     build_tokyo_house_1f()
     build_kyoto_machiya()
@@ -1659,5 +2170,9 @@ if __name__ == "__main__":
     build_anime_giraffe()
     build_anime_elephant()
     build_anime_lion_cub()
+    build_anime_zebra()
+    build_anime_lion_king()
+    build_anime_lioness()
+    build_anime_flamingo()
     build_anime_safari_jeep()
-    print("All 26 AAA .glb assets built successfully!")
+    print("All 30 AAA .glb assets built successfully!")

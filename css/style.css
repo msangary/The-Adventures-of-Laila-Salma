@@ -107,21 +107,81 @@ html, body {
   color: #5b4029;
 }
 
-/* Top-Left HUD */
+/* Top-Left HUD (Transparent Frosted Glass & Collapsible) */
 #hud-left {
   position: fixed;
   top: 12px;
   left: 12px;
-  width: 266px;
-  padding: 11px 13px;
+  width: 344px;
+  max-width: calc(100vw - 24px);
+  padding: 9px 11px;
   z-index: 20;
+  background: rgba(255, 250, 240, 0.40);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(198, 159, 104, 0.55);
+  box-shadow: 0 4px 16px rgba(61, 44, 30, 0.14);
+  transition: padding 0.22s ease, background 0.2s ease;
+}
+
+#hud-left:hover {
+  background: rgba(255, 250, 240, 0.60);
+}
+
+#hud-left.collapsed {
+  width: auto;
+  min-width: 0;
+  padding: 6px 10px;
+}
+
+#hud-left.collapsed .hud-header {
+  margin-bottom: 0;
+}
+
+#hud-left.collapsed .player-sub,
+#hud-left.collapsed #hud-left-body {
+  display: none;
+}
+
+#hud-left.collapsed .avatar-badge {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+#hud-left.collapsed .hud-collapse-btn {
+  transform: rotate(-90deg);
 }
 
 .hud-header {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 8px;
+  gap: 7px;
+  margin-bottom: 7px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hud-collapse-btn {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(198, 159, 104, 0.7);
+  background: rgba(255, 250, 240, 0.62);
+  color: #5b4029;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.15s ease;
+}
+
+.hud-collapse-btn:hover {
+  background: rgba(255, 243, 214, 0.92);
 }
 
 .hud-title-block {
@@ -133,44 +193,48 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 5px;
 }
 
 .world-badge {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
   color: #fff;
-  background: #e05780;
-  padding: 2px 8px;
+  background: rgba(224, 87, 128, 0.88);
+  padding: 2px 7px;
   border-radius: 99px;
   white-space: nowrap;
 }
 
 .avatar-badge {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ffd1dc, #ffe066);
+  background: linear-gradient(135deg, rgba(255, 209, 220, 0.9), rgba(255, 224, 102, 0.9));
   border: 2px solid #b85d79;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
+  transition: width 0.2s ease, height 0.2s ease, font-size 0.2s ease;
 }
 
 .player-name {
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 800;
-  color: #3a2618;
+  color: #2e1d10;
   line-height: 1.1;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(255, 252, 244, 0.9);
 }
 
 .player-sub {
   font-size: 11px;
-  color: #7a5b3e;
-  font-weight: 600;
+  color: #4f3620;
+  font-weight: 700;
   margin-top: 2px;
+  text-shadow: 0 1px 2px rgba(255, 252, 244, 0.85);
 }
 
 .stat-row {
@@ -182,16 +246,16 @@ html, body {
   font-weight: 700;
 }
 
-.stat-label { width: 28px; color: #6b4e33; }
-.stat-val { width: 46px; text-align: right; color: #5b4029; font-size: 11px; }
+.stat-label { width: 28px; color: #3d2817; text-shadow: 0 1px 2px rgba(255, 252, 244, 0.85); }
+.stat-val { width: 46px; text-align: right; color: #3d2817; font-size: 11px; text-shadow: 0 1px 2px rgba(255, 252, 244, 0.85); }
 
 .bar-track {
   flex: 1;
   height: 8px;
-  background: #e5d5b7;
+  background: rgba(229, 213, 183, 0.65);
   border-radius: 99px;
   overflow: hidden;
-  border: 1px solid #c4a476;
+  border: 1px solid rgba(196, 164, 118, 0.72);
 }
 
 .bar-fill {
@@ -211,43 +275,43 @@ html, body {
   gap: 4px;
   margin-top: 7px;
   padding-top: 6px;
-  border-top: 1px dashed #d4b88c;
+  border-top: 1px dashed rgba(196, 164, 118, 0.65);
   font-size: 11px;
   font-weight: 700;
 }
 
-.coin-pill { color: #9c6514; }
+.coin-pill { color: #784808; text-shadow: 0 1px 2px rgba(255, 252, 244, 0.85); }
 .cat-pill {
-  background: #fff0d6;
-  color: #7a4212;
+  background: rgba(255, 240, 214, 0.72);
+  color: #6b370c;
   padding: 2px 6px;
   border-radius: 99px;
-  border: 1px solid #d4a66a;
+  border: 1px solid rgba(212, 166, 106, 0.75);
 }
 .stamp-pill {
-  background: #e0f2fe;
+  background: rgba(224, 242, 254, 0.72);
   color: #075985;
   padding: 2px 6px;
   border-radius: 99px;
-  border: 1px solid #7dd3fc;
+  border: 1px solid rgba(125, 211, 252, 0.8);
 }
 .toy-pill {
-  background: #f3e8ff;
+  background: rgba(243, 232, 255, 0.72);
   color: #6b21a8;
   padding: 2px 6px;
   border-radius: 99px;
-  border: 1px solid #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.8);
 }
 .buff-pill {
   margin-top: 6px;
   text-align: center;
-  background: #ffe3b3;
-  color: #8c4500;
+  background: rgba(255, 227, 179, 0.78);
+  color: #7c3b00;
   padding: 3px 8px;
   border-radius: 99px;
   font-size: 10.5px;
   font-weight: 800;
-  border: 1px solid #e0a458;
+  border: 1px solid rgba(224, 164, 88, 0.8);
 }
 
 .hd-badge {
@@ -376,7 +440,7 @@ html, body {
   position: fixed;
   bottom: 12px;
   left: 14px;
-  max-width: calc(100vw - 175px);
+  max-width: calc(100vw - 265px);
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 11px;
