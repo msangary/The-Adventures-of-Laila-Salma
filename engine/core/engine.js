@@ -1029,6 +1029,7 @@ window.LailaSalma = window.LailaSalma || {};
       salma.rightLeg.rotation.x = -0.95 - Math.sin(elapsed * 9) * 0.22;
       salma.leftArm.rotation.x = -0.85;
       salma.rightArm.rotation.x = -0.85;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'sit', elapsed);
       return;
     }
 
@@ -1067,6 +1068,7 @@ window.LailaSalma = window.LailaSalma || {};
       salma.rightLeg.rotation.x = -swing;
       salma.leftArm.rotation.x = -swing * 0.85;
       if (LS.runtime.poseTimer <= 0) salma.rightArm.rotation.x = swing * 0.85;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, swing, sprinting ? 'run' : 'walk', elapsed);
     } else {
       let diff = laila.root.rotation.y - salma.root.rotation.y;
       while (diff > Math.PI) diff -= Math.PI * 2;
@@ -1077,6 +1079,7 @@ window.LailaSalma = window.LailaSalma || {};
       salma.rightLeg.rotation.x *= 0.82;
       salma.leftArm.rotation.x *= 0.82;
       if (LS.runtime.poseTimer <= 0) salma.rightArm.rotation.x *= 0.82;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'idle', elapsed + 0.7);
     }
 
     const groundY = getGroundH(sp.x, sp.z);
@@ -1124,11 +1127,13 @@ window.LailaSalma = window.LailaSalma || {};
       eat.timer += dt;
       laila.rightArm.rotation.x = -1.25 + Math.sin(elapsed * 5.2) * 0.35;
       laila.headGroup.rotation.x = Math.sin(elapsed * 5.2) * 0.14;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, 0, 'sit', elapsed);
       eat.bowlObj.sticks.position.y = 0.28 + Math.max(0, Math.sin(elapsed * 5.2)) * 0.18;
 
       if (salma) {
         salma.rightArm.rotation.x = -1.25 + Math.sin(elapsed * 5.8 + 0.9) * 0.35;
         salma.headGroup.rotation.x = Math.sin(elapsed * 5.8 + 0.9) * 0.16;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'sit', elapsed);
         if (eat.bowlObj.salmaSticks) {
           eat.bowlObj.salmaSticks.position.y = 0.28 + Math.max(0, Math.sin(elapsed * 5.8 + 0.9)) * 0.18;
         }
@@ -1159,11 +1164,13 @@ window.LailaSalma = window.LailaSalma || {};
       laila.root.rotation.y = yaw;
       laila.leftLeg.rotation.x = -1.05; laila.rightLeg.rotation.x = -1.05;
       laila.rightArm.rotation.x = -0.3; laila.rightArm.rotation.z = 1.9 + Math.sin(elapsed * 6) * 0.25;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, 0, 'sit', elapsed);
       if (salma) {
         salma.root.position.set(pos.x - cosY * 0.34 - sinY * 0.22, 0.72 + bounce, pos.z + sinY * 0.34 - cosY * 0.22);
         salma.root.rotation.y = yaw;
         salma.leftLeg.rotation.x = -1.05; salma.rightLeg.rotation.x = -1.05;
         salma.rightArm.rotation.x = -0.35; salma.rightArm.rotation.z = 2.0 + Math.sin(elapsed * 6.5) * 0.28;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'sit', elapsed);
       }
       if (sr.t >= 1.0) {
         if (LS.activeWorld.jeepHome) {
@@ -1302,6 +1309,7 @@ window.LailaSalma = window.LailaSalma || {};
       const pSin = Math.sin(br.pedalPhase);
       laila.leftLeg.rotation.x = -0.68 + pSin * 0.48;
       laila.rightLeg.rotation.x = -0.68 - pSin * 0.48;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, pSin, 'bike_pedal', elapsed);
 
       // Seat Salma happily on the rear carrier rack (-0.56m back) cheering & waving!
       if (salma) {
@@ -1317,6 +1325,7 @@ window.LailaSalma = window.LailaSalma || {};
         salma.leftArm.rotation.x = -0.92;
         salma.rightArm.rotation.x = -0.36;
         salma.rightArm.rotation.z = br.speed > 1.5 ? (2.05 + Math.sin(elapsed * 7.5) * 0.26) : 0.35;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'sit', elapsed);
       }
 
       const zoneEl = document.getElementById('compass-zone');
@@ -1377,19 +1386,23 @@ window.LailaSalma = window.LailaSalma || {};
       laila.rightArm.rotation.x = swing * 0.8;
       laila.rightArm.rotation.z = 0;
       if (salma) salma.rightArm.rotation.z = 0;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, swing, isRunning ? 'run' : 'walk', elapsed);
     } else {
       laila.leftLeg.rotation.x *= 0.82;
       laila.rightLeg.rotation.x *= 0.82;
       laila.leftArm.rotation.x *= 0.82;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, 0, 'idle', elapsed);
 
       if (LS.runtime.poseTimer > 0) {
         LS.runtime.poseTimer -= dt;
         laila.rightArm.rotation.x = -0.38;
         laila.rightArm.rotation.z = 2.15 + Math.sin(elapsed * 9.5) * 0.34;
+        if (laila.rightElbow) laila.rightElbow.rotation.x = -0.32;
         laila.headGroup.rotation.z = -0.08 + Math.sin(elapsed * 4.5) * 0.06;
         if (salma) {
           salma.rightArm.rotation.x = -0.42;
           salma.rightArm.rotation.z = 2.22 + Math.sin(elapsed * 10.0 + 0.5) * 0.38;
+          if (salma.rightElbow) salma.rightElbow.rotation.x = -0.32;
           salma.headGroup.rotation.z = 0.08 - Math.sin(elapsed * 4.5) * 0.08;
         }
       } else {
