@@ -559,6 +559,18 @@ window.LailaSalma = window.LailaSalma || {};
         const sr = (i % 4 === 0) ? 2.2 : 1.1;
         ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
       }
+      if (worldId === 'safari') {
+        ctx.strokeStyle = 'rgba(255, 228, 152, 0.34)';
+        ctx.lineWidth = 1.4;
+        [[[230, 88], [255, 118], [230, 152], [208, 115], [230, 88]],
+         [[470, 128], [498, 110], [525, 92], [548, 84], [564, 99], [545, 118], [518, 122], [498, 110]]].forEach(pts => {
+          ctx.beginPath();
+          pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+          ctx.stroke();
+          ctx.fillStyle = '#fff9d6';
+          pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 3.0, 0, Math.PI * 2); ctx.fill(); });
+        });
+      }
       if (LS.isHD) {
         const mg = ctx.createRadialGradient(780, 130, 8, 780, 130, 70);
         mg.addColorStop(0, 'rgba(255,250,224,0.95)');

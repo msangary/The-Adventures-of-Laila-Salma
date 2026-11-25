@@ -49,12 +49,29 @@ window.LailaSalma = window.LailaSalma || {};
         elephants: [],
         flamingos: [],
         zebras: [],
+        hippos: [],
+        meerkats: [],
+        sprayDrops: [],
+        hippoBubbles: [],
+        campfireFlames: [],
+        savannaBirds: [],
+        butterflies: [],
+        fireflies: [],
+        wildlifePhotoTargets: [],
         splashRings: [],
         windsock: null,
         propeller: null,
         safariJeep: null,
         jeepPath: null,
         jeepHome: null,
+        hotAirBalloon: null,
+        balloonFlame: null,
+        balloonHome: null,
+        kingLionMesh: null,
+        roarRing: null,
+        cheetahObj: null,
+        cheetahTrack: null,
+        watchtowerPos: new THREE.Vector3(-7.5, 6.2, -9.0),
         mochiStartPos: new THREE.Vector3(2.2, 0, 15.8),
         slideStartPos: new THREE.Vector3(-22.8, 2.1, 25.0),
         slideEndPos: new THREE.Vector3(-22.8, 0.15, 29.0),
@@ -70,7 +87,7 @@ window.LailaSalma = window.LailaSalma || {};
         W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
       }
 
-      // Smooth walkable height for the raised Giraffe Feeding Deck (X=-26.6..-21.4, Z=-0.6..4.6)
+      // Smooth walkable height for Giraffe Feeding Deck + Arched Wooden Rope Suspension Bridge!
       W.getGroundHeight = function (x, z) {
         // Gentle east ramp ascending from X=-20.0 (y=0) up to X=-22.2 (y=0.85)
         if (x <= -19.8 && x >= -22.2 && z >= 0.4 && z <= 3.6) {
@@ -80,6 +97,11 @@ window.LailaSalma = window.LailaSalma || {};
         // Flat elevated Giraffe Feeding Deck platform
         if (x < -22.2 && x >= -26.8 && z >= -0.6 && z <= 4.6) {
           return 0.85;
+        }
+        // Arched Wooden Rope Suspension Bridge spanning the Savanna Stream (X=1.6..4.8, Z=-26.8..-32.8)
+        if (x >= 1.55 && x <= 4.85 && z >= -32.8 && z <= -26.8) {
+          const t = (z + 32.8) / 6.0; // 0..1 across span
+          return Math.sin(t * Math.PI) * 0.86;
         }
         return 0;
       };
@@ -192,9 +214,25 @@ window.LailaSalma = window.LailaSalma || {};
             m.position.set(h[0], h[3] * 0.45, h[1]); worldGroup.add(m);
           });
         }
+        // Distant Savanna Horizon Wildlife & Acacia Silhouettes along the Kilimanjaro ridge
+        const silMat = LS.makeToonMat(0x6b5344);
+        [[-52, -96, 1.3], [-36, -104, 1.1], [24, -102, 1.4], [48, -94, 1.15]].forEach(sa => {
+          const sg = new THREE.Group(); sg.position.set(sa[0], 0, sa[1]);
+          const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * sa[2], 0.55 * sa[2], 5.2 * sa[2], 6), silMat);
+          tr.position.y = 2.6 * sa[2]; sg.add(tr);
+          const cp = new THREE.Mesh(new THREE.CylinderGeometry(4.6 * sa[2], 3.4 * sa[2], 1.1 * sa[2], 8), silMat);
+          cp.position.y = 5.4 * sa[2]; sg.add(cp);
+          worldGroup.add(sg);
+        });
+        [[-44, -95], [-40, -96.5], [32, -98]].forEach(gd => {
+          const gg = new THREE.Group(); gg.position.set(gd[0], 0, gd[1]);
+          const b = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 2.0), silMat); b.position.y = 2.2; gg.add(b);
+          const n = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.2, 0.55), silMat); n.position.set(0, 4.1, 0.8); n.rotation.x = 0.2; gg.add(n);
+          worldGroup.add(gg);
+        });
       });
 
-      // 2. Safari Base Camp (Welcome Arch, Outfitter Boutique, Ranger Academy, Photo Sticker Booth, Mango Cafe, Safari Jeep)
+      // 2. Safari Base Camp (Welcome Arch, Outfitter Boutique, Ranger Academy, Photo Sticker Booth, Mango Cafe, Safari Jeep, Glamping Tent, Craft Market, Campfire Circle)
       safeRun('base_camp', () => {
         const timber = LS.makeSurfaceMat(LS.createCedarPlankTexture(), { roughness: 0.78 });
         const thatch = LS.makeSurfaceMat(LS.createThatchTexture(), { roughness: 0.88, bumpScale: 0.09 });
@@ -270,6 +308,49 @@ window.LailaSalma = window.LailaSalma || {};
         buildSafariLodge(11.5, 14.5, -Math.PI * 0.32, { isTent: false, sign: '📚 RANGER ACADEMY', bg: '#234232' });
         W.zones.push({ id: 'safari_academy', label: 'Enter Savanna Ranger Academy Quiz 🦁', pos: new THREE.Vector3(8.6, 0, 16.0), radius: 3.4 });
 
+        // West Camp Grove: Enterable 3D Luxury Safari Glamping Tent (Laila & Salma's Savanna Lodge!)
+        const glamp = new THREE.Group();
+        glamp.position.set(-18.2, 0, 16.5);
+        glamp.rotation.y = Math.PI * 0.45;
+        const gDeck = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.24, 6.2), timber);
+        gDeck.position.set(0, 0.12, 0.45); gDeck.receiveShadow = true; gDeck.castShadow = true; glamp.add(gDeck);
+        const gWall = new THREE.Mesh(new THREE.BoxGeometry(4.8, 2.55, 4.4), canvas);
+        gWall.position.set(0, 1.48, -0.15); gWall.castShadow = true; gWall.receiveShadow = true; glamp.add(gWall);
+        // Pitched double-fly safari tent roof canopy
+        const gRoofMat = LS.makeToonMat(0xd9b382);
+        const gStripeMat = LS.makeToonMat(0x9c4221);
+        const gRoofL = new THREE.Mesh(new THREE.BoxGeometry(3.25, 0.14, 5.9), gRoofMat);
+        gRoofL.position.set(-1.35, 3.35, 0.3); gRoofL.rotation.z = 0.48; gRoofL.castShadow = true; glamp.add(gRoofL);
+        const gRoofR = new THREE.Mesh(new THREE.BoxGeometry(3.25, 0.14, 5.9), gRoofMat);
+        gRoofR.position.set(1.35, 3.35, 0.3); gRoofR.rotation.z = -0.48; gRoofR.castShadow = true; glamp.add(gRoofR);
+        const gRidge = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 6.0, 8), timber);
+        gRidge.rotation.x = Math.PI / 2; gRidge.position.set(0, 4.02, 0.3); glamp.add(gRidge);
+        // Rolled tent doorway + warm glowing interior entrance + veranda poles & lanterns
+        const gOpen = new THREE.Mesh(new THREE.BoxGeometry(1.55, 2.05, 0.12), LS.makeEmissiveMat(0xffdf99, 0xf59e0b, 0.55));
+        gOpen.position.set(0, 1.25, 2.07); glamp.add(gOpen);
+        [-0.95, 0.95].forEach(fx => {
+          const flap = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 2.1, 8), gStripeMat);
+          flap.position.set(fx, 1.28, 2.12); glamp.add(flap);
+        });
+        [-2.4, 2.4].forEach(px => {
+          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.10, 2.75, 8), timber);
+          pole.position.set(px, 1.5, 3.05); pole.castShadow = true; glamp.add(pole);
+          const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.12, 0.28, 8), new THREE.MeshBasicMaterial({ color: 0xffe29a }));
+          lan.position.set(px, 2.55, 3.05); glamp.add(lan);
+          if (LS.isHD && LS.createGlowSprite) {
+            const halo = LS.createGlowSprite(0xffcf70, 1.45);
+            halo.position.copy(lan.position); glamp.add(halo);
+          }
+        });
+        const gSign = new THREE.Mesh(
+          new THREE.BoxGeometry(4.0, 0.72, 0.14),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture("⛺ SISTERS' GLAMPING TENT", { bg: '#6c3416', border: '#facc15', color: '#fffbeb', font: 'bold 28px sans-serif', width: 512 }) })
+        );
+        gSign.position.set(0, 3.25, 2.98); glamp.add(gSign);
+        worldGroup.add(glamp);
+        addCollider(-18.2, 16.5, 2.8, 2.6);
+        W.zones.push({ id: 'enter_safari_tent', label: "Enter Laila & Salma's 3D Safari Glamping Tent ⛺", pos: new THREE.Vector3(-14.6, 0, 17.6), radius: 3.3 });
+
         // Southwest Base Camp: Wildlife Photo Sticker Booth
         const booth = new THREE.Group(); booth.position.set(-9.6, 0, 23.2); booth.rotation.y = Math.PI * 0.22;
         const bBody = new THREE.Mesh(new THREE.BoxGeometry(2.8, 2.4, 2.0), LS.makeToonMat(0xd97706));
@@ -316,6 +397,104 @@ window.LailaSalma = window.LailaSalma || {};
         cSign.position.set(0, 2.68, 0.85); cafe.add(cSign);
         worldGroup.add(cafe); addCollider(9.6, 23.2, 1.9, 1.0);
         W.zones.push({ id: 'safari_cafe', label: "Visit Mama Nia's Mango Smoothie Cafe 🥭", pos: new THREE.Vector3(7.6, 0, 24.4), radius: 3.2 });
+
+        // East Camp Plaza: Maasai-Inspired Craft & Beadwork Market Stalls!
+        const market = new THREE.Group();
+        market.position.set(16.2, 0, 26.8);
+        market.rotation.y = -Math.PI * 0.62;
+        const mCounter = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.02, 1.6), timber);
+        mCounter.position.y = 0.51; mCounter.castShadow = true; market.add(mCounter);
+        [[-2.0, -0.68], [2.0, -0.68], [-2.0, 0.68], [2.0, 0.68]].forEach(p => {
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 2.85, 6), timber);
+          post.position.set(p[0], 1.42, p[1]); market.add(post);
+        });
+        // Vibrant crimson, cobalt & ochre striped market awning
+        const awnCols = [0xc83e37, 0xf59e0b, 0x1d4ed8, 0xfef3c7, 0xc83e37, 0x2a9d8f];
+        for (let ai = 0; ai < 6; ai++) {
+          const strip = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.10, 2.35), LS.makeToonMat(awnCols[ai]));
+          strip.position.set(-1.9 + ai * 0.76, 2.90, 0.05); strip.rotation.x = 0.14; strip.castShadow = true; market.add(strip);
+        }
+        // Colorful hand-beaded necklaces, painted gourds & woven baskets on display!
+        [0xe63946, 0x3b82f6, 0xfacc15, 0x10b981].forEach((bc, idx) => {
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.045, 7, 14), LS.makeToonMat(bc));
+          ring.position.set(-1.45 + idx * 0.56, 1.24, 0.35); ring.rotation.x = 0.55; market.add(ring);
+        });
+        [0xd97706, 0xb45309, 0xe76f51].forEach((gc, idx) => {
+          const basket = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.16, 0.36, 10), LS.makeToonMat(gc));
+          basket.position.set(0.75 + idx * 0.52, 1.20, 0.05); market.add(basket);
+        });
+        const mSign = new THREE.Mesh(
+          new THREE.BoxGeometry(3.8, 0.66, 0.14),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🎨 MAASAI BEAD & CRAFT MARKET', { bg: '#7f1d1d', border: '#facc15', color: '#fffbeb', font: 'bold 26px sans-serif', width: 512 }) })
+        );
+        mSign.position.set(0, 2.66, 1.18); market.add(mSign);
+        worldGroup.add(market);
+        addCollider(16.2, 26.8, 2.2, 1.4);
+        W.zones.push({ id: 'safari_crafts', label: 'Browse Maasai Bead & Craft Market 🎨', pos: new THREE.Vector3(13.8, 0, 25.4), radius: 3.3 });
+
+        // Southern Base Camp: Glowing Djembe Campfire Drum Circle! (Zero extra WebGL lights!)
+        const fireGrp = new THREE.Group();
+        fireGrp.position.set(0, 0, 28.0);
+        const stoneMat = LS.makeToonMat(0x7c7065);
+        for (let si = 0; si < 12; si++) {
+          const ang = (si / 12) * Math.PI * 2;
+          const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.24, 0), stoneMat);
+          st.scale.set(1.15, 0.65, 1.0);
+          st.position.set(Math.cos(ang) * 0.96, 0.12, Math.sin(ang) * 0.96);
+          fireGrp.add(st);
+        }
+        // Crossed firewood logs + glowing ember bed
+        for (let li = 0; li < 4; li++) {
+          const log = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.15, 6), timber);
+          log.position.y = 0.16; log.rotation.z = Math.PI / 2 - 0.16; log.rotation.y = (li / 4) * Math.PI;
+          fireGrp.add(log);
+        }
+        const ember = new THREE.Mesh(new THREE.CircleGeometry(0.75, 14), LS.makeEmissiveMat(0xff6b2b, 0xff4500, 0.92));
+        ember.rotation.x = -Math.PI / 2; ember.position.y = 0.06; fireGrp.add(ember);
+        // Animated layered campfire flames + HD warm halo
+        [
+          [0, 0.56, 0, 0.34, 0.95, 0xff6b1a],
+          [0.14, 0.44, 0.10, 0.24, 0.72, 0xffa62b],
+          [-0.14, 0.42, -0.08, 0.22, 0.68, 0xffe066]
+        ].forEach((fl, fi) => {
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(fl[3], fl[4], 7), new THREE.MeshBasicMaterial({ color: fl[5], transparent: true, opacity: 0.92 }));
+          cone.position.set(fl[0], fl[1], fl[2]);
+          fireGrp.add(cone);
+          W.campfireFlames.push({ mesh: cone, baseY: fl[1], phase: fi * 1.9 });
+        });
+        if (LS.isHD && LS.createGlowSprite) {
+          const fHalo = LS.createGlowSprite(0xff9b3d, 3.6);
+          fHalo.position.set(0, 0.75, 0);
+          fireGrp.add(fHalo);
+        }
+        // Carved wooden savanna stools & Djembe drums arranged around the campfire
+        const drumWood = LS.makeToonMat(0x7c4a21), drumHead = LS.makeToonMat(0xf5e6c8), drumRope = LS.makeToonMat(0xb91c1c);
+        for (let di = 0; di < 4; di++) {
+          const ang = (di / 4) * Math.PI * 2 + Math.PI * 0.25;
+          const sx = Math.cos(ang) * 2.25, sz = Math.sin(ang) * 2.25;
+          const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.42, 8), timber);
+          stool.position.set(sx, 0.21, sz); stool.castShadow = true; fireGrp.add(stool);
+          // Djembe drum goblet right beside each stool!
+          const dx = Math.cos(ang + 0.32) * 1.95, dz = Math.sin(ang + 0.32) * 1.95;
+          const dBase = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 0.34, 8), drumWood);
+          dBase.position.set(dx, 0.17, dz); fireGrp.add(dBase);
+          const dBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.11, 0.28, 10), drumWood);
+          dBowl.position.set(dx, 0.46, dz); dBowl.castShadow = true; fireGrp.add(dBowl);
+          const dTop = new THREE.Mesh(new THREE.CylinderGeometry(0.225, 0.225, 0.04, 10), drumHead);
+          dTop.position.set(dx, 0.61, dz); fireGrp.add(dTop);
+          const dTrim = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.025, 5, 10), drumRope);
+          dTrim.rotation.x = Math.PI / 2; dTrim.position.set(dx, 0.56, dz); fireGrp.add(dTrim);
+        }
+        const fSign = new THREE.Mesh(
+          new THREE.BoxGeometry(2.5, 0.56, 0.12),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🥁 DJEMBE CAMPFIRE', { bg: '#5c2018', border: '#fbbf24', color: '#fffbeb', font: 'bold 28px sans-serif' }) })
+        );
+        fSign.position.set(0, 1.38, 2.55); fireGrp.add(fSign);
+        const fPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.25, 6), timber);
+        fPost.position.set(0, 0.62, 2.55); fireGrp.add(fPost);
+        worldGroup.add(fireGrp);
+        addCollider(0, 28.0, 1.05, 1.05);
+        W.zones.push({ id: 'safari_campfire', label: 'Play Djembe Drums & Roast Marshmallows 🥁🔥', pos: new THREE.Vector3(0, 0, 25.8), radius: 3.4 });
 
         // Parked Zebra-Striped Safari Jeep (Interactive Guided Savanna Tour!)
         let jeep;
@@ -423,6 +602,7 @@ window.LailaSalma = window.LailaSalma || {};
           worldGroup.add(wrap);
           addCollider(x, z, 0.95 * sc, 0.95 * sc);
           W.giraffes.push({ root: wrap, inner, baseRot: rotY, phase: x * 0.4 + z * 0.3 });
+          W.wildlifePhotoTargets.push({ species: 'giraffe', pos: wrap.position });
         }
 
         buildGiraffe(-29.2, 2.2, Math.PI * 0.5, 1.08);
@@ -432,7 +612,7 @@ window.LailaSalma = window.LailaSalma || {};
         addAcacia(-31.0, -7.2, 1.05);
       });
 
-      // 4. Elephant Oasis & Flamingo Watering Hole (Northwest: X=-44..-16, Z=-42..-16)
+      // 4. Elephant Oasis, Flamingo Watering Hole, Lily-Pad Hippo Lagoon & Savanna Stream
       safeRun('elephant_oasis', () => {
         // Sandy shoreline verge + sunlit turquoise savanna watering hole right above ground!
         const shoreSand = new THREE.Mesh(new THREE.CircleGeometry(12.8, 32), LS.makeToonMat(0xc49c64));
@@ -452,6 +632,7 @@ window.LailaSalma = window.LailaSalma || {};
         for (let i = 0; i < 22; i++) {
           const ang = (i / 22) * Math.PI * 2;
           if (Math.abs(ang) < 0.34) continue; // Keep east boardwalk clear
+          if (ang > 0.72 && ang < 1.55) continue; // Keep south Hippo Lagoon channel open
           const rx = -29.5 + Math.cos(ang) * (11.5 + (i % 3) * 0.45);
           const rz = -28.5 + Math.sin(ang) * (11.5 + ((i + 1) % 3) * 0.45);
           const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75 + (i % 3) * 0.25, 0), rockMats[i % rockMats.length]);
@@ -486,6 +667,15 @@ window.LailaSalma = window.LailaSalma || {};
           W.splashRings.push(ring);
         }
 
+        // Animated Sparkling Baby Elephant Water-Spray Fountain Arc!
+        const dropMat = new THREE.MeshBasicMaterial({ color: 0xbef2ff, transparent: true, opacity: 0.85 });
+        for (let d = 0; d < 14; d++) {
+          const drop = new THREE.Mesh(new THREE.SphereGeometry(0.08 + (d % 3) * 0.025, 6, 5), dropMat);
+          drop.position.set(-23.2, 1.2, -27.5);
+          worldGroup.add(drop);
+          W.sprayDrops.push({ mesh: drop, phase: d / 14, spread: ((d % 5) - 2) * 0.14 });
+        }
+
         // 3 Gentle Elephants (2 adults + 1 splashing calf!)
         function buildElephant(x, y, z, rotY, sc) {
           const wrap = new THREE.Group(); wrap.position.set(x, y, z); wrap.rotation.y = rotY;
@@ -511,6 +701,7 @@ window.LailaSalma = window.LailaSalma || {};
           }
           inner.scale.setScalar(sc); wrap.add(inner); worldGroup.add(wrap);
           W.elephants.push({ root: wrap, baseY: y, baseRot: rotY, phase: x * 0.5 + z * 0.2 });
+          W.wildlifePhotoTargets.push({ species: 'elephant', pos: wrap.position });
         }
 
         buildElephant(-26.8, -0.08, -32.2, Math.PI * 0.35, 1.08);
@@ -534,10 +725,165 @@ window.LailaSalma = window.LailaSalma || {};
           }
           worldGroup.add(fg);
           W.flamingos.push({ root: fg, phase: idx * 0.9 });
+          if (idx < 2) W.wildlifePhotoTargets.push({ species: 'flamingo', pos: fg.position });
         });
+
+        // Lily-Pad Hippo Lagoon Extension (South-Southeast lobe of the Oasis: X=-25.0, Z=-15.5)
+        const hShore = new THREE.Mesh(new THREE.CircleGeometry(7.0, 26), LS.makeToonMat(0xc49c64));
+        hShore.rotation.x = -Math.PI / 2; hShore.position.set(-25.0, 0.026, -15.5); hShore.receiveShadow = true; worldGroup.add(hShore);
+        const hBed = new THREE.Mesh(new THREE.CircleGeometry(6.1, 26), LS.makeToonMat(0x1f6270));
+        hBed.rotation.x = -Math.PI / 2; hBed.position.set(-25.0, 0.040, -15.5); worldGroup.add(hBed);
+        const hWater = new THREE.Mesh(new THREE.CircleGeometry(5.9, 26), pondMat);
+        hWater.rotation.x = -Math.PI / 2; hWater.position.set(-25.0, 0.073, -15.5); worldGroup.add(hWater);
+        addCollider(-25.0, -15.5, 5.2, 5.2);
+
+        // Floating green lily pads & rosy savanna water lilies
+        const lilyMat = LS.makeToonMat(0x4d9e48), flowerMat = LS.makeToonMat(0xff9eb5);
+        [[-28.2, -13.5], [-21.8, -17.2], [-27.4, -18.0], [-21.0, -13.2], [-24.5, -11.5], [-29.0, -16.2]].forEach((lp, li) => {
+          const pad = new THREE.Mesh(new THREE.CircleGeometry(0.46 + (li % 2) * 0.12, 10, 0, Math.PI * 1.82), lilyMat);
+          pad.rotation.x = -Math.PI / 2; pad.rotation.z = li * 1.1; pad.position.set(lp[0], 0.092, lp[1]); worldGroup.add(pad);
+          if (li % 2 === 0) {
+            const fl = new THREE.Mesh(new THREE.SphereGeometry(0.14, 7, 5), flowerMat);
+            fl.scale.set(1.0, 0.55, 1.0); fl.position.set(lp[0] + 0.08, 0.14, lp[1]); worldGroup.add(fl);
+          }
+        });
+        // Hippo Lagoon wooden sign
+        const hSign = new THREE.Mesh(
+          new THREE.BoxGeometry(2.1, 0.58, 0.12),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🦛 HIPPO LAGOON', { bg: '#1e3a5f', border: '#67e8f9', color: '#ecfeff', font: 'bold 30px sans-serif' }) })
+        );
+        hSign.position.set(-19.2, 1.32, -14.2); hSign.rotation.y = Math.PI * 0.35; worldGroup.add(hSign);
+        const hPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.15, 6), railMat);
+        hPost.position.set(-19.2, 0.58, -14.2); worldGroup.add(hPost);
+
+        // 2 Bobbing Savanna River Hippos (HD GLB + Classic procedural fallback!)
+        function buildHippo(x, z, rotY, sc) {
+          const wrap = new THREE.Group(); wrap.position.set(x, -0.32, z); wrap.rotation.y = rotY;
+          if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_hippo')) {
+            const m = LS.hdAssets.clone('anime_hippo');
+            m.scale.setScalar(sc);
+            wrap.add(m);
+          } else {
+            const hMat = LS.makeToonMat(0x7c707e), pinkM = LS.makeToonMat(0xc49ba8), darkM = LS.makeToonMat(0x1f1a1f);
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.88, 12, 10), hMat);
+            body.scale.set(0.95, 0.78, 1.45); body.position.y = 0.78; body.castShadow = true; wrap.add(body);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.50, 10, 8), hMat);
+            head.scale.set(0.95, 0.85, 1.15); head.position.set(0, 0.96, 1.15); wrap.add(head);
+            const snout = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.44, 0.62), pinkM);
+            snout.position.set(0, 0.86, 1.62); wrap.add(snout);
+            [-0.28, 0.28].forEach(ex => {
+              const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 7, 5), pinkM); ear.position.set(ex, 1.38, 1.05); wrap.add(ear);
+              const eye = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 5), darkM); eye.position.set(ex * 0.85, 1.15, 1.48); wrap.add(eye);
+            });
+            wrap.scale.setScalar(sc);
+          }
+          worldGroup.add(wrap);
+          const ring = new THREE.Mesh(new THREE.RingGeometry(0.65, 0.88, 20), new THREE.MeshBasicMaterial({ color: 0xe6f9ff, transparent: true, opacity: 0.48, side: THREE.DoubleSide }));
+          ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.095, z); worldGroup.add(ring);
+          W.hippos.push({ root: wrap, ring, baseY: -0.32, baseRot: rotY, phase: x * 0.45 + z * 0.3 });
+          W.wildlifePhotoTargets.push({ species: 'hippo', pos: wrap.position });
+          // Playful rising water bubbles right near hippo nostrils!
+          for (let b = 0; b < 3; b++) {
+            const bub = new THREE.Mesh(new THREE.SphereGeometry(0.08 + b * 0.025, 6, 5), new THREE.MeshBasicMaterial({ color: 0xe0faff, transparent: true, opacity: 0.75 }));
+            bub.position.set(x + Math.sin(rotY) * 1.2, 0.12, z + Math.cos(rotY) * 1.2);
+            worldGroup.add(bub);
+            W.hippoBubbles.push({ mesh: bub, anchorX: x + Math.sin(rotY) * 1.2, anchorZ: z + Math.cos(rotY) * 1.2, phase: b * 0.33 + sc });
+          }
+        }
+        buildHippo(-26.0, -15.8, Math.PI * 0.38, 1.04);
+        buildHippo(-22.8, -14.2, Math.PI * 0.75, 0.74);
+
+        // Shimmering Savanna Stream flowing east from Elephant Oasis south of Pride Rock (seamless curved ribbon!)
+        const streamPts = [[-18.8, -31.2], [-10.0, -30.5], [3.2, -29.8], [14.0, -28.8], [20.5, -26.2]];
+        const streamSp = SC.sampleSpline(streamPts, 10);
+        const buildRibbon = (pts, halfW, yPos, mat) => {
+          const verts = [], uvs = [], indices = [];
+          let dist = 0;
+          for (let i = 0; i < pts.length; i++) {
+            const p = pts[i];
+            const prev = pts[Math.max(0, i - 1)];
+            const next = pts[Math.min(pts.length - 1, i + 1)];
+            if (i > 0) dist += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+            let tx = next[0] - prev[0], tz = next[1] - prev[1];
+            const tl = Math.hypot(tx, tz) || 1;
+            tx /= tl; tz /= tl;
+            const nx = -tz, nz = tx;
+            verts.push(p[0] - nx * halfW, yPos, p[1] - nz * halfW);
+            verts.push(p[0] + nx * halfW, yPos, p[1] + nz * halfW);
+            uvs.push(0, dist * 0.25, 1, dist * 0.25);
+            if (i > 0) {
+              const b = (i - 1) * 2;
+              indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
+            }
+          }
+          const geo = new THREE.BufferGeometry();
+          geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+          geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+          geo.setIndex(indices);
+          geo.computeVertexNormals();
+          const m = new THREE.Mesh(geo, mat);
+          m.receiveShadow = true;
+          worldGroup.add(m);
+        };
+        buildRibbon(streamSp, 2.35, 0.025, LS.makeToonMat(0xc49c64));
+        buildRibbon(streamSp, 1.65, 0.042, LS.makeToonMat(0x1f6270));
+        buildRibbon(streamSp, 1.58, 0.068, LS.makeWaterMat(0.86, THREE.DoubleSide));
+        // Decorative river stones & reed tufts along the stream banks (keeping bridge at X=1.6..4.8 clear)
+        for (let ri = 0; ri < streamSp.length; ri += 3) {
+          const sp = streamSp[ri];
+          if (sp[0] > 0.6 && sp[0] < 5.8) continue;
+          const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.38 + (ri % 2) * 0.16, 0), rockMats[ri % rockMats.length]);
+          rk.scale.set(1.3, 0.55, 1.0);
+          rk.position.set(sp[0], 0.10, sp[1] + (ri % 2 === 0 ? 1.95 : -1.95));
+          worldGroup.add(rk);
+          if (ri % 6 === 0) SC.addTallGrass(worldGroup, sp[0] + 0.4, sp[1] + (ri % 2 === 0 ? -2.2 : 2.2), 1.2);
+        }
+
+        // Walkable Arched Wooden Rope Suspension Bridge over the Savanna Stream (X=1.6..4.8, Z=-26.8..-32.8)
+        const bridgeGrp = new THREE.Group();
+        const ropeMat = LS.makeToonMat(0xc8a46e);
+        const numPlanks = 18;
+        for (let pi = 0; pi < numPlanks; pi++) {
+          const t = (pi + 0.5) / numPlanks;
+          const bz = -32.8 + t * 6.0;
+          const by = Math.sin(t * Math.PI) * 0.86;
+          const nextBy = Math.sin(Math.min(1, t + 0.03) * Math.PI) * 0.86;
+          const slope = Math.atan2(nextBy - by, 0.18);
+          const plank = new THREE.Mesh(new THREE.BoxGeometry(3.15, 0.10, 0.28), plankMat);
+          plank.position.set(3.2, by - 0.03, bz);
+          plank.rotation.x = -slope;
+          plank.castShadow = true; plank.receiveShadow = true;
+          bridgeGrp.add(plank);
+        }
+        // Sturdy timber bridge towers & suspension cables on both sides
+        [1.62, 4.78].forEach(bx => {
+          [-32.7, -26.9].forEach(bz => {
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 1.95, 8), railMat);
+            post.position.set(bx, 0.96, bz); post.castShadow = true; bridgeGrp.add(post);
+          });
+          // Curved rope handrail segments & vertical rope ties
+          for (let ri = 0; ri < 12; ri++) {
+            const t0 = ri / 12, t1 = (ri + 1) / 12;
+            const z0 = -32.7 + t0 * 5.8, z1 = -32.7 + t1 * 5.8;
+            const y0 = Math.sin(t0 * Math.PI) * 0.86 + 0.92 + Math.pow(t0 - 0.5, 2) * 0.65;
+            const y1 = Math.sin(t1 * Math.PI) * 0.86 + 0.92 + Math.pow(t1 - 0.5, 2) * 0.65;
+            const segLen = Math.hypot(z1 - z0, y1 - y0);
+            const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, segLen, 5), ropeMat);
+            seg.position.set(bx, (y0 + y1) * 0.5, (z0 + z1) * 0.5);
+            seg.rotation.x = Math.PI / 2 - Math.atan2(y1 - y0, z1 - z0);
+            bridgeGrp.add(seg);
+            if (ri > 0 && ri % 2 === 0) {
+              const deckY = Math.sin(t0 * Math.PI) * 0.86;
+              const vRope = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, Math.max(0.2, y0 - deckY), 4), ropeMat);
+              vRope.position.set(bx, (y0 + deckY) * 0.5, z0);
+              bridgeGrp.add(vRope);
+            }
+          }
+        });
+        worldGroup.add(bridgeGrp);
       });
 
-      // 5. Pride Rock Kopje & Resting King Lion / Lioness (North: X=-6..14, Z=-48..-32)
+      // 5. Pride Rock Kopje, Resting King Lion / Lioness & Roar Pedestal (North: X=-6..14, Z=-48..-32)
       safeRun('pride_rock', () => {
         const sandTex = LS.createSandstoneTexture();
         const rockA = LS.makeSurfaceMat(sandTex, { color: 0xe6cca8, roughness: 0.88, bumpScale: 0.09 });
@@ -586,6 +932,27 @@ window.LailaSalma = window.LailaSalma || {};
           const kTuft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), maneM); kTuft.position.set(0.26, 0.22, -1.42); king.add(kTuft);
         }
         worldGroup.add(king);
+        W.kingLionMesh = king;
+        W.wildlifePhotoTargets.push({ species: 'lion', pos: king.position });
+
+        // Golden Pride Rock Roar Aura Ring (expands dramatically when Laila & Salma trigger the Roar!)
+        const roarRing = new THREE.Mesh(
+          new THREE.RingGeometry(0.75, 1.15, 24),
+          new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.0, side: THREE.DoubleSide })
+        );
+        roarRing.position.set(3.4, 5.45, -34.2);
+        worldGroup.add(roarRing);
+        W.roarRing = roarRing;
+
+        // Interactive Pride Rock Roar Viewing Boulder right across the Suspension Bridge!
+        const roarPed = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.72, 0.65, 8), rockC);
+        roarPed.position.set(3.2, 0.32, -33.6); roarPed.castShadow = true; worldGroup.add(roarPed);
+        const rSign = new THREE.Mesh(
+          new THREE.BoxGeometry(2.3, 0.56, 0.12),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🦁 PRIDE ROCK ROAR', { bg: '#78350f', border: '#facc15', color: '#fef9c3', font: 'bold 28px sans-serif' }) })
+        );
+        rSign.position.set(3.2, 1.15, -33.6); worldGroup.add(rSign);
+        W.zones.push({ id: 'safari_pride_roar', label: 'Hear King Lion Roar on Pride Rock! 🦁 (+10c)', pos: new THREE.Vector3(3.2, 0, -33.1), radius: 2.8 });
 
         const queen = new THREE.Group(); queen.position.set(1.5, 4.18, -36.8); queen.rotation.y = 0.28;
         if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_lioness')) {
@@ -617,18 +984,19 @@ window.LailaSalma = window.LailaSalma || {};
           sunLioness.add(sMdl);
           worldGroup.add(sunLioness);
           addCollider(8.6, -33.6, 1.1, 1.1);
+          W.wildlifePhotoTargets.push({ species: 'lion', pos: sunLioness.position });
         }
 
         addBaobab(-9.5, -42.0, 1.15);
         addBaobab(16.5, -38.5, 1.05);
       });
 
-      // 6. Zebra Open Savanna Meadow (East: X=20..48, Z=-24..8)
+      // 6. Zebra Open Savanna Meadow & Meerkat Lookout Burrow (East: X=20..48, Z=-24..8)
       safeRun('zebra_meadow', () => {
         const coatMat = LS.makeToonMat(0xffffff, { map: LS.createZebraHideTexture() });
         const wMat = LS.makeToonMat(0xf8f6f0), bMat = LS.makeToonMat(0x232022);
         const zebraCoords = [
-          [31.0, -14.0, 0.6, 1.06], [35.5, -9.5, -0.8, 1.02], [39.0, -16.5, 1.9, 0.98], [33.5, -2.5, -1.4, 1.04], [41.5, -5.0, 2.5, 0.78]
+          [31.0, -14.0, 0.6, 1.06, 2.2], [35.5, -9.5, -0.8, 1.02, 0], [39.0, -16.5, 1.9, 0.98, 2.4], [33.5, -2.5, -1.4, 1.04, 0], [41.5, -5.0, 2.5, 0.78, 0]
         ];
         zebraCoords.forEach((zc, idx) => {
           const zg = new THREE.Group(); zg.position.set(zc[0], 0, zc[1]); zg.rotation.y = zc[2];
@@ -664,8 +1032,9 @@ window.LailaSalma = window.LailaSalma || {};
             zg.add(inner);
           }
           worldGroup.add(zg);
-          addCollider(zc[0], zc[1], 0.85 * zc[3], 0.85 * zc[3]);
-          W.zebras.push({ root: zg, inner, neck: neckPivot, baseRot: zc[2], phase: idx * 1.3 });
+          if (!zc[4]) addCollider(zc[0], zc[1], 0.85 * zc[3], 0.85 * zc[3]);
+          W.zebras.push({ root: zg, inner, neck: neckPivot, baseX: zc[0], baseZ: zc[1], baseRot: zc[2], trotRadius: zc[4], phase: idx * 1.3 });
+          W.wildlifePhotoTargets.push({ species: 'zebra', pos: zg.position });
         });
 
         // Sculpted organic red-ochre multi-chimney Savanna Termite Mounds (textured terracotta clay!)
@@ -673,7 +1042,6 @@ window.LailaSalma = window.LailaSalma || {};
         [[28.5, -22.5, 1.2], [44.0, -12.0, 1.45], [37.5, 4.5, 1.05]].forEach((tm, idx) => {
           const mg = new THREE.Group(); mg.position.set(tm[0], 0, tm[1]); mg.rotation.y = idx * 1.1;
           const s = tm[2];
-          // Broad lumpy earthen base + stacked irregular ventilation chimneys
           const base = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95 * s, 1), moundM);
           base.scale.set(1.15, 0.72, 1.05); base.position.y = 0.45 * s; base.castShadow = true; base.receiveShadow = true; mg.add(base);
           const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * s, 0.54 * s, 2.05 * s, 9), moundM);
@@ -687,6 +1055,38 @@ window.LailaSalma = window.LailaSalma || {};
             cTop.position.set(ch[0] * s, (ch[1] + ch[4] * 0.5) * s, ch[2] * s); mg.add(cTop);
           });
           worldGroup.add(mg); addCollider(tm[0], tm[1], 1.0 * s, 1.0 * s);
+        });
+
+        // 4 Playful Sentinel Meerkats popping up from burrows near the red Termite Mound!
+        const holeMat = LS.makeToonMat(0x4a311e), rimMat = LS.makeToonMat(0xb87b48);
+        [[27.2, -19.2, 0.4], [28.6, -18.4, -0.5], [29.8, -19.6, -1.1], [26.8, -20.5, 0.8]].forEach((mk, mi) => {
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.11, 6, 10), rimMat);
+          rim.rotation.x = Math.PI / 2; rim.position.set(mk[0], 0.05, mk[1]); worldGroup.add(rim);
+          const hole = new THREE.Mesh(new THREE.CircleGeometry(0.27, 10), holeMat);
+          hole.rotation.x = -Math.PI / 2; hole.position.set(mk[0], 0.04, mk[1]); worldGroup.add(hole);
+          const mg = new THREE.Group();
+          mg.position.set(mk[0], 0, mk[1]);
+          mg.rotation.y = mk[2];
+          if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_meerkat')) {
+            const mdl = LS.hdAssets.clone('anime_meerkat');
+            mdl.scale.setScalar(1.05 + (mi % 2) * 0.12);
+            mg.add(mdl);
+          } else {
+            const furM = LS.makeToonMat(0xd6a874), bellyM = LS.makeToonMat(0xf5e2c4), darkM = LS.makeToonMat(0x281e18);
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.18, 0.56, 8), furM);
+            body.position.y = 0.30; body.castShadow = true; mg.add(body);
+            const belly = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 6), bellyM);
+            belly.scale.set(0.85, 1.5, 0.65); belly.position.set(0, 0.30, 0.08); mg.add(belly);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), furM);
+            head.position.set(0, 0.66, 0.03); mg.add(head);
+            [-0.065, 0.065].forEach(ex => {
+              const patch = new THREE.Mesh(new THREE.SphereGeometry(0.048, 6, 5), darkM); patch.position.set(ex, 0.68, 0.14); mg.add(patch);
+              const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 5, 5), darkM); ear.position.set(ex * 1.9, 0.75, 0.01); mg.add(ear);
+            });
+          }
+          worldGroup.add(mg);
+          W.meerkats.push({ root: mg, x: mk[0], z: mk[1], baseRot: mk[2], phase: mi * 1.6 });
+          if (mi === 0) W.wildlifePhotoTargets.push({ species: 'meerkat', pos: mg.position });
         });
       });
 
@@ -758,14 +1158,244 @@ window.LailaSalma = window.LailaSalma || {};
         W.zones.push({ id: 'safari_airstrip', label: 'Board Safari Charter Flight to Tokyo / Kyoto ✈️', pos: new THREE.Vector3(28.0, 0, 27.5), radius: 3.8 });
       });
 
+      // 8B. Grand Savanna Landmarks: Hot Air Balloon Launch Pad, Timber Ranger Watchtower & Cheetah Sprint Track!
+      safeRun('grand_safari_landmarks', () => {
+        const timber = LS.makeSurfaceMat(LS.createCedarPlankTexture(), { roughness: 0.78 });
+        const thatch = LS.makeSurfaceMat(LS.createThatchTexture(), { roughness: 0.88, bumpScale: 0.09 });
+        const railMat = LS.makeToonMat(0x6e472c);
+
+        // 1) Hot Air Balloon Sunrise Launch Pad (Central-East Clearing: X=12.5, Z=-3.5)
+        const padMat = LS.makeToonMat(0xc49c64);
+        const launchPad = new THREE.Mesh(new THREE.CircleGeometry(3.8, 22), padMat);
+        launchPad.rotation.x = -Math.PI / 2; launchPad.position.set(12.5, 0.028, -3.5); launchPad.receiveShadow = true; worldGroup.add(launchPad);
+        const padRing = new THREE.Mesh(new THREE.RingGeometry(3.35, 3.65, 24), new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide }));
+        padRing.rotation.x = -Math.PI / 2; padRing.position.set(12.5, 0.036, -3.5); worldGroup.add(padRing);
+
+        const balloon = new THREE.Group();
+        balloon.position.set(12.5, 0, -3.5);
+        const wickerM = LS.makeToonMat(0xa6713f), wickerTrim = LS.makeToonMat(0x6e472c);
+        const basket = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.15, 1.75), wickerM);
+        basket.position.y = 0.62; basket.castShadow = true; balloon.add(basket);
+        const bRim = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.14, 1.88), wickerTrim);
+        bRim.position.y = 1.22; balloon.add(bRim);
+        // 4 sturdy steel support ropes & overhead brass burner frame
+        [[-0.78, -0.78], [0.78, -0.78], [-0.78, 0.78], [0.78, 0.78]].forEach(p => {
+          const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 2.55, 6), LS.makeToonMat(0x52525b));
+          rod.position.set(p[0], 2.45, p[1]); balloon.add(rod);
+        });
+        const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.24, 8), LS.makeToonMat(0xb45309));
+        burner.position.y = 2.85; balloon.add(burner);
+        const bFlame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.68, 7), new THREE.MeshBasicMaterial({ color: 0xffb703 }));
+        bFlame.position.y = 3.25; balloon.add(bFlame);
+        W.balloonFlame = bFlame;
+        // Striped colorful hot-air balloon envelope (8 vibrant vertical gores!)
+        const envGroup = new THREE.Group();
+        envGroup.position.y = 6.95;
+        const stripeCols = [0xe63946, 0xf59e0b, 0x2a9d8f, 0xfacc15, 0x3b82f6, 0xf97316, 0xec4899, 0xfef3c7];
+        for (let gi = 0; gi < 8; gi++) {
+          const a0 = (gi / 8) * Math.PI * 2;
+          const gore = new THREE.Mesh(
+            new THREE.SphereGeometry(3.05, 12, 12, a0, Math.PI / 4 + 0.02, 0, Math.PI * 0.84),
+            LS.makeToonMat(stripeCols[gi])
+          );
+          gore.scale.set(1.0, 1.22, 1.0);
+          gore.castShadow = true;
+          envGroup.add(gore);
+        }
+        const skirt = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 0.92, 1.15, 14), LS.makeToonMat(0xfef3c7));
+        skirt.position.y = -3.15; envGroup.add(skirt);
+        balloon.add(envGroup);
+        worldGroup.add(balloon);
+        W.hotAirBalloon = balloon;
+        W.balloonHome = { pos: new THREE.Vector3(12.5, 0, -3.5), exit: new THREE.Vector3(9.4, 0, -3.2) };
+
+        const balSign = new THREE.Mesh(
+          new THREE.BoxGeometry(2.6, 0.62, 0.12),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🎈 SUNRISE BALLOON RIDE', { bg: '#991b1b', border: '#fde047', color: '#fffbeb', font: 'bold 26px sans-serif', width: 512 }) })
+        );
+        balSign.position.set(9.2, 1.42, -1.6); balSign.rotation.y = -0.35; worldGroup.add(balSign);
+        const balPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.25, 6), railMat);
+        balPost.position.set(9.2, 0.62, -1.6); worldGroup.add(balPost);
+        W.zones.push({ id: 'safari_balloon', label: 'Soar in the Hot Air Balloon! 🎈 (+30c)', pos: new THREE.Vector3(12.5, 0, -3.5), radius: 3.6 });
+
+        // 2) Tall Timber Ranger Watchtower Lookout Deck (Central-West Clearing: X=-7.5, Z=-9.0)
+        const tower = new THREE.Group();
+        tower.position.set(-7.5, 0, -9.0);
+        [[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]].forEach(p => {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 6.6, 8), timber);
+          leg.position.set(p[0], 3.3, p[1]); leg.castShadow = true; tower.add(leg);
+        });
+        // Cross braces & mid-tier wooden deck + top lookout deck at Y=4.8
+        [2.2, 4.75].forEach(ty => {
+          const deck = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.18, 3.2), timber);
+          deck.position.y = ty; deck.castShadow = true; deck.receiveShadow = true; tower.add(deck);
+        });
+        // Safety railings on top deck
+        [[-1.5, 0, 0.10, 3.1], [1.5, 0, 0.10, 3.1], [0, -1.5, 3.1, 0.10], [0, 1.5, 3.1, 0.10]].forEach(rb => {
+          const bar = new THREE.Mesh(new THREE.BoxGeometry(rb[2], 0.10, rb[3]), railMat);
+          bar.position.set(rb[0], 5.65, rb[1]); tower.add(bar);
+        });
+        // Thatched pagoda watchtower canopy roof
+        const tRoof = new THREE.Mesh(new THREE.ConeGeometry(2.85, 1.65, 4), thatch);
+        tRoof.rotation.y = Math.PI / 4; tRoof.position.y = 7.35; tRoof.castShadow = true; tower.add(tRoof);
+        // Angled timber ladder climbing up the south face
+        [-0.36, 0.36].forEach(lx => {
+          const side = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 5.2, 6), railMat);
+          side.position.set(lx, 2.4, 1.85); side.rotation.x = -0.18; tower.add(side);
+        });
+        for (let r = 0; r < 10; r++) {
+          const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.74, 6), railMat);
+          rung.rotation.z = Math.PI / 2; rung.position.set(0, 0.45 + r * 0.46, 2.24 - r * 0.082); tower.add(rung);
+        }
+        // Brass tripod binoculars mounted on the north railing!
+        const bMat = LS.makeToonMat(0xd4a33a);
+        const tri = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.05, 6), railMat);
+        tri.position.set(0, 5.35, -1.25); tower.add(tri);
+        [-0.09, 0.09].forEach(bx => {
+          const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.085, 0.46, 8), bMat);
+          tube.rotation.x = Math.PI / 2; tube.position.set(bx, 5.92, -1.32); tower.add(tube);
+        });
+        const tSign = new THREE.Mesh(
+          new THREE.BoxGeometry(2.6, 0.60, 0.12),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🔭 SAVANNA WATCHTOWER', { bg: '#1e3a2f', border: '#fbbf24', color: '#fef9c3', font: 'bold 26px sans-serif', width: 512 }) })
+        );
+        tSign.position.set(0, 2.75, 1.72); tower.add(tSign);
+        worldGroup.add(tower);
+        addCollider(-7.5, -9.0, 1.85, 1.85);
+        W.zones.push({ id: 'safari_watchtower', label: 'Climb Ranger Watchtower & Spot Lion Cubs 🔭', pos: new THREE.Vector3(-7.5, 0, -6.4), radius: 3.1 });
+
+        // 3) Cheetah Sprint Challenge Track (Northeast Savanna Straightaway: X=27..-35.5 -> X=49..-31.0)
+        const trackStart = new THREE.Vector3(27.0, 0, -35.5);
+        const trackEnd = new THREE.Vector3(49.0, 0, -31.0);
+        const trackDir = new THREE.Vector3().subVectors(trackEnd, trackStart);
+        const trackLen = trackDir.length();
+        const trackYaw = Math.atan2(trackDir.x, trackDir.z);
+
+        // Compact sandy savanna sprint lane
+        const lane = new THREE.Mesh(new THREE.PlaneGeometry(4.2, trackLen + 2.5), LS.makeToonMat(0xb8844c));
+        lane.rotation.x = -Math.PI / 2;
+        lane.rotation.z = -trackYaw;
+        lane.position.set((trackStart.x + trackEnd.x) * 0.5, 0.025, (trackStart.z + trackEnd.z) * 0.5);
+        lane.receiveShadow = true;
+        worldGroup.add(lane);
+
+        // 4 Striped Savanna Sprint Gates + Checkered Finish Arch!
+        const gatePositions = [];
+        for (let gi = 0; gi < 4; gi++) {
+          const frac = (gi + 1) / 4;
+          const gp = new THREE.Vector3().lerpVectors(trackStart, trackEnd, frac);
+          gatePositions.push(gp);
+          const gGrp = new THREE.Group();
+          gGrp.position.copy(gp);
+          gGrp.rotation.y = trackYaw;
+          const isFinish = gi === 3;
+          const postCol = isFinish ? LS.makeToonMat(0xdc2626) : LS.makeToonMat(0xf59e0b);
+          [-2.1, 2.1].forEach(gx => {
+            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, isFinish ? 3.8 : 2.9, 8), postCol);
+            p.position.set(gx, isFinish ? 1.9 : 1.45, 0); p.castShadow = true; gGrp.add(p);
+          });
+          if (isFinish) {
+            const fBanner = new THREE.Mesh(
+              new THREE.BoxGeometry(4.4, 0.85, 0.14),
+              new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🏁 CHEETAH FINISH LINE!', { bg: '#111827', border: '#facc15', color: '#ffffff', font: 'bold 30px sans-serif', width: 512 }) })
+            );
+            fBanner.position.set(0, 3.65, 0); gGrp.add(fBanner);
+          } else {
+            const bar = new THREE.Mesh(new THREE.BoxGeometry(4.3, 0.22, 0.10), LS.makeToonMat(0xfacc15));
+            bar.position.set(0, 2.85, 0); gGrp.add(bar);
+          }
+          worldGroup.add(gGrp);
+        }
+
+        // Start Sign + Friendly Spotted Cheetah (`anime_cheetah` HD GLB or Classic fallback!)
+        const cSign = new THREE.Mesh(
+          new THREE.BoxGeometry(2.8, 0.64, 0.12),
+          new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🐆 CHEETAH SPRINT RACE', { bg: '#92400e', border: '#fde047', color: '#fffbeb', font: 'bold 26px sans-serif', width: 512 }) })
+        );
+        cSign.position.set(25.2, 1.45, -37.2); cSign.rotation.y = trackYaw - 0.3; worldGroup.add(cSign);
+        const cPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.25, 6), railMat);
+        cPost.position.set(25.2, 0.62, -37.2); worldGroup.add(cPost);
+
+        const cheetah = new THREE.Group();
+        cheetah.position.set(trackStart.x, 0, trackStart.z + 1.1);
+        cheetah.rotation.y = trackYaw;
+        if (LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_cheetah')) {
+          const cm = LS.hdAssets.clone('anime_cheetah');
+          cm.scale.setScalar(1.06);
+          cheetah.add(cm);
+        } else {
+          const furM = LS.makeToonMat(0xebb44c), spotM = LS.makeToonMat(0x281e18), creamM = LS.makeToonMat(0xfaf0d7);
+          const body = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 8), furM);
+          body.scale.set(0.75, 0.80, 1.95); body.position.y = 0.88; body.castShadow = true; cheetah.add(body);
+          [[-0.18, 0.56], [0.18, 0.56], [-0.18, -0.58], [0.18, -0.58]].forEach(l => {
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.85, 6), furM);
+            leg.position.set(l[0], 0.42, l[1]); cheetah.add(leg);
+          });
+          const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), furM);
+          head.position.set(0, 1.24, 0.82); cheetah.add(head);
+          const muz = new THREE.Mesh(new THREE.SphereGeometry(0.12, 7, 6), creamM);
+          muz.position.set(0, 1.18, 1.02); cheetah.add(muz);
+          [-0.10, 0.10].forEach(ex => {
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.042, 6, 5), spotM); eye.position.set(ex, 1.28, 0.99); cheetah.add(eye);
+            const ear = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 5), furM); ear.position.set(ex * 1.6, 1.42, 0.78); cheetah.add(ear);
+          });
+          const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.042, 0.95, 6), furM);
+          tail.rotation.x = 1.05; tail.position.set(0, 0.76, -1.05); cheetah.add(tail);
+        }
+        worldGroup.add(cheetah);
+        W.cheetahObj = cheetah;
+        W.cheetahTrack = { start: trackStart, end: trackEnd, yaw: trackYaw, gates: gatePositions };
+        W.zones.push({ id: 'safari_cheetah_race', label: 'Race the Spotted Cheetah! 🐆🏁 (+35c)', pos: new THREE.Vector3(26.6, 0, -35.5), radius: 3.4 });
+
+        // 4) Living Savanna Sky & Meadow Ecosystem: Soaring Birds, Butterflies & Evening Fireflies!
+        const birdMat = LS.makeToonMat(0x4a3b32);
+        for (let bi = 0; bi < 10; bi++) {
+          const bg = new THREE.Group();
+          const wL = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.04, 0.22), birdMat);
+          wL.position.x = -0.32; bg.add(wL);
+          const wR = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.04, 0.22), birdMat);
+          wR.position.x = 0.32; bg.add(wR);
+          worldGroup.add(bg);
+          W.savannaBirds.push({
+            root: bg, wL, wR,
+            cx: (bi % 3 - 1) * 18, cz: -14 + (bi % 2) * 18,
+            radius: 14 + (bi % 4) * 5.5, height: 15.5 + (bi % 4) * 2.2,
+            speed: 0.24 + (bi % 3) * 0.07, phase: bi * 0.72
+          });
+        }
+
+        const bfCols = [0xfacc15, 0x38bdf8, 0xfb7185, 0xf97316, 0xa855f7];
+        const bfAnchors = [[-16, 15], [-4, 22], [10, 21], [-22, -12], [-24, 3], [28, -14], [4, -27], [14, -3]];
+        for (let fi = 0; fi < 16; fi++) {
+          const an = bfAnchors[fi % bfAnchors.length];
+          const bfg = new THREE.Group();
+          const col = LS.makeToonMat(bfCols[fi % bfCols.length]);
+          const lWing = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.12), col); lWing.position.x = -0.07; bfg.add(lWing);
+          const rWing = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.12), col); rWing.position.x = 0.07; bfg.add(rWing);
+          worldGroup.add(bfg);
+          W.butterflies.push({ root: bfg, lWing, rWing, ax: an[0], az: an[1], phase: fi * 1.15, rad: 1.8 + (fi % 3) * 0.8 });
+        }
+
+        const ffMat = new THREE.MeshBasicMaterial({ color: 0xeaff7a, transparent: true, opacity: 0.0 });
+        for (let ffi = 0; ffi < 24; ffi++) {
+          const ff = new THREE.Mesh(new THREE.SphereGeometry(0.065, 5, 4), ffMat);
+          const fx = -28 + (ffi * 23) % 62;
+          const fz = -34 + (ffi * 19) % 66;
+          ff.position.set(fx, 1.1 + (ffi % 3) * 0.55, fz);
+          worldGroup.add(ff);
+          W.fireflies.push({ mesh: ff, bx: fx, bz: fz, by: ff.position.y, phase: ffi * 0.85 });
+        }
+        W.fireflyMat = ffMat;
+      });
+
       // 9. Lush Scattered Umbrella Acacias, Baobabs & Wild Savanna Flora
       safeRun('savanna_trees', () => {
         [
-          [-18.0, -14.0, 1.05], [-38.0, 14.0, 1.18], [-44.0, -8.0, 1.25], [-42.0, -34.0, 1.12],
-          [-16.0, -45.0, 1.15], [22.0, -34.0, 1.22], [44.0, -26.0, 1.18], [46.0, 4.0, 1.15],
+          [-18.5, -8.8, 1.05], [-38.0, 14.0, 1.18], [-44.0, -8.0, 1.25], [-42.0, -34.0, 1.12],
+          [-16.0, -45.0, 1.15], [19.5, -40.5, 1.22], [46.5, -22.2, 1.18], [46.0, 4.0, 1.15],
           [26.0, 14.0, 1.02], [-8.0, 34.0, 1.14], [14.0, 36.0, 1.10], [-36.0, 28.0, 1.20]
         ].forEach(t => addAcacia(t[0], t[1], t[2]));
-        addBaobab(34.0, -28.0, 1.12);
+        addBaobab(33.5, -24.2, 1.12);
         addBaobab(-38.0, 20.0, 1.08);
       });
 
@@ -778,16 +1408,16 @@ window.LailaSalma = window.LailaSalma || {};
           { pos: new THREE.Vector3(-42.5, 0, -24.5), hint: 'around the far side of the Flamingo Watering Hole' },
           { pos: new THREE.Vector3(-12.5, 0, -38.5), hint: 'beside the ancient Baobab next to Pride Rock' },
           { pos: new THREE.Vector3(14.5, 0, -34.0), hint: 'near the east boulder slope of Pride Rock' },
-          { pos: new THREE.Vector3(29.0, 0, -20.0), hint: 'by the red termite mound in Zebra Meadow' },
+          { pos: new THREE.Vector3(29.0, 0, -20.0), hint: 'by the Meerkat Burrows and red termite mound' },
           { pos: new THREE.Vector3(42.5, 0, -10.5), hint: 'playing near the grazing Zebras' },
           { pos: new THREE.Vector3(36.0, 0, 6.5), hint: 'under an umbrella acacia east of Base Camp' },
           { pos: new THREE.Vector3(24.5, 0, 17.5), hint: 'along the dirt trail to the Safari Airstrip' },
           { pos: new THREE.Vector3(32.5, 0, 34.5), hint: 'beside the Serengeti Airstrip runway' },
           { pos: new THREE.Vector3(-24.0, 0, 31.5), hint: 'behind the Savanna Kids Playground slide' },
-          { pos: new THREE.Vector3(-14.0, 0, 21.0), hint: 'behind the Wildlife Photo Sticker Booth' },
+          { pos: new THREE.Vector3(-14.0, 0, 21.0), hint: 'between the Glamping Tent and Sticker Booth' },
           { pos: new THREE.Vector3(14.2, 0, 21.5), hint: 'behind Mama Nia’s Mango Smoothie Cafe' },
-          { pos: new THREE.Vector3(-4.5, 0, -28.0), hint: 'watching Pride Rock from the north savanna trail' },
-          { pos: new THREE.Vector3(6.5, 0, 31.5), hint: 'hiding in the sunny golden grass south of Base Camp' }
+          { pos: new THREE.Vector3(-5.2, 0, -26.2), hint: 'watching Pride Rock near the Savanna Stream' },
+          { pos: new THREE.Vector3(6.5, 0, 31.5), hint: 'hiding in the sunny golden grass south of the Campfire' }
         ];
 
         const cubMeta = [
@@ -849,7 +1479,7 @@ window.LailaSalma = window.LailaSalma || {};
       safeRun('safari_npcs', () => {
         LS.spawnWorldNPCs(worldGroup, [
           { name: 'Ranger Amara', pos: new THREE.Vector3(3.4, 0, 13.8), baseRot: -0.35, waveOnNear: true,
-            line: 'Jambo, Laila & Salma! Hop in our zebra-striped Safari Jeep or explore the giraffes & elephants!',
+            line: 'Jambo, Laila & Salma! Ride the Hot Air Balloon, snap wildlife photos with [P], or hop in our Safari Jeep!',
             char: { scale: 0.98, hairColor: 0x1b1514, skinColor: 0x9c6644, topColor: 0xd4a359, bottomColor: 0x5c5346, pants: true, hatType: 'kinder', hatColor: 0xb08968,
               faceOpts: { eyeColor: '#3a2214', eyeHighlight: '#a66d3c', blush: 'rgba(214, 108, 92, 0.35)' } } },
           { name: 'Dr. Kofi', pos: new THREE.Vector3(7.6, 0, 15.2), baseRot: -Math.PI * 0.42, waveOnNear: true,
@@ -857,11 +1487,11 @@ window.LailaSalma = window.LailaSalma || {};
             char: { scale: 1.0, hairColor: 0x1e1b18, skinColor: 0x8d5524, topColor: 0x4a7c59, bottomColor: 0x3b3a36, pants: true,
               faceOpts: { glasses: true, mustache: true, eyeColor: '#2c1e16', eyeHighlight: '#7c5c42', blush: 'rgba(196, 102, 88, 0.25)' } } },
           { name: 'Mama Nia', pos: new THREE.Vector3(7.2, 0, 23.6), baseRot: -Math.PI * 0.35, waveOnNear: true,
-            line: 'Fresh Mango Sunrise Smoothies! One sip gives you super savanna running speed!',
+            line: 'Fresh Mango Sunrise Smoothies! One sip gives you super savanna running speed — perfect for the Cheetah Sprint!',
             char: { scale: 0.94, hairColor: 0x1c1412, skinColor: 0x945b36, topColor: 0xe76f51, bottomColor: 0xf4a261, hairBun: true,
               faceOpts: { eyeColor: '#422416', eyeHighlight: '#b56e3e', blush: 'rgba(226, 114, 98, 0.42)' } } },
           { name: 'Keeper Zara', pos: new THREE.Vector3(-20.8, 0, 4.8), baseRot: Math.PI * 0.4, waveOnNear: true,
-            line: 'Walk right up the cedar ramp to our feeding deck — the giraffes LOVE fresh acacia leaves!',
+            line: 'Walk right up the cedar ramp to our feeding deck — and visit the Hippo Lagoon just north of here!',
             char: { scale: 0.94, hairColor: 0x241814, skinColor: 0xa66e48, topColor: 0xe9c46a, bottomColor: 0x6b705c, pants: true, hatType: 'cap', hatColor: 0x4a7c59,
               faceOpts: { eyeColor: '#2a4c36', eyeHighlight: '#6cc48c', blush: 'rgba(224, 118, 102, 0.38)' } } }
         ]);
@@ -882,7 +1512,15 @@ window.LailaSalma = window.LailaSalma || {};
         };
         LS.hdAssets.addInstancedGrass(worldGroup, { minX: -58, maxX: 58, minZ: -54, maxZ: 46 }, (x, z) => {
           if (Math.hypot(x, z - 17.5) < 10.6) return false; // Base camp courtyard
+          if (Math.hypot(x, z - 28.0) < 3.4) return false; // Djembe campfire circle
+          if (Math.hypot(x + 18.2, z - 16.5) < 4.5) return false; // Glamping tent deck
+          if (Math.hypot(x - 16.2, z - 26.8) < 3.8) return false; // Maasai Craft Market
+          if (Math.hypot(x - 12.5, z + 3.5) < 4.4) return false; // Hot Air Balloon launch pad
+          if (Math.hypot(x + 7.5, z + 9.0) < 3.0) return false; // Ranger Watchtower base
           if (Math.hypot(x + 29.5, z + 28.5) < 12.8) return false; // Elephant watering hole
+          if (Math.hypot(x + 25.0, z + 15.5) < 7.2) return false; // Hippo Lagoon
+          if (x > -20.0 && x < 21.5 && z > -33.2 && z < -25.8) return false; // Savanna Stream & Bridge
+          if (x > 25.0 && x < 51.0 && z > -38.5 && z < -28.5) return false; // Cheetah Sprint Track
           if (x > 36.5 && x < 48.5 && z > 4.0 && z < 48.0) return false; // Dirt airstrip
           if (x < -19.5 && x > -27.5 && z > -1.2 && z < 5.2) return false; // Giraffe feeding deck
           if (nearSp(loopSp, x, z, 3.0 * 3.0)) return false;
@@ -900,11 +1538,15 @@ window.LailaSalma = window.LailaSalma || {};
 
       W.getZoneLabel = function (px, pz) {
         if (px > 26 && pz > 14) return 'Serengeti Airstrip';
-        if (px < -15 && pz < -15) return 'Elephant & Flamingo Oasis';
-        if (px < -16 && pz >= -15 && pz <= 14) return 'Giraffe Sanctuary';
-        if (pz < -28 && px >= -14 && px <= 20) return 'Pride Rock Kopje';
-        if (px > 18 && pz < 12) return 'Zebra Savanna Meadow';
+        if (px > 23 && pz < -27) return 'Cheetah Sprint Track';
+        if (px < -15 && pz < -10 && pz > -21) return 'Lily-Pad Hippo Lagoon';
+        if (px < -15 && pz <= -21) return 'Elephant & Flamingo Oasis';
+        if (px < -16 && pz >= -10 && pz <= 13) return 'Giraffe Sanctuary';
+        if (pz < -28 && px >= -14 && px <= 22) return 'Pride Rock Kopje';
+        if (px > 18 && pz < 12) return 'Zebra Meadow & Meerkats';
         if (px < -12 && pz > 20) return 'Savanna Kids Park';
+        if (Math.hypot(px - 12.5, pz + 3.5) < 7.5) return 'Sunrise Balloon Pad';
+        if (Math.hypot(px + 7.5, pz + 9.0) < 6.0) return 'Ranger Watchtower';
         return 'Safari Base Camp';
       };
 
@@ -924,12 +1566,43 @@ window.LailaSalma = window.LailaSalma || {};
           e.root.position.y = e.baseY + (feeding ? Math.abs(Math.sin(elapsed * 4.5 + e.phase)) * 0.14 : Math.sin(elapsed * 1.2 + e.phase) * 0.025);
         });
 
-        // Watering hole splash ripples
+        // Watering hole splash ripples + Baby Elephant sparkling water-spray arc!
         W.splashRings.forEach((ring, i) => {
           const cyc = (elapsed * (feeding ? 1.35 : 0.62) + i * 0.33) % 1;
           const sc = 0.6 + cyc * 3.4;
           ring.scale.set(sc, sc, 1);
           ring.material.opacity = (1 - cyc) * (feeding ? 0.72 : 0.38);
+        });
+        W.sprayDrops.forEach(d => {
+          const cyc = (elapsed * (feeding ? 1.55 : 0.92) + d.phase) % 1;
+          const arcY = 1.15 + Math.sin(cyc * Math.PI) * (feeding ? 2.45 : 1.75) - cyc * 0.95;
+          d.mesh.position.set(-23.25 + cyc * 2.15, Math.max(0.08, arcY), -27.5 + d.spread * cyc * 2.2);
+          const sc = 0.55 + Math.sin(cyc * Math.PI) * 0.75;
+          d.mesh.scale.setScalar(sc);
+        });
+
+        // Bobbing Savanna Hippos + expanding ripples + nostril bubbles!
+        W.hippos.forEach(h => {
+          h.root.position.y = h.baseY + Math.sin(elapsed * 1.1 + h.phase) * 0.14;
+          h.root.rotation.y = h.baseRot + Math.sin(elapsed * 0.48 + h.phase) * 0.12;
+          const rc = (elapsed * 0.45 + h.phase) % 1;
+          h.ring.scale.setScalar(0.85 + rc * 1.85);
+          h.ring.material.opacity = (1 - rc) * 0.42;
+        });
+        W.hippoBubbles.forEach(b => {
+          const cyc = (elapsed * 0.85 + b.phase) % 1;
+          b.mesh.position.set(b.anchorX + Math.sin(elapsed * 3 + b.phase) * 0.12, 0.08 + cyc * 0.52, b.anchorZ);
+          b.mesh.scale.setScalar(0.4 + cyc * 0.85);
+        });
+
+        // Playful Sentinel Meerkats popping up and ducking down based on Laila's proximity!
+        const lPos = (LS.chars && LS.chars.laila) ? LS.chars.laila.root.position : null;
+        W.meerkats.forEach(m => {
+          const dist = lPos ? Math.hypot(lPos.x - m.x, lPos.z - m.z) : 99;
+          const shy = dist < 3.6;
+          const bob = shy ? -0.44 : (Math.sin(elapsed * 1.65 + m.phase) > -0.25 ? 0.02 : -0.34);
+          m.root.position.y += (bob - m.root.position.y) * Math.min(1, dt * 6.5);
+          m.root.rotation.y = m.baseRot + Math.sin(elapsed * 2.1 + m.phase) * 0.42;
         });
 
         // Pink Flamingos bobbing gently
@@ -937,15 +1610,89 @@ window.LailaSalma = window.LailaSalma || {};
           f.root.rotation.z = Math.sin(elapsed * 1.4 + f.phase) * 0.06;
         });
 
-        // Zebras grazing gently (works smoothly in both HD GLB & Classic!)
+        // Zebras grazing & gentle meadow trotting loops (works smoothly in HD & Classic!)
         W.zebras.forEach(z => {
-          if (z.neck) {
+          if (z.trotRadius > 0) {
+            const ang = elapsed * 0.34 + z.phase;
+            const nx = z.baseX + Math.cos(ang) * z.trotRadius;
+            const nz = z.baseZ + Math.sin(ang) * (z.trotRadius * 0.72);
+            const vx = -Math.sin(ang) * z.trotRadius;
+            const vz = Math.cos(ang) * (z.trotRadius * 0.72);
+            z.root.position.set(nx, Math.abs(Math.sin(elapsed * 4.5 + z.phase)) * 0.06, nz);
+            z.root.rotation.y = Math.atan2(vx, vz);
+          } else if (z.neck) {
             z.neck.rotation.x = 0.18 + Math.sin(elapsed * 1.3 + z.phase) * 0.24;
           } else if (z.inner) {
             z.root.rotation.y = z.baseRot + Math.sin(elapsed * 0.65 + z.phase) * 0.14;
             z.inner.rotation.x = Math.sin(elapsed * 1.2 + z.phase) * 0.045;
           }
         });
+
+        // King Lion Pride Rock Roar head-lift & expanding golden roar ring!
+        if (LS.runtime.prideRoarTimer > 0) {
+          LS.runtime.prideRoarTimer = Math.max(0, LS.runtime.prideRoarTimer - dt);
+          const p = 1 - LS.runtime.prideRoarTimer / 2.2;
+          if (W.kingLionMesh) {
+            W.kingLionMesh.rotation.x = -Math.sin(Math.min(1, p * 1.4) * Math.PI) * 0.24;
+            W.kingLionMesh.position.y = 4.48 + Math.sin(Math.min(1, p * 1.4) * Math.PI) * 0.18;
+          }
+          if (W.roarRing) {
+            W.roarRing.scale.setScalar(0.8 + p * 6.5);
+            W.roarRing.material.opacity = (1 - p) * 0.78;
+          }
+        } else {
+          if (W.kingLionMesh) { W.kingLionMesh.rotation.x = 0; W.kingLionMesh.position.y = 4.48; }
+          if (W.roarRing) W.roarRing.material.opacity = 0;
+        }
+
+        // Flickering Djembe Campfire flames
+        W.campfireFlames.forEach(fl => {
+          const flicker = 0.85 + Math.sin(elapsed * 11.5 + fl.phase) * 0.22;
+          fl.mesh.scale.set(0.92 + Math.cos(elapsed * 9 + fl.phase) * 0.12, flicker, 0.92 + Math.sin(elapsed * 8 + fl.phase) * 0.12);
+          fl.mesh.position.y = fl.baseY + (flicker - 1) * 0.22;
+        });
+
+        // Idle Hot Air Balloon gentle breathing sway & burner pulse
+        if (W.balloonFlame) {
+          const riding = !!LS.runtime.balloonRide;
+          const fs = (riding ? 1.35 : 0.75) + Math.sin(elapsed * 14) * 0.25;
+          W.balloonFlame.scale.set(1, fs, 1);
+        }
+        if (W.hotAirBalloon && !LS.runtime.balloonRide) {
+          W.hotAirBalloon.rotation.z = Math.sin(elapsed * 0.9) * 0.025;
+          W.hotAirBalloon.position.y = Math.sin(elapsed * 1.2) * 0.06;
+        }
+
+        // Soaring Savanna Birds, Fluttering Butterflies & Evening Fireflies!
+        W.savannaBirds.forEach(b => {
+          const a = elapsed * b.speed + b.phase;
+          b.root.position.set(b.cx + Math.cos(a) * b.radius, b.height + Math.sin(elapsed * 0.9 + b.phase) * 1.1, b.cz + Math.sin(a) * b.radius);
+          b.root.rotation.y = -a;
+          const flap = Math.sin(elapsed * 5.8 + b.phase) * 0.42;
+          b.wL.rotation.z = flap;
+          b.wR.rotation.z = -flap;
+        });
+        W.butterflies.forEach(bf => {
+          const t = elapsed * 1.4 + bf.phase;
+          bf.root.position.set(bf.ax + Math.cos(t * 0.7) * bf.rad, 1.05 + Math.sin(t * 2.1) * 0.42, bf.az + Math.sin(t * 0.9) * bf.rad);
+          bf.root.rotation.y = -t * 0.7;
+          const fl = Math.sin(elapsed * 18 + bf.phase) * 0.75;
+          bf.lWing.rotation.z = fl;
+          bf.rWing.rotation.z = -fl;
+        });
+        if (W.fireflyMat) {
+          const nightBoost = LS.state.timeMode === 2 ? 0.92 : (LS.state.timeMode === 1 ? 0.48 : 0.0);
+          W.fireflyMat.opacity = nightBoost * (0.65 + Math.sin(elapsed * 3.8) * 0.35);
+          if (nightBoost > 0.05) {
+            W.fireflies.forEach(ff => {
+              ff.mesh.position.set(
+                ff.bx + Math.sin(elapsed * 0.8 + ff.phase) * 1.4,
+                ff.by + Math.sin(elapsed * 1.9 + ff.phase) * 0.45,
+                ff.bz + Math.cos(elapsed * 0.7 + ff.phase) * 1.4
+              );
+            });
+          }
+        }
 
         // Bush plane propeller + windsock
         if (W.propeller) W.propeller.rotation.z += dt * 7.5;
@@ -968,12 +1715,20 @@ window.LailaSalma = window.LailaSalma || {};
         [[34, -10, 18], [-32, 2, 15], [0, 17, 13]].forEach(m => {
           ctx.beginPath(); ctx.arc(toMapX(m[0]), toMapY(m[1]), m[2], 0, Math.PI * 2); ctx.fill();
         });
-        // Elephant & Flamingo Watering Hole
+        // Elephant Oasis + Hippo Lagoon + Savanna Stream!
         ctx.fillStyle = '#2d8da0';
         ctx.beginPath(); ctx.arc(toMapX(-29.5), toMapY(-28.5), 14, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(toMapX(-25.0), toMapY(-15.5), 7.5, 0, Math.PI * 2); ctx.fill();
+        strokeMapSpline(ctx, [[-18.8, -31.2], [-10.0, -30.5], [3.2, -29.8], [14.0, -28.8], [20.5, -26.2]], toMapX, toMapY, '#2d8da0', 4.5);
+        // Rope Suspension Bridge marker
+        ctx.fillStyle = '#8b5a2b';
+        ctx.fillRect(toMapX(1.6), toMapY(-32.8), Math.max(3, toMapX(4.8) - toMapX(1.6)), Math.max(5, toMapY(-26.8) - toMapY(-32.8)));
         // Pride Rock Kopje
         ctx.fillStyle = '#9a7a52';
         ctx.beginPath(); ctx.ellipse(toMapX(3.0), toMapY(-40.5), 10, 7, 0, 0, Math.PI * 2); ctx.fill();
+        // Cheetah Sprint Track
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(toMapX(27.0), toMapY(-35.5)); ctx.lineTo(toMapX(49.0), toMapY(-31.0)); ctx.stroke();
         // Serengeti Airstrip
         ctx.fillStyle = '#8b6340';
         ctx.fillRect(toMapX(37), toMapY(6), toMapX(48) - toMapX(37), toMapY(46) - toMapY(6));
@@ -981,6 +1736,11 @@ window.LailaSalma = window.LailaSalma || {};
         strokeMapSpline(ctx, SAFARI_LOOP_PTS, toMapX, toMapY, '#a66e3d', 4.2);
         strokeMapSpline(ctx, SAFARI_SOUTH_TRAIL, toMapX, toMapY, '#a66e3d', 3.4);
         strokeMapSpline(ctx, SAFARI_AIRSTRIP_TRAIL, toMapX, toMapY, '#a66e3d', 2.8);
+        // Landmark pins: Hot Air Balloon (red), Glamping Tent (cream), Watchtower (green), Campfire (orange)
+        [[12.5, -3.5, '#ef4444'], [-18.2, 16.5, '#fef3c7'], [-7.5, -9.0, '#16a34a'], [0, 28.0, '#f97316']].forEach(p => {
+          ctx.fillStyle = p[2];
+          ctx.beginPath(); ctx.arc(toMapX(p[0]), toMapY(p[1]), 3.5, 0, Math.PI * 2); ctx.fill();
+        });
       };
 
       return W;

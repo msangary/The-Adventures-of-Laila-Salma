@@ -66,6 +66,34 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'kitsune_lantern', name: 'Lanterns & Kitsune Art', cost: 95, label: '🦊 LANTERN FESTIVAL 🏮', bg: '#3a1f1b', border: '#f59e0b', fg: '#fff5dc' }
   ];
 
+  LS.SAFARI_TENT_RUGS = [
+    { id: 'savanna_gold', name: 'Savanna Woven Rug', cost: 0, color: '#d4a359', accent: '#9c4221', hex: 0xc98a3e },
+    { id: 'maasai_crimson', name: 'Maasai Crimson Weave', cost: 65, color: '#c83e37', accent: '#f59e0b', hex: 0xb83b32 },
+    { id: 'oasis_turquoise', name: 'Oasis Turquoise Kilim', cost: 90, color: '#2a9d8f', accent: '#e9c46a', hex: 0x2e8c82 }
+  ];
+
+  LS.SAFARI_TENT_CUSHIONS = [
+    { id: 'acacia_amber', name: 'Acacia Amber Pouf', cost: 0, color: '#e9c46a', hex: 0xe0a848 },
+    { id: 'terracotta_sun', name: 'Terracotta Sunset Pouf', cost: 60, color: '#e07a5f', hex: 0xd96b4e },
+    { id: 'emerald_leaf', name: 'Baobab Emerald Cushion', cost: 85, color: '#52b788', hex: 0x459c72 }
+  ];
+
+  LS.SAFARI_TENT_TAPESTRIES = [
+    { id: 'kilimanjaro_dawn', name: 'Mt. Kilimanjaro Dawn', cost: 0, label: '🏔️ KILIMANJARO & LIONS 🦁', bg: '#fff3d6', border: '#c26d1f', fg: '#5a2d0c' },
+    { id: 'starry_savanna', name: 'Starry African Night', cost: 70, label: '✨ SAVANNA CONSTELLATIONS 🦒', bg: '#16213e', border: '#facc15', fg: '#fef3c7' },
+    { id: 'sunset_acacia', name: 'Serengeti Golden Sunset', cost: 95, label: '🌅 SERENGETI SUNSET 🐘', bg: '#5c2018', border: '#f59e0b', fg: '#ffedd5' }
+  ];
+
+  LS.SAFARI_WILDLIFE_GUIDE = [
+    { id: 'giraffe', name: 'Reticulated Giraffe', emoji: '🦒', spot: 'West Acacia Sanctuary', fact: 'Giraffes are the tallest land animals on Earth — and their purple tongues are 45 cm long to grab tasty acacia leaves!' },
+    { id: 'elephant', name: 'African Bush Elephant', emoji: '🐘', spot: 'Northwest Elephant Oasis', fact: 'Elephants have over 40,000 muscles in their trunks! Baby elephants love spraying sparkling water to cool off.' },
+    { id: 'zebra', name: 'Plains Zebra', emoji: '🦓', spot: 'East Zebra Meadow', fact: 'Every single zebra has a one-of-a-kind stripe pattern, just like human fingerprints — helping herds stay safe together!' },
+    { id: 'flamingo', name: 'Lesser Flamingo', emoji: '🦩', spot: 'Oasis Watering Hole', fact: 'Flamingos get their bright rosy-pink feathers from natural pigments in the tiny algae they scoop from warm lakes!' },
+    { id: 'lion', name: 'Pride Rock Lion', emoji: '🦁', spot: 'North Pride Rock Kopje', fact: 'A friendly lion\'s mighty roar can travel up to 8 kilometers across the golden African savanna at sunset!' },
+    { id: 'hippo', name: 'Savanna River Hippo', emoji: '🦛', spot: 'Lily-Pad Hippo Lagoon', fact: 'Hippos stay cool in shallow lagoons all afternoon and can hold their breath underwater for up to 5 minutes!' },
+    { id: 'meerkat', name: 'Meerkat Sentinel', emoji: '🐾', spot: 'Zebra Meadow Burrows', fact: 'Meerkats take turns standing tall on lookout duty, using their dark eye rings like built-in sunglasses in the bright sun!' }
+  ];
+
   function makeDefaultState() {
     return {
       currentWorld: 'tokyo',
@@ -97,6 +125,7 @@ window.LailaSalma = window.LailaSalma || {};
       lastFortune: null,
       koiFedCount: 0,
       safariFedCount: 0,
+      safariPhotos: [],
       roomWallpaper: 'sakura_cream',
       unlockedRoomItems: ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
       roomBeanbag: 'strawberry_puff',
@@ -104,7 +133,11 @@ window.LailaSalma = window.LailaSalma || {};
       ryokanTatami: 'classic_tatami',
       ryokanCushion: 'sakura_zabuton',
       ryokanScroll: 'kyoto_torii',
-      unlockedRyokanItems: ['classic_tatami', 'sakura_zabuton', 'kyoto_torii']
+      unlockedRyokanItems: ['classic_tatami', 'sakura_zabuton', 'kyoto_torii'],
+      safariTentRug: 'savanna_gold',
+      safariTentCushion: 'acacia_amber',
+      safariTentTapestry: 'kilimanjaro_dawn',
+      unlockedSafariTentItems: ['savanna_gold', 'acacia_amber', 'kilimanjaro_dawn']
     };
   }
 
@@ -125,8 +158,10 @@ window.LailaSalma = window.LailaSalma || {};
         unlockedToys: Array.isArray(parsed.unlockedToys) ? parsed.unlockedToys.slice() : [],
         stamps: Array.isArray(parsed.stamps) ? parsed.stamps.slice() : [],
         emaWishes: Array.isArray(parsed.emaWishes) ? parsed.emaWishes.slice() : [],
+        safariPhotos: Array.isArray(parsed.safariPhotos) ? parsed.safariPhotos.slice() : [],
         unlockedRoomItems: Array.isArray(parsed.unlockedRoomItems) ? parsed.unlockedRoomItems.slice() : ['sakura_cream', 'strawberry_puff', 'tokyo_sketches'],
-        unlockedRyokanItems: Array.isArray(parsed.unlockedRyokanItems) ? parsed.unlockedRyokanItems.slice() : ['classic_tatami', 'sakura_zabuton', 'kyoto_torii']
+        unlockedRyokanItems: Array.isArray(parsed.unlockedRyokanItems) ? parsed.unlockedRyokanItems.slice() : ['classic_tatami', 'sakura_zabuton', 'kyoto_torii'],
+        unlockedSafariTentItems: Array.isArray(parsed.unlockedSafariTentItems) ? parsed.unlockedSafariTentItems.slice() : ['savanna_gold', 'acacia_amber', 'kilimanjaro_dawn']
       });
     } catch (e) {
       return makeDefaultState();
@@ -153,6 +188,10 @@ window.LailaSalma = window.LailaSalma || {};
     mochiHeartTimer: 0,
     parkActivity: null,
     safariRide: null,
+    balloonRide: null,
+    cheetahRace: null,
+    watchtowerTimer: 0,
+    prideRoarTimer: 0,
     safariFeedTimer: 0,
     koiFeedTimer: 0,
     salmaHintUntil: 0
@@ -186,6 +225,10 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.mochiGame = null;
     LS.runtime.parkActivity = null;
     LS.runtime.safariRide = null;
+    LS.runtime.balloonRide = null;
+    LS.runtime.cheetahRace = null;
+    LS.runtime.watchtowerTimer = 0;
+    LS.runtime.prideRoarTimer = 0;
 
     LS.saveState();
     if (LS.applyOutfit) {
@@ -533,6 +576,108 @@ window.LailaSalma = window.LailaSalma || {};
       LS.playTone(1046.5, 0.32, 'triangle', 0.36, 0.09);
     } else {
       LS.playTone(523.25, 0.12);
+    }
+  };
+
+  // Interactive African Djembe Drum & Warm Marimba Synth (for Base Camp Campfire Circle!)
+  LS.playDjembeSound = function (kind) {
+    if (!LS.state.soundEnabled) return;
+    try {
+      const ctx = getAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      if (kind === 'bass') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(145, now);
+        osc.frequency.exponentialRampToValueAtTime(62, now + 0.24);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      } else if (kind === 'tone') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(248, now);
+        osc.frequency.exponentialRampToValueAtTime(168, now + 0.16);
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+      } else if (kind === 'slap') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(490, now);
+        osc.frequency.exponentialRampToValueAtTime(260, now + 0.09);
+        gain.gain.setValueAtTime(0.11, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      } else {
+        // Warm wooden savanna marimba chord note!
+        const notes = [392, 440, 523.25, 587.33, 659.25];
+        const f = notes[Math.floor(Math.random() * notes.length)];
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now);
+        gain.gain.setValueAtTime(0.13, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+      }
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.36);
+    } catch (e) {}
+  };
+
+  LS.playLionRoar = function () {
+    if (!LS.state.soundEnabled) return;
+    try {
+      const ctx = getAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(128, now);
+      osc.frequency.linearRampToValueAtTime(156, now + 0.18);
+      osc.frequency.exponentialRampToValueAtTime(68, now + 0.85);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.13, now + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.92);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.95);
+      // Warm friendly golden savanna marimba echo
+      LS.playTone(392, 0.22, 'triangle', 0.32, 0.06);
+      LS.playTone(523.25, 0.32, 'sine', 0.48, 0.07);
+    } catch (e) {}
+  };
+
+  LS.playCameraShutter = function () {
+    if (!LS.state.soundEnabled) return;
+    LS.playTone(1350, 0.035, 'square', 0, 0.05);
+    LS.playTone(880, 0.05, 'triangle', 0.03, 0.06);
+    LS.playTone(1174.66, 0.14, 'sine', 0.08, 0.07);
+  };
+
+  // Gentle ambient African Savanna soundscape (soft periodic bird chirps & warm marimba breeze notes)
+  let safariAmbTimer = 3.5;
+  LS.tickSafariAmbience = function (dt) {
+    if (!LS.state.soundEnabled || LS.state.currentWorld !== 'safari') return;
+    safariAmbTimer -= dt;
+    if (safariAmbTimer > 0) return;
+    safariAmbTimer = 5.5 + Math.random() * 5.0;
+    const roll = Math.random();
+    if (roll < 0.48) {
+      // Soft distant savanna bird chirp
+      const f = 1480 + Math.random() * 520;
+      LS.playTone(f, 0.07, 'sine', 0, 0.025);
+      LS.playTone(f * 1.18, 0.09, 'sine', 0.09, 0.022);
+    } else if (roll < 0.82) {
+      // Warm gentle wooden marimba breeze motif
+      const scale = [392, 440, 523.25, 587.33, 659.25];
+      const a = scale[Math.floor(Math.random() * scale.length)];
+      const b = scale[Math.floor(Math.random() * scale.length)];
+      LS.playTone(a, 0.26, 'sine', 0, 0.028);
+      LS.playTone(b, 0.30, 'sine', 0.24, 0.024);
+    } else {
+      // Soft distant savanna water shimmer
+      LS.playTone(520, 0.14, 'sine', 0, 0.018);
+      LS.playTone(690, 0.18, 'sine', 0.12, 0.016);
     }
   };
 })(window.LailaSalma);

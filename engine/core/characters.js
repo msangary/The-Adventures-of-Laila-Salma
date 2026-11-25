@@ -1662,7 +1662,13 @@ window.LailaSalma = window.LailaSalma || {};
       return;
     }
     const nb = LS.createSpeechBubbleSprite('Salma', text);
-    nb.position.set(0, 2.35, 0);
+    const inRoom = LS.WORLDS && LS.WORLDS[LS.state.currentWorld] && LS.WORLDS[LS.state.currentWorld].isInterior;
+    if (inRoom) {
+      nb.scale.multiplyScalar(0.54);
+      nb.position.set(0, 1.98, 0);
+    } else {
+      nb.position.set(0, 2.35, 0);
+    }
     nb.visible = Boolean(showMs);
     LS.chars.salmaBubble = nb;
     LS.chars.salma.root.add(nb);

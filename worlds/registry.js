@@ -106,13 +106,33 @@ window.LailaSalma = window.LailaSalma || {};
       destinationName: 'Tokyo',
       destinationId: 'tokyo',
       travelMode: 'flight',
-      description: 'Fly from Haneda Gate A1 to the golden African Savanna! Ride a zebra-striped Safari Jeep, feed tall giraffes & gentle elephants at the watering hole, spot flamingos & Pride Rock lions, test your skills at Ranger Academy, collect wildlife stickers, and find 5 playful hiding lion cubs!',
+      description: 'Fly from Haneda Gate A1 to the golden African Savanna! Ride a zebra-striped Safari Jeep or soar in a Hot Air Balloon, feed tall giraffes & splashing elephants, snap wildlife photos of hippos, meerkats & lions, race a spotted cheetah, play Djembe drums by the campfire, decorate your 3D Safari Glamping Tent, and find 5 playful hiding lion cubs!',
       bounds: { minX: -60, maxX: 60, minZ: -56, maxZ: 48 },
       mapBounds: { minX: -62, maxX: 62, minZ: -58, maxZ: 50 },
       spawn: { x: 0, y: 0, z: 18.0, rotY: Math.PI },
       arrivalSpawn: { x: 24.0, y: 0, z: 26.0, rotY: -Math.PI * 0.72 },
       fogNear: 78,
       fogFar: 245
+    },
+    safari_tent: {
+      id: 'safari_tent',
+      title: 'Safari Glamping Tent',
+      subtitle: "Laila & Salma's Savanna Lodge",
+      emoji: '⛺',
+      badgeColor: '#c26d1f',
+      unlocked: true,
+      isInterior: true,
+      parentWorld: 'safari',
+      exitPos: { x: -14.6, y: 0, z: 17.6, rotY: Math.PI * 0.45 },
+      collectibleLabel: 'Lion Cubs',
+      collectibleEmoji: '🦁',
+      collectibleTotal: 5,
+      bounds: { minX: -5.4, maxX: 5.4, minZ: -4.4, maxZ: 4.6 },
+      mapBounds: { minX: -6.5, maxX: 6.5, minZ: -5.5, maxZ: 5.5 },
+      spawn: { x: 0, y: 0, z: 2.1, rotY: Math.PI },
+      arrivalSpawn: { x: 0, y: 0, z: 2.1, rotY: Math.PI },
+      fogNear: 25,
+      fogFar: 65
     }
   };
 
@@ -165,7 +185,12 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'safari_arrival', world: 'safari', emoji: '✈️', title: 'Safari Explorer', desc: 'Flew to the African Safari & Wildlife Zoo' },
     { id: 'safari_feed', world: 'safari', emoji: '🦒', title: 'Gentle Giant Pal', desc: 'Fed giraffes or elephants at the Savanna Sanctuary' },
     { id: 'safari_jeep', world: 'safari', emoji: '🚙', title: 'Jeep Adventurer', desc: 'Rode the Safari Jeep tour across the savanna' },
-    { id: 'safari_cubs', world: 'safari', emoji: '🦁', title: 'Lion Cub Friend', desc: 'Found all 5 playful hiding lion cubs' }
+    { id: 'safari_cubs', world: 'safari', emoji: '🦁', title: 'Lion Cub Friend', desc: 'Found all 5 playful hiding lion cubs' },
+    { id: 'safari_balloon', world: 'safari', emoji: '🎈', title: 'Sky Balloon Pilot', desc: 'Soared above Pride Rock in the Savanna Hot Air Balloon' },
+    { id: 'safari_photographer', world: 'safari', emoji: '📸', title: 'Wildlife Photographer', desc: 'Completed the 7-animal Safari Field Guide album' },
+    { id: 'safari_campfire', world: 'safari', emoji: '🥁', title: 'Djembe Star', desc: 'Played African Djembe rhythms & roasted marshmallows at Base Camp' },
+    { id: 'safari_cheetah', world: 'safari', emoji: '🐆', title: 'Cheetah Sprinter', desc: 'Completed the Savanna Cheetah Sprint Challenge' },
+    { id: 'safari_tent_decor', world: 'safari', emoji: '⛺', title: 'Glamping Designer', desc: 'Stepped inside & decorated your 3D Safari Glamping Tent' }
   ];
 
   LS.worldBuilders = {};

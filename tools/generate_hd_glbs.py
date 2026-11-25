@@ -2143,8 +2143,159 @@ def build_anime_safari_jeep():
     b.save_glb(os.path.join(OUT_DIR, "anime_safari_jeep.glb"))
 
 
+def make_cheetah_spot_tex():
+    """Golden-amber cheetah coat texture with crisp organic dark-brown savanna spots."""
+    img = Image.new("RGBA", (256, 256), (236, 184, 96, 255))
+    d = ImageDraw.Draw(img)
+    rng = random.Random(407)
+    for _ in range(180):
+        sx = rng.randint(6, 248)
+        sy = rng.randint(6, 248)
+        rx = rng.randint(4, 8)
+        ry = rng.randint(3, 7)
+        d.ellipse((sx - rx, sy - ry, sx + rx, sy + ry), fill=(46, 30, 20, 255))
+    return img
+
+
+def build_anime_hippo():
+    """Chunky friendly Savanna River Hippo (~2.1m long) with glossy lavender-slate hide, wide rounded snout, cute nostril bumps, pink ears & ivory tusks!"""
+    b = GLBBuilder()
+    m_hide = b.add_material("hippo_hide", (0.50, 0.45, 0.56, 1), roughness=0.42)
+    m_belly = b.add_material("hippo_belly", (0.68, 0.56, 0.64, 1), roughness=0.50)
+    m_pink = b.add_material("hippo_pink", (0.86, 0.58, 0.64, 1), roughness=0.58)
+    m_ivory = b.add_material("hippo_ivory", (0.98, 0.96, 0.90, 1), roughness=0.25)
+    m_dark = b.add_material("hippo_dark", (0.12, 0.10, 0.12, 1), roughness=0.20)
+    m_shine = b.add_material("hippo_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.95, 0.95, 0.95))
+
+    # Barrel-shaped river hippo torso & lower rosy underbelly
+    b.add_ellipsoid(m_hide, 0.0, 0.62, -0.05, 0.56, 0.46, 0.86, segs=22, rings=14)
+    b.add_ellipsoid(m_belly, 0.0, 0.46, -0.02, 0.46, 0.28, 0.72, segs=18, rings=10)
+    # 4 sturdy stubby hippo legs
+    for lx in (-0.34, 0.34):
+        for lz in (0.42, -0.48):
+            b.add_cylinder(m_hide, lx, 0.24, lz, 0.13, 0.15, 0.46, segs=12)
+            b.add_ellipsoid(m_belly, lx, 0.05, lz + 0.04, 0.14, 0.06, 0.16, segs=10, rings=6)
+    # Tiny wagging stub tail
+    b.add_curved_tube(m_hide, [(0, 0.66, -0.86), (0, 0.58, -0.98), (0, 0.48, -1.03)], [0.055, 0.036, 0.024], segs=8)
+
+    # Big expressive hippo head + wide rounded boxy muzzle + smiling jaw!
+    b.add_ellipsoid(m_hide, 0.0, 0.82, 0.76, 0.36, 0.31, 0.36, segs=18, rings=12)
+    b.add_ellipsoid(m_belly, 0.0, 0.72, 1.12, 0.35, 0.22, 0.28, segs=18, rings=12)
+    b.add_ellipsoid(m_pink, 0.0, 0.58, 1.08, 0.28, 0.10, 0.22, segs=14, rings=8)
+    # Raised nostril bumps & cute ivory smile tusks
+    for side in (-1, 1):
+        b.add_ellipsoid(m_hide, side * 0.15, 0.89, 1.24, 0.072, 0.058, 0.068, segs=10, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.15, 0.90, 1.29, 0.028, 0.022, 0.018, segs=8, rings=6)
+        b.add_cylinder(m_ivory, side * 0.17, 0.64, 1.25, 0.024, 0.034, 0.11, segs=8, rx=0.20)
+        # Cute little rounded ears on top of head
+        b.add_ellipsoid(m_hide, side * 0.24, 1.10, 0.68, 0.072, 0.095, 0.055, segs=10, rings=8, rz=side * -0.22)
+        b.add_ellipsoid(m_pink, side * 0.24, 1.09, 0.71, 0.044, 0.062, 0.030, segs=8, rings=6, rz=side * -0.22)
+        # Bright friendly eyes on elevated brow ridges
+        b.add_ellipsoid(m_hide, side * 0.20, 0.98, 0.92, 0.088, 0.080, 0.082, segs=10, rings=8)
+        b.add_ellipsoid(m_dark, side * 0.22, 0.99, 0.985, 0.045, 0.048, 0.036, segs=10, rings=8)
+        b.add_ellipsoid(m_shine, side * 0.232, 1.008, 1.015, 0.016, 0.016, 0.012, segs=6, rings=5)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_hippo.glb"))
+
+
+def build_anime_meerkat():
+    """Adorable upright Savanna Meerkat Sentinel (~0.72m tall) standing alert on hind paws with dark eye masks, striped back & curious snout!"""
+    b = GLBBuilder()
+    m_tan = b.add_material("meer_tan", (0.82, 0.66, 0.44, 1), roughness=0.78)
+    m_cream = b.add_material("meer_cream", (0.94, 0.86, 0.72, 1), roughness=0.80)
+    m_brown = b.add_material("meer_brown", (0.36, 0.24, 0.15, 1), roughness=0.75)
+    m_dark = b.add_material("meer_dark", (0.12, 0.09, 0.08, 1), roughness=0.22)
+    m_shine = b.add_material("meer_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.95, 0.95, 0.95))
+
+    # Upright slender body + pale cream belly + dark transverse back stripes
+    b.add_ellipsoid(m_tan, 0.0, 0.30, 0.0, 0.125, 0.21, 0.115, segs=16, rings=12)
+    b.add_ellipsoid(m_cream, 0.0, 0.29, 0.045, 0.092, 0.175, 0.082, segs=14, rings=10)
+    for sy in (0.22, 0.29, 0.36):
+        b.add_ellipsoid(m_brown, 0.0, sy, -0.085, 0.098, 0.022, 0.038, segs=10, rings=6)
+    # Hind feet + stabilizing prop tail!
+    for side in (-1, 1):
+        b.add_ellipsoid(m_tan, side * 0.068, 0.06, 0.04, 0.042, 0.045, 0.085, segs=10, rings=6)
+        # Cute tucked alert forepaws resting on chest
+        b.add_cylinder(m_tan, side * 0.095, 0.34, 0.075, 0.024, 0.028, 0.13, segs=8, rx=0.65, rz=side * 0.24)
+        b.add_ellipsoid(m_brown, side * 0.068, 0.28, 0.125, 0.024, 0.022, 0.032, segs=8, rings=6)
+    b.add_curved_tube(m_tan, [(0, 0.12, -0.09), (0, 0.06, -0.22), (0, 0.04, -0.34)], [0.032, 0.024, 0.014], segs=8)
+    b.add_ellipsoid(m_dark, 0.0, 0.04, -0.35, 0.018, 0.018, 0.028, segs=8, rings=6)
+
+    # Alert head + pointed curious snout + iconic dark bandit eye patches!
+    b.add_ellipsoid(m_cream, 0.0, 0.56, 0.02, 0.105, 0.096, 0.112, segs=16, rings=12)
+    b.add_ellipsoid(m_tan, 0.0, 0.60, -0.01, 0.098, 0.065, 0.098, segs=14, rings=10)
+    b.add_ellipsoid(m_cream, 0.0, 0.54, 0.125, 0.048, 0.038, 0.068, segs=12, rings=8)
+    b.add_ellipsoid(m_dark, 0.0, 0.555, 0.185, 0.020, 0.016, 0.016, segs=8, rings=6)
+    for side in (-1, 1):
+        b.add_ellipsoid(m_dark, side * 0.088, 0.59, -0.01, 0.032, 0.028, 0.022, segs=8, rings=6)  # Rounded dark ears
+        b.add_ellipsoid(m_brown, side * 0.056, 0.575, 0.098, 0.034, 0.028, 0.022, segs=10, rings=6)  # Eye mask
+        b.add_ellipsoid(m_dark, side * 0.056, 0.578, 0.114, 0.020, 0.022, 0.015, segs=8, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.062, 0.585, 0.126, 0.008, 0.008, 0.006, segs=6, rings=5)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_meerkat.glb"))
+
+
+def build_anime_cheetah():
+    """Sleek athletic Spotted Savanna Cheetah (~1.75m long) with golden spotted coat, iconic black tear stripes, long sprinting legs & curved balance tail!"""
+    b = GLBBuilder()
+    spot_tex = make_cheetah_spot_tex()
+    m_coat = b.add_material("cheetah_coat", (1, 1, 1, 1), spot_tex, normal_strength=0.9, roughness=0.72)
+    m_belly = b.add_material("cheetah_belly", (0.96, 0.90, 0.78, 1), roughness=0.78)
+    m_dark = b.add_material("cheetah_dark", (0.12, 0.09, 0.08, 1), roughness=0.22)
+    m_amber = b.add_material("cheetah_amber", (0.94, 0.68, 0.18, 1), roughness=0.14)
+    m_shine = b.add_material("cheetah_shine", (1.0, 1.0, 1.0, 1), roughness=0.10, emissive=(0.95, 0.95, 0.95))
+
+    # Lean deep-chested aerodynamic body + tucked waist
+    b.add_ellipsoid(m_coat, 0.0, 0.80, 0.12, 0.24, 0.25, 0.48, segs=18, rings=12)
+    b.add_ellipsoid(m_coat, 0.0, 0.78, -0.34, 0.21, 0.20, 0.42, segs=16, rings=10)
+    b.add_ellipsoid(m_belly, 0.0, 0.64, 0.0, 0.18, 0.12, 0.58, segs=14, rings=8)
+
+    # 4 long sleek sprinter legs + paws
+    for side in (-1, 1):
+        # Front legs
+        b.add_curved_tube(m_coat, [
+            (side * 0.16, 0.76, 0.44),
+            (side * 0.16, 0.42, 0.46),
+            (side * 0.16, 0.06, 0.48)
+        ], [0.088, 0.056, 0.044], segs=10)
+        b.add_ellipsoid(m_belly, side * 0.16, 0.045, 0.53, 0.052, 0.036, 0.075, segs=10, rings=6)
+        # Muscular hind legs
+        b.add_curved_tube(m_coat, [
+            (side * 0.17, 0.76, -0.52),
+            (side * 0.17, 0.44, -0.62),
+            (side * 0.17, 0.06, -0.56)
+        ], [0.105, 0.062, 0.044], segs=10)
+        b.add_ellipsoid(m_belly, side * 0.17, 0.045, -0.51, 0.052, 0.036, 0.075, segs=10, rings=6)
+
+    # Long expressive curved rudder tail with iconic white tip!
+    tail_pts = [(0, 0.82, -0.72), (0, 0.72, -0.96), (0, 0.62, -1.22), (0, 0.68, -1.46), (0, 0.82, -1.62)]
+    b.add_curved_tube(m_coat, tail_pts, [0.055, 0.046, 0.040, 0.036, 0.032], segs=10, cap_end=False)
+    b.add_ellipsoid(m_belly, 0.0, 0.85, -1.66, 0.038, 0.038, 0.062, segs=10, rings=6)
+
+    # Sleek neck + small aerodynamic cheetah head + iconic black tear stripes!
+    b.add_curved_tube(m_coat, [(0, 0.86, 0.48), (0, 1.00, 0.64), (0, 1.08, 0.76)], [0.14, 0.115, 0.105], segs=12, cap_end=False)
+    b.add_ellipsoid(m_coat, 0.0, 1.12, 0.84, 0.145, 0.135, 0.165, segs=16, rings=12)
+    b.add_ellipsoid(m_belly, 0.0, 1.06, 0.99, 0.088, 0.068, 0.095, segs=12, rings=8)
+    b.add_ellipsoid(m_dark, 0.0, 1.09, 1.07, 0.032, 0.024, 0.022, segs=8, rings=6)
+    for side in (-1, 1):
+        # Rounded alert ears
+        b.add_ellipsoid(m_coat, side * 0.105, 1.24, 0.79, 0.044, 0.052, 0.032, segs=10, rings=6, rz=side * -0.22)
+        b.add_ellipsoid(m_dark, side * 0.105, 1.24, 0.77, 0.038, 0.044, 0.018, segs=8, rings=6, rz=side * -0.22)
+        # Bright golden eyes + iconic black cheetah tear-mark stripes down snout!
+        b.add_ellipsoid(m_amber, side * 0.082, 1.15, 0.955, 0.032, 0.032, 0.022, segs=10, rings=6)
+        b.add_ellipsoid(m_dark, side * 0.084, 1.15, 0.972, 0.016, 0.022, 0.012, segs=8, rings=6)
+        b.add_ellipsoid(m_shine, side * 0.090, 1.160, 0.980, 0.008, 0.008, 0.006, segs=6, rings=5)
+        b.add_curved_tube(m_dark, [
+            (side * 0.062, 1.125, 0.968),
+            (side * 0.052, 1.078, 1.022),
+            (side * 0.044, 1.032, 1.045)
+        ], [0.012, 0.010, 0.008], segs=6)
+
+    b.save_glb(os.path.join(OUT_DIR, "anime_cheetah.glb"))
+
+
 if __name__ == "__main__":
-    print("Generating 30 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
+    print("Generating 33 AAA normal-mapped Shinkai/Ghibli .glb models into", OUT_DIR)
     build_tokyo_house_2f()
     build_tokyo_house_1f()
     build_kyoto_machiya()
@@ -2175,4 +2326,7 @@ if __name__ == "__main__":
     build_anime_lioness()
     build_anime_flamingo()
     build_anime_safari_jeep()
-    print("All 30 AAA .glb assets built successfully!")
+    build_anime_hippo()
+    build_anime_meerkat()
+    build_anime_cheetah()
+    print("All 33 AAA .glb assets built successfully!")

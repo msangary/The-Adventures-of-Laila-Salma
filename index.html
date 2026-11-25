@@ -11,6 +11,7 @@
 <body>
   <div id="game-container"></div>
   <div id="grain-overlay" class="grain-active"></div>
+  <div id="camera-flash" class="hidden"></div>
 
   <!-- Shinkansen Bullet Train World Transition Overlay -->
   <div id="travel-overlay" class="hidden">
@@ -70,6 +71,7 @@
   <!-- Top-Right Round Icon Buttons -->
   <div id="hud-top-right">
     <button id="btn-graphics-mode" class="graphics-btn" title="Switch Graphics Edition">✨ HD</button>
+    <button id="btn-safari-camera" class="icon-btn hidden" title="Safari Wildlife Camera &amp; 7-Animal Field Guide (F to Snap)">📸</button>
     <button id="btn-passport" class="icon-btn passport-btn" title="World Map &amp; Travel Passport (P)">🗺️</button>
     <button id="btn-time" class="icon-btn" title="Cycle Time of Day">🌤️</button>
     <button id="btn-grain" class="icon-btn active" title="Toggle Watercolor Paper Grain">🎨</button>
@@ -98,6 +100,15 @@
     <button id="btn-bike-bell" class="btn-small" type="button">🔔 Bell</button>
     <button id="btn-bike-dismount" class="btn-small" type="button">🅿️ Park (E)</button>
   </div>
+
+  <!-- Hot Air Balloon Sunrise Flight Banner -->
+  <div id="balloon-banner" class="hidden parchment-pill">
+    <span>🎈 Soaring Above the African Savanna!</span>
+    <button id="btn-skip-balloon" class="btn-small" type="button">Land Now 🪂</button>
+  </div>
+
+  <!-- Cheetah Sprint Challenge Race Banner -->
+  <div id="cheetah-banner" class="hidden parchment-pill">🐆 Cheetah Sprint! Get Ready...</div>
 
   <!-- Interact Prompt -->
   <div id="interact-prompt" class="hidden parchment-pill">
@@ -505,6 +516,63 @@
         <button class="btn-secondary ema-preset-btn" data-wish="Happy pets &amp; foxes! 🦊">Happy pets &amp; foxes! 🦊</button>
       </div>
       <div id="ema-wishes-list" class="room-cats-shelf" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Safari Wildlife Camera & 7-Animal Field Guide Modal -->
+  <div id="safari-guide-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>📸 Safari Wildlife Camera &amp; Field Guide</h2>
+        <button class="close-btn" data-close="safari-guide-modal">✕</button>
+      </div>
+      <p id="safari-guide-progress" class="ramen-sub">Photographed: 0 / 7 Savanna Species 📸</p>
+      <div class="modal-actions" style="margin-bottom:10px;">
+        <button id="btn-snap-wildlife-now" class="btn-primary">📸 Snap Nearest Wildlife Now! (Shortcut: F)</button>
+      </div>
+      <div id="safari-guide-grid" class="guide-grid"></div>
+      <div id="safari-guide-msg" class="ramen-msg"></div>
+    </div>
+  </div>
+
+  <!-- Safari Base Camp Djembe Campfire Drum Circle Modal -->
+  <div id="safari-campfire-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>🥁 Savanna Campfire &amp; Djembe Drum Circle</h2>
+        <button class="close-btn" data-close="safari-campfire-modal">✕</button>
+      </div>
+      <p class="ramen-sub">Gather around the glowing stone firepit with Laila &amp; Salma! Tap the African Djembe drums or roast golden marshmallows!</p>
+      <div class="djembe-grid">
+        <button class="djembe-pad" data-drum="bass">🥁 Deep Bass</button>
+        <button class="djembe-pad" data-drum="tone">🪘 Warm Tone</button>
+        <button class="djembe-pad" data-drum="slap">✨ Crisp Slap</button>
+        <button class="djembe-pad" data-drum="marimba">🎶 Savanna Marimba</button>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-campfire-jam" class="btn-secondary">🎵 Play Savanna Jam! (+10 XP)</button>
+        <button id="btn-roast-marshmallow" class="btn-primary">🔥🍡 Roast Marshmallows! (+15c)</button>
+      </div>
+      <div id="safari-campfire-msg" class="ramen-msg" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- Laila & Salma's 3D Safari Glamping Tent Decorator Modal -->
+  <div id="safari-tent-modal" class="modal-backdrop hidden">
+    <div class="modal-box parchment-modal">
+      <div class="modal-top">
+        <h2>⛺ Laila &amp; Salma's Safari Glamping Tent</h2>
+        <button class="close-btn" data-close="safari-tent-modal">✕</button>
+      </div>
+      <div id="safari-tent-preview" class="room-preview-box"></div>
+      <div id="safari-tent-cubs-shelf" class="room-cats-shelf"></div>
+      <div class="shop-tabs">
+        <button id="sttab-rug" class="shop-tab active">🧶 Woven Rugs</button>
+        <button id="sttab-cushion" class="shop-tab">🛋️ Poufs</button>
+        <button id="sttab-tapestry" class="shop-tab">🖼️ Tapestries</button>
+      </div>
+      <div id="safari-tent-items-grid" class="shop-grid"></div>
+      <div id="safari-tent-msg" class="ramen-msg"></div>
     </div>
   </div>
 

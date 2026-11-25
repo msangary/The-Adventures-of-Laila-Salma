@@ -893,6 +893,15 @@ window.LailaSalma = window.LailaSalma || {};
         { name: '🍉 Baobab Melon Splash', desc: 'Bouncy savanna refresher • Super-Jump for 65s (+14 XP)', cost: 20, xp: 14, superJumpMs: 65000 },
         { name: '🍍 Safari Explorer Trail Mix', desc: 'Full energy + Salma spots the nearest hiding Lion Cub! (+18 XP)', cost: 25, xp: 18, hint: true, buff: { name: 'Safari Trail Mix', short: 'Safari🦁', speedMult: 1.25, infiniteStamina: true, durationMs: 85000 } }
       ]
+    },
+    safari_crafts: {
+      title: '🎨 Maasai Bead & Savanna Craft Market',
+      sub: '“Karibu, Laila & Salma! Admire hand-beaded necklaces, painted savanna gourds & woven explorer baskets!”',
+      items: [
+        { name: '📿 Sunrise Beaded Bracelet', desc: 'Vibrant crimson & gold beads • Golden Sparkle Trail for 75s (+15 XP)', cost: 18, xp: 15, sparkleMs: 75000 },
+        { name: '🪘 Mini Pocket Shaker', desc: 'Joyful savanna rhythm • Speed +26% & Infinite Run for 80s (+18 XP)', cost: 22, xp: 18, buff: { name: 'Savanna Rhythm', short: 'Rhythm🥁', speedMult: 1.26, infiniteStamina: true, durationMs: 80000 } },
+        { name: '🦁 Carved Baobab Lion Charm', desc: 'Salma senses the nearest hiding Lion Cub + Super-Jump for 65s (+24 XP)', cost: 28, xp: 24, hint: true, superJumpMs: 65000 }
+      ]
     }
   };
 
@@ -959,11 +968,308 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   LS.startSafariJeepRide = function () {
-    if (LS.runtime.safariRide || LS.runtime.modalOpen || LS.runtime.traveling) return;
+    if (LS.runtime.safariRide || LS.runtime.balloonRide || LS.runtime.modalOpen || LS.runtime.traveling) return;
     if (!LS.activeWorld || !LS.activeWorld.jeepPath || !LS.activeWorld.safariJeep) return;
     LS.runtime.safariRide = { t: 0, duration: 15.0 };
     LS.playSFX('train');
     LS.showToast('🚙🦁 All aboard the Safari Jeep! Cruising past Giraffes, Elephants, Pride Rock & Zebras!');
+  };
+
+  // --- GRAND AFRICAN SAFARI EXPANSION ACTIVITIES ---
+  let activeSafariTentTab = 'rug';
+  function renderSafariTentPreview() {
+    const preview = document.getElementById('safari-tent-preview');
+    const shelf = document.getElementById('safari-tent-cubs-shelf');
+    const grid = document.getElementById('safari-tent-items-grid');
+    const msgEl = document.getElementById('safari-tent-msg');
+    if (!preview || !grid) return;
+
+    const rug = LS.SAFARI_TENT_RUGS.find(r => r.id === LS.state.safariTentRug) || LS.SAFARI_TENT_RUGS[0];
+    const cush = LS.SAFARI_TENT_CUSHIONS.find(c => c.id === LS.state.safariTentCushion) || LS.SAFARI_TENT_CUSHIONS[0];
+    const tap = LS.SAFARI_TENT_TAPESTRIES.find(t => t.id === LS.state.safariTentTapestry) || LS.SAFARI_TENT_TAPESTRIES[0];
+
+    preview.style.background = rug.color;
+    preview.style.borderColor = rug.accent;
+    preview.innerHTML =
+      '<div class="room-poster-banner" style="background:' + tap.bg + ';border-color:' + tap.border + ';color:' + (tap.fg || '#332211') + '">' + tap.label + '</div>' +
+      '<div class="room-stage-row">' +
+        '<span class="room-pill">👧 Laila</span>' +
+        '<span class="room-beanbag" style="background:' + cush.color + '">⛺ ' + cush.name + '</span>' +
+        '<span class="room-pill">🧒 Salma</span>' +
+      '</div>';
+
+    if (shelf) {
+      const cubNames = { cub_simba: '🦁 Simba', cub_nala: '🦁 Nala', cub_zuri: '🦁 Zuri', cub_kopa: '🦁 Kopa', cub_asha: '🦁 Asha' };
+      const found = LS.state.foundLionCubs || [];
+      shelf.innerHTML = '<strong>Safari Lion Cub Friends (' + found.length + '/5):</strong> ' +
+        Object.keys(cubNames).map(cid =>
+          '<span class="cat-shelf-badge ' + (found.includes(cid) ? 'found' : '') + '">' +
+          (found.includes(cid) ? cubNames[cid] : '🐾 ???') + '</span>'
+        ).join(' ');
+    }
+
+    const tRug = document.getElementById('sttab-rug');
+    const tCush = document.getElementById('sttab-cushion');
+    const tTap = document.getElementById('sttab-tapestry');
+    if (tRug) tRug.classList.toggle('active', activeSafariTentTab === 'rug');
+    if (tCush) tCush.classList.toggle('active', activeSafariTentTab === 'cushion');
+    if (tTap) tTap.classList.toggle('active', activeSafariTentTab === 'tapestry');
+
+    const sourceList = activeSafariTentTab === 'rug'
+      ? LS.SAFARI_TENT_RUGS
+      : (activeSafariTentTab === 'cushion' ? LS.SAFARI_TENT_CUSHIONS : LS.SAFARI_TENT_TAPESTRIES);
+    const activeId = activeSafariTentTab === 'rug'
+      ? LS.state.safariTentRug
+      : (activeSafariTentTab === 'cushion' ? LS.state.safariTentCushion : LS.state.safariTentTapestry);
+
+    grid.innerHTML = '';
+    sourceList.forEach(item => {
+      const unlocked = LS.state.unlockedSafariTentItems.includes(item.id);
+      const isActive = activeId === item.id;
+      const row = document.createElement('div');
+      row.className = 'shop-item' + (isActive ? ' equipped' : '');
+      const dotHtml = item.color ? '<span class="swatch-dot" style="background:' + item.color + '"></span>' : '🖼️ ';
+      const info = document.createElement('div');
+      info.innerHTML = '<strong>' + dotHtml + item.name + '</strong>';
+      const btn = document.createElement('button');
+      if (isActive) {
+        btn.className = 'btn-secondary'; btn.textContent = 'In Tent ✓'; btn.disabled = true;
+      } else if (unlocked) {
+        btn.className = 'btn-primary'; btn.textContent = 'Place';
+        btn.onclick = () => {
+          if (activeSafariTentTab === 'rug') LS.state.safariTentRug = item.id;
+          else if (activeSafariTentTab === 'cushion') LS.state.safariTentCushion = item.id;
+          else LS.state.safariTentTapestry = item.id;
+          LS.saveState();
+          if (LS.activeWorld && LS.activeWorld.refreshDecor) LS.activeWorld.refreshDecor();
+          if (msgEl) msgEl.textContent = '';
+          renderSafariTentPreview();
+          LS.showToast('⛺ Updated 3D Glamping Tent with ' + item.name + '!');
+        };
+      } else {
+        btn.className = 'btn-primary'; btn.textContent = item.cost + 'c';
+        btn.onclick = () => {
+          if (LS.state.coins < item.cost) {
+            if (msgEl) msgEl.textContent = 'Need more coins! Snap wildlife photos, race the Cheetah, or find lion cubs.';
+            LS.playSFX('wrong'); return;
+          }
+          LS.addCoins(-item.cost);
+          LS.state.unlockedSafariTentItems.push(item.id);
+          if (activeSafariTentTab === 'rug') LS.state.safariTentRug = item.id;
+          else if (activeSafariTentTab === 'cushion') LS.state.safariTentCushion = item.id;
+          else LS.state.safariTentTapestry = item.id;
+          LS.saveState();
+          if (LS.activeWorld && LS.activeWorld.refreshDecor) LS.activeWorld.refreshDecor();
+          LS.unlockStamp('safari_tent_decor');
+          LS.playSFX('correct');
+          if (msgEl) msgEl.textContent = '';
+          renderSafariTentPreview();
+          LS.showToast('⛺ Added ' + item.name + ' to your 3D Safari Glamping Tent!');
+        };
+      }
+      row.appendChild(info); row.appendChild(btn); grid.appendChild(row);
+    });
+  }
+
+  LS.openSafariTentModal = function () {
+    LS.runtime.modalOpen = true;
+    const m = document.getElementById('safari-tent-msg');
+    if (m) m.textContent = '';
+    renderSafariTentPreview();
+    const modal = document.getElementById('safari-tent-modal');
+    if (modal) modal.classList.remove('hidden');
+  };
+
+  function renderSafariWildlifeGuide() {
+    const grid = document.getElementById('safari-guide-grid');
+    const prog = document.getElementById('safari-guide-progress');
+    if (!grid) return;
+    const photos = LS.state.safariPhotos || [];
+    if (prog) prog.textContent = 'Photographed: ' + photos.length + ' / ' + LS.SAFARI_WILDLIFE_GUIDE.length + ' Savanna Species 📸';
+    grid.innerHTML = '';
+    LS.SAFARI_WILDLIFE_GUIDE.forEach(sp => {
+      const snapped = photos.includes(sp.id);
+      const card = document.createElement('div');
+      card.className = 'guide-card' + (snapped ? ' snapped' : '');
+      card.innerHTML =
+        '<div class="guide-head"><span>' + sp.emoji + ' <strong>' + sp.name + '</strong></span>' +
+        '<span class="guide-badge">' + (snapped ? '✅ Snapped' : '📍 ' + sp.spot) + '</span></div>' +
+        '<div class="guide-fact">' + (snapped ? sp.fact : 'Walk near the ' + sp.spot + ' and press [F] or click Snap Photo!') + '</div>';
+      grid.appendChild(card);
+    });
+  }
+
+  LS.openSafariGuideModal = function () {
+    LS.runtime.modalOpen = true;
+    const msg = document.getElementById('safari-guide-msg');
+    if (msg) msg.textContent = '';
+    renderSafariWildlifeGuide();
+    const modal = document.getElementById('safari-guide-modal');
+    if (modal) modal.classList.remove('hidden');
+  };
+
+  LS.snapSafariWildlifePhoto = function () {
+    if (LS.state.currentWorld !== 'safari' || !LS.activeWorld || !LS.chars.laila) return false;
+    const lp = LS.chars.laila.root.position;
+    const targets = LS.activeWorld.wildlifePhotoTargets || [];
+    let best = null;
+    let bestDist = 26.0;
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      const d = Math.hypot(lp.x - t.pos.x, lp.z - t.pos.z);
+      if (d < bestDist) { bestDist = d; best = t; }
+    }
+    if (LS.playCameraShutter) LS.playCameraShutter();
+    // Subtle quick camera flash pulse
+    const flash = document.getElementById('camera-flash');
+    if (flash) {
+      flash.classList.remove('hidden');
+      setTimeout(() => flash.classList.add('hidden'), 140);
+    }
+    if (!best) {
+      LS.showToast('📸 Click! Walk a bit closer to Giraffes, Elephants, Hippos, Flamingos, Lions, Zebras, or Meerkats!');
+      return false;
+    }
+    const meta = LS.SAFARI_WILDLIFE_GUIDE.find(g => g.id === best.species);
+    if (!meta) return false;
+    if (!LS.state.safariPhotos) LS.state.safariPhotos = [];
+    const isNew = !LS.state.safariPhotos.includes(meta.id);
+    if (isNew) {
+      LS.state.safariPhotos.push(meta.id);
+      LS.addCoins(15);
+      LS.addXP(15);
+      LS.saveState();
+      LS.playSFX('animal');
+      if (LS.state.safariPhotos.length >= LS.SAFARI_WILDLIFE_GUIDE.length) {
+        LS.unlockStamp('safari_photographer');
+        LS.showToast('📸🏆 ALL 7 Wildlife Species Photographed! Master Safari Photographer Stamp unlocked! (+15c, +15 XP)');
+      } else {
+        LS.showToast('📸 NEW Photo: ' + meta.emoji + ' ' + meta.name + ' (' + LS.state.safariPhotos.length + '/7)! +15c & +15 XP!');
+      }
+    } else {
+      LS.showToast('📸 Great shot of the ' + meta.emoji + ' ' + meta.name + '! (' + LS.state.safariPhotos.length + '/7 in Field Guide)');
+    }
+    renderSafariWildlifeGuide();
+    return true;
+  };
+
+  LS.openSafariCampfireModal = function () {
+    LS.runtime.modalOpen = true;
+    const msg = document.getElementById('safari-campfire-msg');
+    if (msg) msg.textContent = 'Tap the African Djembe drums to jam around the fire or roast golden marshmallows!';
+    const modal = document.getElementById('safari-campfire-modal');
+    if (modal) modal.classList.remove('hidden');
+  };
+
+  LS.startBalloonRide = function () {
+    if (LS.runtime.balloonRide || LS.runtime.safariRide || LS.runtime.modalOpen || LS.runtime.traveling) return;
+    if (!LS.activeWorld || !LS.activeWorld.hotAirBalloon) return;
+    LS.runtime.balloonRide = { t: 0, duration: 16.0 };
+    const ban = document.getElementById('balloon-banner');
+    if (ban) ban.classList.remove('hidden');
+    LS.playSFX('train');
+    LS.setSalmaBubbleText('WHOAAA!! We are flying over Pride Rock, the Hippos, and Mt. Kilimanjaro!! 🎈🏔️', 5000);
+    LS.showToast('🎈 Lift off! Soaring 20m above the golden African Savanna!');
+  };
+
+  LS.finishBalloonRide = function (skipped) {
+    if (!LS.runtime.balloonRide) return;
+    LS.runtime.balloonRide = null;
+    const ban = document.getElementById('balloon-banner');
+    if (ban) ban.classList.add('hidden');
+    const bal = LS.activeWorld && LS.activeWorld.hotAirBalloon;
+    const home = LS.activeWorld && LS.activeWorld.balloonHome;
+    if (bal && home) {
+      bal.position.copy(home.pos);
+      bal.rotation.set(0, 0, 0);
+      if (LS.chars.laila) {
+        LS.chars.laila.root.position.copy(home.exit);
+        LS.chars.laila.rightArm.rotation.z = 0;
+      }
+      if (LS.chars.salma) {
+        LS.chars.salma.root.position.set(home.exit.x - 1.0, 0, home.exit.z + 0.5);
+        LS.chars.salma.rightArm.rotation.z = 0;
+      }
+    }
+    LS.addCoins(30);
+    LS.addXP(25);
+    LS.unlockStamp('safari_balloon');
+    LS.playSFX('correct');
+    LS.showToast(skipped
+      ? '🎈 Safely landed back at the Launch Pad! +30c & +25 XP!'
+      : '🎈✨ Unforgettable Sunrise Balloon Flight! +30c & +25 XP!');
+  };
+
+  LS.startCheetahRace = function () {
+    if (LS.runtime.cheetahRace || LS.runtime.balloonRide || LS.runtime.safariRide || LS.runtime.modalOpen) return;
+    if (!LS.activeWorld || !LS.activeWorld.cheetahTrack || !LS.chars.laila) return;
+    const tr = LS.activeWorld.cheetahTrack;
+    LS.chars.laila.root.position.set(tr.start.x, 0, tr.start.z - 0.8);
+    LS.chars.laila.root.rotation.y = tr.yaw;
+    if (LS.chars.salma) {
+      LS.chars.salma.root.position.set(tr.start.x - 0.9, 0, tr.start.z - 1.4);
+      LS.chars.salma.root.rotation.y = tr.yaw;
+    }
+    LS.runtime.stamina = 100;
+    LS.runtime.cheetahRace = { phase: 'countdown', countdown: 2.6, elapsed: 0, cheetahProg: 0 };
+    LS.playSFX('jump');
+    LS.setSalmaBubbleText('Go Laila GO!! Hold Shift to sprint past the spotted Cheetah! 🐆💨', 4200);
+  };
+
+  LS.finishCheetahRace = function (won, timeSec) {
+    LS.runtime.cheetahRace = null;
+    const ban = document.getElementById('cheetah-banner');
+    if (ban) ban.classList.add('hidden');
+    if (LS.activeWorld && LS.activeWorld.cheetahObj && LS.activeWorld.cheetahTrack) {
+      const ch = LS.activeWorld.cheetahObj;
+      const tr = LS.activeWorld.cheetahTrack;
+      ch.position.set(tr.start.x, 0, tr.start.z + 1.1);
+      ch.rotation.set(0, tr.yaw, 0);
+    }
+    if (won) {
+      LS.addCoins(35);
+      LS.addXP(30);
+      LS.unlockStamp('safari_cheetah');
+      LS.playSFX('levelup');
+      LS.showToast('🐆🏆 YOU BEAT THE CHEETAH in ' + timeSec.toFixed(1) + 's! +35c & +30 XP!');
+    } else {
+      LS.addCoins(15);
+      LS.addXP(15);
+      LS.playSFX('coin');
+      LS.showToast('🐆💨 Super speedy race! Grab a Mango Smoothie for turbo speed & try again! (+15c, +15 XP)');
+    }
+  };
+
+  LS.triggerWatchtowerLookout = function () {
+    if (LS.runtime.balloonRide || LS.runtime.safariRide) return;
+    LS.runtime.watchtowerTimer = 6.0;
+    LS.playSFX('shrine');
+    LS.addXP(10);
+    // Salma spots the direction of the nearest unfound Lion Cub from the Watchtower binoculars!
+    const cubs = (LS.activeWorld && LS.activeWorld.hiddenAnimals) ? LS.activeWorld.hiddenAnimals.filter(c => !c.found) : [];
+    if (cubs.length > 0 && LS.chars.laila) {
+      const lp = LS.chars.laila.root.position;
+      let nearest = cubs[0];
+      let bestD = Infinity;
+      cubs.forEach(c => {
+        const d = lp.distanceTo(c.mesh.position);
+        if (d < bestD) { bestD = d; nearest = c; }
+      });
+      LS.setSalmaBubbleText('🔭 Through the binoculars I spy ' + nearest.name + ' ' + nearest.hint + '!', 5800);
+      LS.showToast('🔭 Watchtower Panorama! Salma spotted ' + nearest.name + ' ' + nearest.hint + '! (+10 XP)');
+    } else {
+      LS.setSalmaBubbleText('🔭 What a breathtaking 360° view of the whole African Savanna!!', 5500);
+      LS.showToast('🔭 Breathtaking Savanna Watchtower Panorama! (+10 XP)');
+    }
+  };
+
+  LS.triggerPrideRockRoar = function () {
+    LS.runtime.prideRoarTimer = 2.2;
+    if (LS.playLionRoar) LS.playLionRoar();
+    LS.addCoins(10);
+    LS.addXP(10);
+    LS.setSalmaBubbleText('ROOOAAAR!! King Lion said hello to us from the top of Pride Rock! 🦁👑', 4200);
+    LS.showToast('🦁👑 ROOOAAR! King Lion lifts his golden mane atop Pride Rock! +10c & +10 XP!');
   };
 
   LS.petHiddenAnimal = function (animalId) {
@@ -1015,7 +1321,8 @@ window.LailaSalma = window.LailaSalma || {};
     [
       'passport-modal', 'airport-modal', 'local-shop-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
       'sushi-modal', 'tea-modal', 'shop-modal', 'gachapon-modal',
-      'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal'
+      'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal',
+      'safari-guide-modal', 'safari-campfire-modal', 'safari-tent-modal'
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -1373,6 +1680,64 @@ window.LailaSalma = window.LailaSalma || {};
     if (resetConfirm) {
       resetConfirm.addEventListener('click', () => {
         if (LS.resetProgress) LS.resetProgress();
+      });
+    }
+
+    // --- GRAND AFRICAN SAFARI UI LISTENERS ---
+    const btnSafCam = document.getElementById('btn-safari-camera');
+    if (btnSafCam) btnSafCam.addEventListener('click', () => LS.openSafariGuideModal());
+    const btnSnapNow = document.getElementById('btn-snap-wildlife-now');
+    if (btnSnapNow) {
+      btnSnapNow.addEventListener('click', () => {
+        LS.closeAllModals();
+        LS.snapSafariWildlifePhoto();
+      });
+    }
+    const btnSkipBalloon = document.getElementById('btn-skip-balloon');
+    if (btnSkipBalloon) btnSkipBalloon.addEventListener('click', () => LS.finishBalloonRide(true));
+
+    // Safari Glamping Tent Decorator Tabs
+    const stRug = document.getElementById('sttab-rug');
+    const stCush = document.getElementById('sttab-cushion');
+    const stTap = document.getElementById('sttab-tapestry');
+    if (stRug) stRug.addEventListener('click', () => { activeSafariTentTab = 'rug'; renderSafariTentPreview(); });
+    if (stCush) stCush.addEventListener('click', () => { activeSafariTentTab = 'cushion'; renderSafariTentPreview(); });
+    if (stTap) stTap.addEventListener('click', () => { activeSafariTentTab = 'tapestry'; renderSafariTentPreview(); });
+
+    // Djembe Campfire Drum Circle Pads, Auto-Jam & Marshmallow Roast
+    document.querySelectorAll('.djembe-pad').forEach(pad => {
+      pad.addEventListener('click', () => {
+        const kind = pad.getAttribute('data-drum');
+        if (LS.playDjembeSound) LS.playDjembeSound(kind);
+        pad.classList.add('active');
+        setTimeout(() => pad.classList.remove('active'), 160);
+        const msg = document.getElementById('safari-campfire-msg');
+        if (msg) msg.textContent = '🥁 Boom-bap! Laila & Salma jam on the Savanna Djembe drum!';
+      });
+    });
+    const btnJam = document.getElementById('btn-campfire-jam');
+    if (btnJam) {
+      btnJam.addEventListener('click', () => {
+        const seq = ['bass', 'tone', 'slap', 'tone', 'marimba', 'bass', 'slap', 'marimba'];
+        seq.forEach((k, idx) => {
+          setTimeout(() => { if (LS.playDjembeSound) LS.playDjembeSound(k); }, idx * 190);
+        });
+        LS.addXP(10);
+        const msg = document.getElementById('safari-campfire-msg');
+        if (msg) msg.textContent = '🎶 Savanna Sunset Jam playing! The stars twinkle above Base Camp! (+10 XP)';
+      });
+    }
+    const btnRoast = document.getElementById('btn-roast-marshmallow');
+    if (btnRoast) {
+      btnRoast.addEventListener('click', () => {
+        LS.addCoins(15);
+        LS.addXP(15);
+        LS.unlockStamp('safari_campfire');
+        LS.playSFX('coin');
+        LS.runtime.sparkleUntil = Date.now() + 45000;
+        const msg = document.getElementById('safari-campfire-msg');
+        if (msg) msg.textContent = '🔥🍡 Golden toasted marshmallows! Warm campfire sparkle trail active! (+15c, +15 XP)';
+        LS.showToast('🔥🍡 Toasted Campfire Marshmallows with Laila & Salma! +15c & +15 XP!');
       });
     }
   };

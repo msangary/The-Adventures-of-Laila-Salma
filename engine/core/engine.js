@@ -124,7 +124,7 @@ window.LailaSalma = window.LailaSalma || {};
     if (hdPetals) hdPetals.visible = !meta.isInterior && (wid === 'tokyo' || wid === 'kyoto');
 
     if (meta.isInterior) {
-      scene.fog.color.setHex(wid === 'kyoto_room' ? 0x3b2c26 : 0xffeef4);
+      scene.fog.color.setHex(wid === 'kyoto_room' ? 0x3b2c26 : (wid === 'safari_tent' ? 0x5c3e26 : 0xffeef4));
       dirLight.color.setHex(0xfff1d6);
       dirLight.intensity = LS.isHD ? 0.85 : 0.62;
       hemiLight.color.setHex(0xfff4e2);
@@ -358,9 +358,19 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.mochiGame = null;
     LS.runtime.parkActivity = null;
     LS.runtime.safariRide = null;
+    LS.runtime.balloonRide = null;
+    LS.runtime.cheetahRace = null;
+    LS.runtime.watchtowerTimer = 0;
+    LS.runtime.prideRoarTimer = 0;
     LS.runtime.bikeRide = null;
     const bikeBan = document.getElementById('bike-banner');
     if (bikeBan) bikeBan.classList.add('hidden');
+    const balBan = document.getElementById('balloon-banner');
+    if (balBan) balBan.classList.add('hidden');
+    const chBan = document.getElementById('cheetah-banner');
+    if (chBan) chBan.classList.add('hidden');
+    const camBtn = document.getElementById('btn-safari-camera');
+    if (camBtn) camBtn.classList.toggle('hidden', worldId !== 'safari');
     LS.runtime.nearZone = null;
     LS.runtime.piggybackUntil = 0;
     LS.closeAllModals();
@@ -420,7 +430,7 @@ window.LailaSalma = window.LailaSalma || {};
     const baseH = LS.activeWorld.getGroundHeight ? LS.activeWorld.getGroundHeight(sp.x, sp.z) : 0;
     LS.chars.laila.root.position.set(sp.x, baseH, sp.z);
     LS.chars.laila.root.rotation.y = sp.rotY;
-    LS.chars.salma.root.position.set(sp.x - 1.1, baseH, sp.z + 1.1);
+    LS.chars.salma.root.position.set(sp.x - (meta.isInterior ? 1.25 : 1.1), baseH, sp.z + (meta.isInterior ? -0.45 : 1.1));
     LS.chars.salma.root.rotation.y = sp.rotY;
     grounded = true;
     salmaGrounded = true;
@@ -449,7 +459,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     const legendAnimal = document.getElementById('mm-animal-label');
     if (legendAnimal) {
-      legendAnimal.innerHTML = worldId === 'safari'
+      legendAnimal.innerHTML = (worldId === 'safari' || worldId === 'safari_tent')
         ? '<i class="mm-dot mm-cat"></i>Cubs'
         : ((worldId === 'kyoto' || worldId === 'kyoto_room')
           ? '<i class="mm-dot mm-cat"></i>Foxes'
@@ -459,10 +469,12 @@ window.LailaSalma = window.LailaSalma || {};
     if (mmCard) mmCard.title = meta.title + ' Mini-Map (M to toggle)';
 
     if (meta.isInterior) {
-      LS.setSalmaBubbleText('Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
-      LS.unlockStamp('room_decorator');
+      LS.setSalmaBubbleText(worldId === 'safari_tent'
+        ? 'Whoa! Our cozy Safari Glamping Tent! Let us decorate the rug & cushions! ⛺✨'
+        : 'Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
+      LS.unlockStamp(worldId === 'safari_tent' ? 'safari_tent_decor' : 'room_decorator');
     } else if (worldId === 'safari') {
-      LS.setSalmaBubbleText('Whoa, African Safari!! Let us ride the Jeep, feed giraffes & elephants & find 5 lion cubs! 🦒🐘🦁', 0);
+      LS.setSalmaBubbleText('Whoa, African Safari!! Ride the Balloon or Jeep, snap wildlife photos [F], & race the Cheetah! 🎈🦒🦁', 0);
       LS.unlockStamp('safari_arrival');
     } else if (worldId === 'kyoto') {
       LS.setSalmaBubbleText('Whoa, Kyoto! Let us cross the koi bridge, visit the park & find 5 foxes! ⛩️🦊', 0);
@@ -488,9 +500,11 @@ window.LailaSalma = window.LailaSalma || {};
   LS.enterInterior = function (roomId) {
     LS.playSFX('door');
     LS.loadWorld(roomId, false);
-    LS.showToast(roomId === 'kyoto_room'
-      ? "🏮 Welcome inside Laila & Salma's Kyoto Ryokan Suite!"
-      : "🏡 Welcome inside Laila & Salma's Tokyo Room!");
+    LS.showToast(roomId === 'safari_tent'
+      ? "⛺ Welcome inside Laila & Salma's Safari Glamping Tent!"
+      : (roomId === 'kyoto_room'
+        ? "🏮 Welcome inside Laila & Salma's Kyoto Ryokan Suite!"
+        : "🏡 Welcome inside Laila & Salma's Tokyo Room!"));
   };
 
   LS.exitInterior = function () {
@@ -749,8 +763,10 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'drink_vending') LS.openDrinkVendingModal();
     else if (zid === 'clubhouse') LS.enterInterior('tokyo_room');
     else if (zid === 'kyoto_ryokan') LS.enterInterior('kyoto_room');
+    else if (zid === 'enter_safari_tent') LS.enterInterior('safari_tent');
     else if (zid === 'decorate_tokyo_room') LS.openClubhouseModal();
     else if (zid === 'decorate_ryokan') LS.openRyokanModal();
+    else if (zid === 'decorate_safari_tent') LS.openSafariTentModal();
     else if (zid === 'exit_interior') LS.exitInterior();
     else if (zid === 'shrine_omikuji') LS.openShrineModal();
     else if (zid === 'koi_dock') LS.feedKoiAndDucks();
@@ -760,10 +776,15 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'safari_shop') LS.openShopModal('safari');
     else if (zid === 'safari_stickers') LS.openGachaponModal('safari');
     else if (
-      zid === 'safari_cafe' || zid === 'sakura_bakery' || zid === 'sunny_florist' ||
+      zid === 'safari_cafe' || zid === 'safari_crafts' || zid === 'sakura_bakery' || zid === 'sunny_florist' ||
       zid === 'cozy_bookshop' || zid === 'kyoto_pottery' || zid === 'kyoto_fans'
     ) LS.openLocalShopModal(zid);
     else if (zid === 'safari_jeep') LS.startSafariJeepRide();
+    else if (zid === 'safari_balloon') LS.startBalloonRide();
+    else if (zid === 'safari_campfire') LS.openSafariCampfireModal();
+    else if (zid === 'safari_cheetah_race') LS.startCheetahRace();
+    else if (zid === 'safari_watchtower') LS.triggerWatchtowerLookout();
+    else if (zid === 'safari_pride_roar') LS.triggerPrideRockRoar();
     else if (zid === 'safari_feed_giraffe') LS.feedSafariAnimals('giraffe');
     else if (zid === 'safari_feed_elephant') LS.feedSafariAnimals('elephant');
     else if (zid === 'mochi') LS.openMochiModal();
@@ -802,6 +823,7 @@ window.LailaSalma = window.LailaSalma || {};
       if (k === 'm') toggleMiniMap();
       if (k === 'h') toggleHudCard();
       if (k === 'p') LS.openPassportModal();
+      if (k === 'f' && LS.state.currentWorld === 'safari' && LS.snapSafariWildlifePhoto) LS.snapSafariWildlifePhoto();
       if (k === 'r') toggleRunButton();
       if (k === 'e') triggerInteract();
       if (k === ' ') triggerJump();
@@ -1191,6 +1213,48 @@ window.LailaSalma = window.LailaSalma || {};
       return;
     }
 
+    // Scenic Hot Air Balloon Sunrise Flight over Pride Rock, Elephant Oasis & Mt. Kilimanjaro!
+    if (LS.runtime.balloonRide && LS.activeWorld && LS.activeWorld.hotAirBalloon) {
+      const br = LS.runtime.balloonRide;
+      br.t += dt / br.duration;
+      const bal = LS.activeWorld.hotAirBalloon;
+      const home = LS.activeWorld.balloonHome ? LS.activeWorld.balloonHome.pos : new THREE.Vector3(12.5, 0, -3.5);
+      const u = Math.min(1, br.t);
+      // Smooth takeoff (0..0.22), high panoramic drift loop (0.22..0.78), gentle landing (0.78..1.0)
+      const altEnv = Math.sin(u * Math.PI);
+      const yAlt = Math.pow(altEnv, 0.72) * 19.5;
+      const driftEnv = Math.sin(u * Math.PI);
+      const bx = home.x - Math.sin(u * Math.PI * 2) * 16.0 * driftEnv;
+      const bz = home.z - (1 - Math.cos(u * Math.PI * 2)) * 12.0 * driftEnv;
+      bal.position.set(bx, yAlt, bz);
+      bal.rotation.y = Math.sin(u * Math.PI * 2) * 0.45;
+      bal.rotation.z = Math.sin(elapsed * 1.1) * 0.03;
+
+      // Stand Laila & Salma happily inside the wicker basket looking out & waving!
+      laila.root.position.set(bx - 0.32, yAlt + 0.25, bz + 0.15);
+      laila.root.rotation.y = Math.PI + Math.sin(elapsed * 0.6) * 0.4;
+      laila.leftLeg.rotation.x = 0; laila.rightLeg.rotation.x = 0;
+      laila.rightArm.rotation.x = -0.35; laila.rightArm.rotation.z = 2.0 + Math.sin(elapsed * 5.5) * 0.28;
+      if (LS.applyArticulatedPose) LS.applyArticulatedPose(laila, 0, 'idle', elapsed);
+      if (salma) {
+        salma.root.position.set(bx + 0.34, yAlt + 0.25, bz - 0.12);
+        salma.root.rotation.y = Math.PI - Math.sin(elapsed * 0.6) * 0.4;
+        salma.leftLeg.rotation.x = 0; salma.rightLeg.rotation.x = 0;
+        salma.rightArm.rotation.x = -0.4; salma.rightArm.rotation.z = 2.1 + Math.sin(elapsed * 6.2) * 0.3;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(salma, 0, 'idle', elapsed + 0.4);
+      }
+
+      if (br.t >= 1.0 && LS.finishBalloonRide) {
+        LS.finishBalloonRide(false);
+      }
+      return;
+    }
+
+    // Watchtower panoramic lookout countdown (Laila & Salma admire the view from the watchtower!)
+    if (LS.runtime.watchtowerTimer > 0) {
+      LS.runtime.watchtowerTimer = Math.max(0, LS.runtime.watchtowerTimer - dt);
+    }
+
     // Interactive Pocket Park Activities (Slide, Swing, Hopscotch) — works in BOTH Tokyo & Kyoto!
     if (LS.runtime.parkActivity) {
       const pa = LS.runtime.parkActivity;
@@ -1501,6 +1565,52 @@ window.LailaSalma = window.LailaSalma || {};
       if (mg.timeLeft <= 0) LS.finishMochiMiniGame();
     }
 
+    // Cheetah Sprint Challenge Race update!
+    if (LS.runtime.cheetahRace && LS.activeWorld && LS.activeWorld.cheetahObj && LS.activeWorld.cheetahTrack) {
+      const cr = LS.runtime.cheetahRace;
+      const tr = LS.activeWorld.cheetahTrack;
+      const ch = LS.activeWorld.cheetahObj;
+      const banner = document.getElementById('cheetah-banner');
+      if (cr.phase === 'countdown') {
+        cr.countdown -= dt;
+        const n = Math.ceil(cr.countdown);
+        if (banner) {
+          banner.textContent = n > 0 ? ('🐆 Cheetah Sprint! Get Ready: ' + n + '...') : '🐆 GO!! Sprint to the Finish Arch! (Hold Shift / Run!)';
+          banner.classList.remove('hidden');
+        }
+        // Keep Laila & Cheetah ready at the start line during countdown
+        ch.position.set(tr.start.x, 0, tr.start.z + 1.1);
+        ch.rotation.y = tr.yaw;
+        if (cr.countdown <= 0) {
+          cr.phase = 'racing';
+          LS.playSFX('coin');
+          LS.showToast('🐆🏁 GO! Sprint through the golden gates to beat the Cheetah!');
+        }
+      } else if (cr.phase === 'racing') {
+        cr.elapsed += dt;
+        // Friendly, beatable bounding Cheetah pace (completes ~22.5m track in ~4.6s when player sprints!)
+        cr.cheetahProg = Math.min(1, cr.cheetahProg + dt / 4.8);
+        const cx = tr.start.x + (tr.end.x - tr.start.x) * cr.cheetahProg;
+        const cz = tr.start.z + 1.1 + (tr.end.z - tr.start.z) * cr.cheetahProg;
+        const boundY = Math.abs(Math.sin(elapsed * 16)) * 0.42;
+        ch.position.set(cx, boundY, cz);
+        ch.rotation.y = tr.yaw;
+        ch.rotation.x = Math.cos(elapsed * 16) * 0.14;
+
+        const lp = laila.root.position;
+        const playerDistToFinish = Math.hypot(lp.x - tr.end.x, lp.z - tr.end.z);
+        if (banner) {
+          banner.textContent = '🐆 Sprint to Finish: ' + Math.max(0, Math.round(playerDistToFinish)) + 'm • Time: ' + cr.elapsed.toFixed(1) + 's';
+          banner.classList.remove('hidden');
+        }
+        if (playerDistToFinish < 3.2) {
+          if (LS.finishCheetahRace) LS.finishCheetahRace(true, cr.elapsed);
+        } else if (cr.cheetahProg >= 1.0 && cr.elapsed > 5.8) {
+          if (LS.finishCheetahRace) LS.finishCheetahRace(false, cr.elapsed);
+        }
+      }
+    }
+
     // Zone proximity check
     let found = null;
     const zones = LS.activeWorld.zones || [];
@@ -1622,6 +1732,32 @@ window.LailaSalma = window.LailaSalma || {};
       _chaseLook.set(jp.x + Math.sin(jy) * 2.5, jp.y + 1.5, jp.z + Math.cos(jy) * 2.5);
       camera.position.lerp(_chasePos, Math.min(1, dt * 5.0));
       camTarget.lerp(_chaseLook, Math.min(1, dt * 7.0));
+      camera.lookAt(camTarget);
+      camSnapNext = false;
+      return;
+    }
+
+    // Sweeping Aerial Sunrise Hot Air Balloon Panorama Camera!
+    if (LS.runtime.balloonRide && LS.activeWorld && LS.activeWorld.hotAirBalloon) {
+      const bp = LS.activeWorld.hotAirBalloon.position;
+      const ang = LS.runtime.balloonRide.t * Math.PI * 1.4 + 0.55;
+      _chasePos.set(bp.x + Math.sin(ang) * 14.5, bp.y + 6.8, bp.z + Math.cos(ang) * 14.5);
+      _chaseLook.set(bp.x * 0.72, bp.y + 3.2, bp.z * 0.72 - 12.0);
+      camera.position.lerp(_chasePos, Math.min(1, dt * 4.0));
+      camTarget.lerp(_chaseLook, Math.min(1, dt * 5.5));
+      camera.lookAt(camTarget);
+      camSnapNext = false;
+      return;
+    }
+
+    // Elevated Timber Ranger Watchtower 360-degree Panoramic Lookout Camera!
+    if (LS.runtime.watchtowerTimer > 0 && LS.activeWorld && LS.activeWorld.watchtowerPos) {
+      const wp = LS.activeWorld.watchtowerPos;
+      const sweep = (1 - LS.runtime.watchtowerTimer / 6.0) * Math.PI * 2.0;
+      _chasePos.set(wp.x + Math.sin(sweep) * 1.6, wp.y + 1.2, wp.z + Math.cos(sweep) * 1.6);
+      _chaseLook.set(wp.x + Math.sin(sweep) * 24.0, 2.2, wp.z + Math.cos(sweep) * 24.0);
+      camera.position.lerp(_chasePos, Math.min(1, dt * 4.5));
+      camTarget.lerp(_chaseLook, Math.min(1, dt * 5.5));
       camera.lookAt(camTarget);
       camSnapNext = false;
       return;
@@ -2016,6 +2152,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (LS.activeWorld && LS.activeWorld.update) {
           LS.activeWorld.update(dt, elapsed);
         }
+        if (LS.tickSafariAmbience) LS.tickSafariAmbience(dt);
         updateZoneBeacons(elapsed);
         updateHDAtmosphere(dt, elapsed);
         if (LS.hdPost && LS.hdPost.update) LS.hdPost.update(elapsed);

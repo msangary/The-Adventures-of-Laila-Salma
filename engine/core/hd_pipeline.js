@@ -31,7 +31,10 @@ window.LailaSalma = window.LailaSalma || {};
     anime_lion_king: 'assets/hd/anime_lion_king.glb',
     anime_lioness: 'assets/hd/anime_lioness.glb',
     anime_flamingo: 'assets/hd/anime_flamingo.glb',
-    anime_safari_jeep: 'assets/hd/anime_safari_jeep.glb'
+    anime_safari_jeep: 'assets/hd/anime_safari_jeep.glb',
+    anime_hippo: 'assets/hd/anime_hippo.glb',
+    anime_meerkat: 'assets/hd/anime_meerkat.glb',
+    anime_cheetah: 'assets/hd/anime_cheetah.glb'
   };
 
   const cache = {};
@@ -656,11 +659,51 @@ window.LailaSalma = window.LailaSalma || {};
     ctx.fillStyle = grad; ctx.fillRect(0, 0, 2048, 1024);
 
     if (mode === 2) {
-      ctx.fillStyle = 'rgba(255, 250, 224, 0.9)';
-      for (let i = 0; i < 240; i++) {
+      if (isSafari) {
+        // Subtle diagonal Milky Way band across the African night sky
+        ctx.save();
+        ctx.translate(1024, 240);
+        ctx.rotate(-0.24);
+        const mw = ctx.createLinearGradient(0, -140, 0, 140);
+        mw.addColorStop(0, 'rgba(130, 160, 230, 0)');
+        mw.addColorStop(0.5, 'rgba(160, 188, 248, 0.16)');
+        mw.addColorStop(1, 'rgba(130, 160, 230, 0)');
+        ctx.fillStyle = mw;
+        ctx.fillRect(-1100, -140, 2200, 280);
+        ctx.restore();
+      }
+      ctx.fillStyle = 'rgba(255, 250, 224, 0.92)';
+      const starCount = isSafari ? 360 : 240;
+      for (let i = 0; i < starCount; i++) {
         ctx.beginPath();
-        ctx.arc(hash01(i * 9.1) * 2048, hash01(i * 4.7) * 480, (i % 5 === 0) ? 2.6 : 1.3, 0, Math.PI * 2);
+        ctx.arc(hash01(i * 9.1) * 2048, hash01(i * 4.7) * 490, (i % 5 === 0) ? 2.8 : 1.3, 0, Math.PI * 2);
         ctx.fill();
+      }
+      if (isSafari) {
+        // Glowing golden African Night Constellations (Southern Cross, Leo the Lion & Orion!)
+        const constellations = [
+          // Southern Cross (Crux)
+          [[460, 175], [510, 235], [460, 305], [415, 230], [460, 175]],
+          // Leo the Lion (Savanna King Constellation!)
+          [[940, 255], [995, 220], [1050, 185], [1095, 168], [1128, 198], [1090, 235], [1038, 245], [995, 220]],
+          // Orion Belt & Shoulders
+          [[1510, 160], [1565, 225], [1595, 232], [1625, 240], [1685, 172], [1645, 310], [1540, 305], [1565, 225]]
+        ];
+        ctx.strokeStyle = 'rgba(255, 228, 152, 0.36)';
+        ctx.lineWidth = 2.0;
+        constellations.forEach(pts => {
+          ctx.beginPath();
+          pts.forEach((p, idx) => idx === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+          ctx.stroke();
+          pts.forEach(p => {
+            const sg = ctx.createRadialGradient(p[0], p[1], 1, p[0], p[1], 12);
+            sg.addColorStop(0, 'rgba(255, 252, 224, 0.98)');
+            sg.addColorStop(0.4, 'rgba(255, 218, 130, 0.42)');
+            sg.addColorStop(1, 'rgba(255, 218, 130, 0)');
+            ctx.fillStyle = sg;
+            ctx.beginPath(); ctx.arc(p[0], p[1], 12, 0, Math.PI * 2); ctx.fill();
+          });
+        });
       }
     } else {
       const sx = mode === 1 ? 1320 : (isSafari ? 1180 : 1460);

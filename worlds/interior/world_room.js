@@ -3,6 +3,7 @@ window.LailaSalma = window.LailaSalma || {};
 (function (LS) {
   function buildInteriorRoom(roomId, worldGroup) {
     const isKyoto = roomId === 'kyoto_room';
+    const isSafariTent = roomId === 'safari_tent';
     const W = {
       id: roomId,
       isInterior: true,
@@ -13,6 +14,7 @@ window.LailaSalma = window.LailaSalma || {};
       mochiStartPos: new THREE.Vector3(2.8, 0, 2.2),
       wallMats: [],
       floorMat: null,
+      rugMat: null,
       beanbagMeshes: [],
       posterMesh: null,
       petMeshes: [],
@@ -23,32 +25,35 @@ window.LailaSalma = window.LailaSalma || {};
       W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
     }
 
-    // Soft pastel backdrop dome
+    // Soft pastel / warm savanna tent backdrop dome
     const sky = new THREE.Mesh(
       new THREE.SphereGeometry(55, 16, 12),
-      new THREE.MeshBasicMaterial({ color: isKyoto ? 0x3b2c26 : 0xffeef4, side: THREE.BackSide })
+      new THREE.MeshBasicMaterial({ color: isSafariTent ? 0x5c3e26 : (isKyoto ? 0x3b2c26 : 0xffeef4), side: THREE.BackSide })
     );
     W.skyMesh = sky;
     worldGroup.add(sky);
 
     // Room dimensions: 12m wide (X=-6..6), 10.4m deep (Z=-5.2..5.2), 4.8m tall
-    W.floorMat = LS.makeToonMat(isKyoto ? 0xd9cf9c : 0xdcb98a);
+    W.floorMat = isSafariTent
+      ? LS.makeSurfaceMat(LS.createCedarPlankTexture(), { roughness: 0.78 })
+      : LS.makeToonMat(isKyoto ? 0xd9cf9c : 0xdcb98a);
     const floor = new THREE.Mesh(new THREE.BoxGeometry(12.4, 0.2, 10.8), W.floorMat);
     floor.position.y = -0.1;
     floor.receiveShadow = true;
     worldGroup.add(floor);
 
-    // Cozy central rug
+    // Cozy central rug (customizable in Safari Glamping Tent!)
+    W.rugMat = LS.makeToonMat(isSafariTent ? 0xc98a3e : (isKyoto ? 0xc94c4c : 0xffc2d1));
     const rug = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.3, 2.3, 0.04, 24),
-      LS.makeToonMat(isKyoto ? 0xc94c4c : 0xffc2d1)
+      new THREE.CylinderGeometry(isSafariTent ? 2.6 : 2.3, isSafariTent ? 2.6 : 2.3, 0.04, 24),
+      W.rugMat
     );
     rug.position.set(0, 0.02, 0.3);
     rug.receiveShadow = true;
     worldGroup.add(rug);
 
     // 3 Solid Walls (North back wall, West left wall, East right wall) + South doorway framing
-    const wallColor = isKyoto ? 0xf5ebd6 : 0xfdf3e3;
+    const wallColor = isSafariTent ? 0xf3e2c0 : (isKyoto ? 0xf5ebd6 : 0xfdf3e3);
     const wMat = LS.makeToonMat(wallColor);
     W.wallMats.push(wMat);
 
@@ -67,25 +72,66 @@ window.LailaSalma = window.LailaSalma || {};
     rightWall.receiveShadow = true;
     worldGroup.add(rightWall);
 
-    // Wood trim baseboards
-    const trimMat = LS.makeToonMat(isKyoto ? 0x4f3524 : 0xb88b5a);
+    // Wood trim baseboards (plus timber tent posts & warm hanging lantern string inside Safari Tent!)
+    const trimMat = LS.makeToonMat(isSafariTent ? 0x6b4226 : (isKyoto ? 0x4f3524 : 0xb88b5a));
     const baseBack = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.25, 0.36), trimMat);
     baseBack.position.set(0, 0.12, -5.05);
     worldGroup.add(baseBack);
 
-    // Glowing Window on Left Wall (overlooking blossoms / bamboo!)
+    if (isSafariTent) {
+      [[-5.8, -4.9], [5.8, -4.9], [-5.8, 4.5], [5.8, 4.5]].forEach(p => {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 4.8, 10), trimMat);
+        post.position.set(p[0], 2.4, p[1]);
+        worldGroup.add(post);
+      });
+      // Overhead timber ridge beam & glowing warm safari string lanterns!
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 11.8, 10), trimMat);
+      beam.rotation.z = Math.PI / 2;
+      beam.position.set(0, 4.15, -1.2);
+      worldGroup.add(beam);
+      const lGlow = LS.makeEmissiveMat(0xfff1b8, 0xffb703, 0.92);
+      [-4.0, -2.0, 0, 2.0, 4.0].forEach(lx => {
+        const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.45, 6), trimMat);
+        cord.position.set(lx, 3.92, -1.2);
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), lGlow);
+        bulb.position.set(lx, 3.65, -1.2);
+        worldGroup.add(cord, bulb);
+      });
+    }
+
+    // Glowing Window on Left Wall (overlooking Mt. Kilimanjaro / blossoms / bamboo!)
     const winFrame = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.1, 2.8), trimMat);
     winFrame.position.set(-5.88, 2.5, -0.8);
     worldGroup.add(winFrame);
     const winPane = new THREE.Mesh(
       new THREE.BoxGeometry(0.22, 1.85, 2.5),
-      LS.makeEmissiveMat(isKyoto ? 0xffe9b5 : 0xbae6fd, isKyoto ? 0xffd27d : 0x93c5fd, 0.65)
+      LS.makeEmissiveMat(isSafariTent ? 0xffd27d : (isKyoto ? 0xffe9b5 : 0xbae6fd), isSafariTent ? 0xf59e0b : (isKyoto ? 0xffd27d : 0x93c5fd), 0.70)
     );
     winPane.position.set(-5.86, 2.5, -0.8);
     worldGroup.add(winPane);
 
-    // Cozy Twin Beds / Futons on West-Back Corner
-    const bedColors = isKyoto ? [0xd62828, 0x2a9d8f] : [0xff8fab, 0xffd166];
+    // Brass Kilimanjaro Viewing Telescope by the Safari Tent Window!
+    if (isSafariTent) {
+      const brass = LS.makeToonMat(0xdcb45c, { roughness: 0.28, metalness: 0.72 });
+      const scopeG = new THREE.Group();
+      scopeG.position.set(-4.6, 0, -0.8);
+      for (let i = 0; i < 3; i++) {
+        const ang = (i / 3) * Math.PI * 2;
+        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.032, 1.35, 6), trimMat);
+        leg.position.set(Math.cos(ang) * 0.22, 0.64, Math.sin(ang) * 0.22);
+        leg.rotation.set(Math.sin(ang) * 0.24, 0, -Math.cos(ang) * 0.24);
+        scopeG.add(leg);
+      }
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.052, 0.88, 12), brass);
+      tube.rotation.z = Math.PI / 2 - 0.18;
+      tube.position.set(-0.08, 1.38, 0);
+      scopeG.add(tube);
+      worldGroup.add(scopeG);
+      addCollider(-4.6, -0.8, 0.55, 0.55);
+    }
+
+    // Cozy Twin Beds / Futons / Safari Cots on West-Back Corner
+    const bedColors = isSafariTent ? [0xd97706, 0x2a9d8f] : (isKyoto ? [0xd62828, 0x2a9d8f] : [0xff8fab, 0xffd166]);
     [-3.6, -1.7].forEach((bx, idx) => {
       const bg = new THREE.Group();
       bg.position.set(bx, 0, -3.5);
@@ -105,7 +151,7 @@ window.LailaSalma = window.LailaSalma || {};
       addCollider(bx, -3.5, 0.8, 1.25);
     });
 
-    // Customizable 3D Wall Poster / Hanging Kyoto Scroll (Back Wall center-right)
+    // Customizable 3D Wall Poster / Hanging Kyoto Scroll / Savanna Tapestry (Back Wall center-right)
     const posterMesh = new THREE.Mesh(
       new THREE.BoxGeometry(3.2, 1.45, 0.12),
       new THREE.MeshBasicMaterial({ map: LS.createSignTexture('TOKYO 🗼 & 🐱') })
@@ -114,15 +160,15 @@ window.LailaSalma = window.LailaSalma || {};
     worldGroup.add(posterMesh);
     W.posterMesh = posterMesh;
 
-    // Customizable 3D Plush Beanbags / Zabuton Cushions (Center lounge area)
+    // Customizable 3D Plush Beanbags / Zabuton / Safari Pouf Cushions (Center lounge area)
     [[-1.0, 0.5], [1.1, 0.5]].forEach((pos, idx) => {
-      const bbMat = LS.makeToonMat(0xff8fab);
+      const bbMat = LS.makeToonMat(isSafariTent ? 0xe0a848 : 0xff8fab);
       const geom = isKyoto
         ? new THREE.BoxGeometry(1.15, 0.28, 1.15)
-        : new THREE.SphereGeometry(0.68, 14, 10);
+        : (isSafariTent ? new THREE.CylinderGeometry(0.62, 0.68, 0.36, 16) : new THREE.SphereGeometry(0.68, 14, 10));
       const mesh = new THREE.Mesh(geom, bbMat);
-      if (!isKyoto) mesh.scale.set(1.15, 0.68, 1.15);
-      mesh.position.set(pos[0], isKyoto ? 0.16 : 0.42, pos[1]);
+      if (!isKyoto && !isSafariTent) mesh.scale.set(1.15, 0.68, 1.15);
+      mesh.position.set(pos[0], isKyoto ? 0.16 : (isSafariTent ? 0.20 : 0.42), pos[1]);
       mesh.castShadow = true;
       worldGroup.add(mesh);
       W.beanbagMeshes.push(mesh);
@@ -130,15 +176,15 @@ window.LailaSalma = window.LailaSalma || {};
       else addCollider(pos[0], pos[1], 0.6, 0.6);
     });
 
-    // Low wooden table between cushions in Kyoto Ryokan (with cute matcha cups!)
-    if (isKyoto) {
+    // Low wooden table between cushions in Kyoto Ryokan or Safari Tent (with mango pitcher / teapot!)
+    if (isKyoto || isSafariTent) {
       const tbl = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.36, 0.8), trimMat);
       tbl.position.set(0.05, 0.18, 0.5);
       tbl.castShadow = true;
       worldGroup.add(tbl);
-      const teapot = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), LS.makeToonMat(0x2d6a4f));
-      teapot.position.set(0.05, 0.48, 0.5);
-      worldGroup.add(teapot);
+      const pot = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), LS.makeToonMat(isSafariTent ? 0xd97706 : 0x2d6a4f));
+      pot.position.set(0.05, 0.48, 0.5);
+      worldGroup.add(pot);
     }
 
     // 3D Toy Shelf & Sticker Display on East Wall (displays collected Gachapon Toys!)
@@ -200,8 +246,8 @@ window.LailaSalma = window.LailaSalma || {};
 
     // Interactive Zones inside the 3D Room!
     W.zones.push({
-      id: isKyoto ? 'decorate_ryokan' : 'decorate_tokyo_room',
-      label: isKyoto ? 'Decorate Kyoto Ryokan Suite 🎨' : "Decorate Laila & Salma's Room 🎨",
+      id: isSafariTent ? 'decorate_safari_tent' : (isKyoto ? 'decorate_ryokan' : 'decorate_tokyo_room'),
+      label: isSafariTent ? 'Decorate Safari Glamping Tent ⛺🎨' : (isKyoto ? 'Decorate Kyoto Ryokan Suite 🎨' : "Decorate Laila & Salma's Room 🎨"),
       pos: new THREE.Vector3(-3.3, 0, 1.8),
       radius: 2.8
     });
@@ -217,7 +263,7 @@ window.LailaSalma = window.LailaSalma || {};
     const exitMat = new THREE.Mesh(
       new THREE.BoxGeometry(2.8, 0.08, 1.3),
       new THREE.MeshBasicMaterial({
-        map: LS.createSignTexture(isKyoto ? '🚪 EXIT TO KYOTO' : '🚪 EXIT TO TOKYO', {
+        map: LS.createSignTexture(isSafariTent ? '🚪 EXIT TO SAFARI' : (isKyoto ? '🚪 EXIT TO KYOTO' : '🚪 EXIT TO TOKYO'), {
           bg: '#1b4332', border: '#95d5b2', color: '#ecfdf5', font: 'bold 34px sans-serif'
         })
       })
@@ -227,14 +273,24 @@ window.LailaSalma = window.LailaSalma || {};
 
     W.zones.push({
       id: 'exit_interior',
-      label: isKyoto ? 'Step Outside to Kyoto 🚪' : 'Step Outside to Tokyo 🚪',
+      label: isSafariTent ? 'Step Outside to African Safari 🚪' : (isKyoto ? 'Step Outside to Kyoto 🚪' : 'Step Outside to Tokyo 🚪'),
       pos: new THREE.Vector3(0, 0, 4.2),
       radius: 2.2
     });
 
     // Live 3D Decoration Refresher (called immediately on load & whenever the sisters customize!)
     W.refreshDecor = function () {
-      if (isKyoto) {
+      if (isSafariTent) {
+        const rugOpt = LS.SAFARI_TENT_RUGS.find(r => r.id === LS.state.safariTentRug) || LS.SAFARI_TENT_RUGS[0];
+        const cushOpt = LS.SAFARI_TENT_CUSHIONS.find(c => c.id === LS.state.safariTentCushion) || LS.SAFARI_TENT_CUSHIONS[0];
+        const tapOpt = LS.SAFARI_TENT_TAPESTRIES.find(t => t.id === LS.state.safariTentTapestry) || LS.SAFARI_TENT_TAPESTRIES[0];
+        if (W.rugMat) W.rugMat.color.setHex(rugOpt.hex);
+        W.beanbagMeshes.forEach(m => m.material.color.setHex(cushOpt.hex));
+        W.posterMesh.material.map = LS.createSignTexture(tapOpt.label, {
+          bg: tapOpt.bg || '#fff3d6', border: tapOpt.border || '#c26d1f', color: tapOpt.fg || '#5a2d0c', font: 'bold 32px sans-serif'
+        });
+        W.posterMesh.material.needsUpdate = true;
+      } else if (isKyoto) {
         const tat = LS.RYOKAN_TATAMI.find(t => t.id === LS.state.ryokanTatami) || LS.RYOKAN_TATAMI[0];
         const cush = LS.RYOKAN_CUSHIONS.find(c => c.id === LS.state.ryokanCushion) || LS.RYOKAN_CUSHIONS[0];
         const scr = LS.RYOKAN_SCROLLS.find(s => s.id === LS.state.ryokanScroll) || LS.RYOKAN_SCROLLS[0];
@@ -274,19 +330,27 @@ window.LailaSalma = window.LailaSalma || {};
         toySlotsGroup.add(sp);
       });
 
-      // Rebuild Cozy Rescued Cats / Kitsune Lounge Pets!
+      // Rebuild Cozy Rescued Cats / Kitsune / Safari Lion Cubs Lounge Pets!
       while (petGroup.children.length > 0) petGroup.remove(petGroup.children[0]);
       W.petMeshes = [];
-      const foundList = isKyoto ? LS.state.foundKitsune : LS.state.foundCats;
-      const palette = isKyoto
-        ? [[0xf77f00, 0xffffff], [0xfff8f0, 0xe63946], [0xe76f51, 0xfff3d6], [0xffb703, 0xffffff], [0xfffcf7, 0xff8fab]]
-        : [[0xe89643, 0xfff3d6], [0x2c303a, 0xf4e4c4], [0xfaf7f2, 0xffe4ec], [0xf4b678, 0xfff8ec], [0x8b95a5, 0xffffff]];
+      const foundList = isSafariTent ? LS.state.foundLionCubs : (isKyoto ? LS.state.foundKitsune : LS.state.foundCats);
+      const palette = isSafariTent
+        ? [[0xd99b43, 0xf7e1b5], [0xc88836, 0xf4dcac], [0xe2aa52, 0xfff0cc], [0xd4923e, 0xf6dfae], [0xcf8d38, 0xf5deb0]]
+        : (isKyoto
+          ? [[0xf77f00, 0xffffff], [0xfff8f0, 0xe63946], [0xe76f51, 0xfff3d6], [0xffb703, 0xffffff], [0xfffcf7, 0xff8fab]]
+          : [[0xe89643, 0xfff3d6], [0x2c303a, 0xf4e4c4], [0xfaf7f2, 0xffe4ec], [0xf4b678, 0xfff8ec], [0x8b95a5, 0xffffff]]);
       foundList.slice(0, 5).forEach((fid, idx) => {
         const pair = palette[idx % palette.length];
-        const built = isKyoto
-          ? LS.createKitsuneModel(pair[0], pair[1], { scale: 0.78 })
-          : LS.createCatModel(pair[0], pair[1], { scale: 0.80 });
-        const pg = built.root;
+        let pg;
+        if (isSafariTent && LS.isHD && LS.hdAssets && LS.hdAssets.has('anime_lion_cub')) {
+          pg = LS.hdAssets.clone('anime_lion_cub');
+          pg.scale.setScalar(0.56);
+        } else {
+          const built = isKyoto
+            ? LS.createKitsuneModel(pair[0], pair[1], { scale: 0.78 })
+            : LS.createCatModel(pair[0], pair[1], { scale: 0.80 });
+          pg = built.root;
+        }
         pg.position.set(1.1 + idx * 0.65, 0.14, -3.7);
         petGroup.add(pg);
         W.petMeshes.push(pg);
@@ -303,7 +367,7 @@ window.LailaSalma = window.LailaSalma || {};
       return { pos: new THREE.Vector3(2.8, 0, 2.2), rotY: -Math.PI / 3 };
     };
     W.getZoneLabel = function () {
-      return isKyoto ? 'Kyoto Ryokan Suite' : "Laila & Salma's Room";
+      return isSafariTent ? 'Safari Glamping Tent ⛺' : (isKyoto ? 'Kyoto Ryokan Suite' : "Laila & Salma's Room");
     };
     W.update = function (dt, elapsed) {
       W.petMeshes.forEach((p, idx) => {
@@ -311,12 +375,12 @@ window.LailaSalma = window.LailaSalma || {};
       });
     };
     W.drawMiniMap = function (ctx, cw, ch, toMapX, toMapY) {
-      ctx.fillStyle = isKyoto ? '#d9cf9c' : '#f7e6cf';
+      ctx.fillStyle = isSafariTent ? '#edd8b0' : (isKyoto ? '#d9cf9c' : '#f7e6cf');
       ctx.fillRect(0, 0, cw, ch);
       ctx.strokeStyle = '#8c5a32';
       ctx.lineWidth = 4;
       ctx.strokeRect(8, 8, cw - 16, ch - 16);
-      ctx.fillStyle = '#d95d88';
+      ctx.fillStyle = isSafariTent ? '#b45309' : '#d95d88';
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('🎨 DECOR', toMapX(-4.0), toMapY(1.8));
@@ -331,4 +395,5 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.registerWorld('tokyo_room', { build: (wg) => buildInteriorRoom('tokyo_room', wg) });
   LS.registerWorld('kyoto_room', { build: (wg) => buildInteriorRoom('kyoto_room', wg) });
+  LS.registerWorld('safari_tent', { build: (wg) => buildInteriorRoom('safari_tent', wg) });
 })(window.LailaSalma);
