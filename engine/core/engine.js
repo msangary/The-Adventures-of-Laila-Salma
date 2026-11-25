@@ -39,9 +39,28 @@ window.LailaSalma = window.LailaSalma || {};
   let salmaVelY = 0;
   let salmaGrounded = true;
   let miniMapCompact = false;
+  let miniMapBgCanvas = null;
+  let zoneBeacons = [];
+
+  // Reusable per-frame scratch vectors (zero GC allocations during movement & camera loops)
+  const _fwd = new THREE.Vector3();
+  const _right = new THREE.Vector3();
+  const _moveVec = new THREE.Vector3();
+  const _desiredTarget = new THREE.Vector3();
+  const _chasePos = new THREE.Vector3();
+  const _chaseLook = new THREE.Vector3();
+  const _frontPos = new THREE.Vector3();
+  const _frontLook = new THREE.Vector3();
 
   LS.activeWorld = null;
   LS.getScene = function () { return scene; };
+  LS.getEngineStats = function () {
+    return {
+      zoneBeacons: zoneBeacons.length,
+      miniMapCached: !!miniMapBgCanvas,
+      camOccluders: camOccluderBoxes.length
+    };
+  };
   LS.getCameraState = function () {
     return {
       yaw: camYaw,
@@ -248,10 +267,73 @@ window.LailaSalma = window.LailaSalma || {};
     if (LS.hdPost && LS.hdPost.clearAnimatedUniforms) {
       LS.hdPost.clearAnimatedUniforms();
     }
+    zoneBeacons = [];
     if (!worldGroup) return;
     while (worldGroup.children.length > 0) {
       worldGroup.remove(worldGroup.children[0]);
     }
+  }
+
+  function buildZoneBeacons() {
+    zoneBeacons = [];
+    if (!LS.activeWorld || !LS.activeWorld.zones || !worldGroup) return;
+    const outerGeo = new THREE.RingGeometry(0.92, 1.16, 28);
+    const innerGeo = new THREE.RingGeometry(0.46, 0.56, 24);
+    LS.activeWorld.zones.forEach((z, idx) => {
+      if (!z || !z.id || z.id.startsWith('animal:')) return;
+      const g = new THREE.Group();
+      const gy = z.pos.y > 0.05 ? z.pos.y : getGroundH(z.pos.x, z.pos.z);
+      g.position.set(z.pos.x, gy + 0.048, z.pos.z);
+      const outerMat = new THREE.MeshBasicMaterial({
+        color: 0xffd166, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false
+      });
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0xfff3b0, transparent: true, opacity: 0.34, side: THREE.DoubleSide, depthWrite: false
+      });
+      const outer = new THREE.Mesh(outerGeo, outerMat);
+      outer.rotation.x = -Math.PI / 2;
+      outer.userData.noCamClip = true;
+      const inner = new THREE.Mesh(innerGeo, innerMat);
+      inner.rotation.x = -Math.PI / 2;
+      inner.userData.noCamClip = true;
+      g.add(outer);
+      g.add(inner);
+      worldGroup.add(g);
+      zoneBeacons.push({ id: z.id, group: g, outerMat, innerMat, phase: idx * 0.7 });
+    });
+  }
+
+  function updateZoneBeacons(elapsed) {
+    if (zoneBeacons.length === 0) return;
+    const activeId = LS.runtime.nearZone ? LS.runtime.nearZone.id : null;
+    for (let i = 0; i < zoneBeacons.length; i++) {
+      const b = zoneBeacons[i];
+      const isNear = b.id === activeId;
+      const pulse = 0.5 + 0.5 * Math.sin(elapsed * (isNear ? 5.2 : 2.6) + b.phase);
+      const sc = isNear ? (1.10 + pulse * 0.14) : (0.94 + pulse * 0.09);
+      b.group.scale.set(sc, 1, sc);
+      b.outerMat.opacity = isNear ? (0.68 + pulse * 0.24) : (0.28 + pulse * 0.18);
+      b.innerMat.opacity = isNear ? (0.55 + pulse * 0.25) : (0.18 + pulse * 0.16);
+      b.outerMat.color.setHex(isNear ? 0xfff08a : 0xffd166);
+    }
+  }
+
+  function cacheMiniMapBackground() {
+    miniMapBgCanvas = null;
+    if (!LS.activeWorld || !LS.activeWorld.drawMiniMap) return;
+    const liveCanvas = document.getElementById('minimap-canvas');
+    const W = liveCanvas ? liveCanvas.width : 176;
+    const H = liveCanvas ? liveCanvas.height : 176;
+    const mb = LS.WORLDS[LS.state.currentWorld] && LS.WORLDS[LS.state.currentWorld].mapBounds;
+    if (!mb) return;
+    const off = document.createElement('canvas');
+    off.width = W;
+    off.height = H;
+    const octx = off.getContext('2d');
+    const toMapX = wx => ((wx - mb.minX) / (mb.maxX - mb.minX)) * W;
+    const toMapY = wz => ((wz - mb.minZ) / (mb.maxZ - mb.minZ)) * H;
+    LS.activeWorld.drawMiniMap(octx, W, H, toMapX, toMapY);
+    miniMapBgCanvas = off;
   }
 
   LS.loadWorld = function (worldId, viaTrain, customSpawn) {
@@ -321,6 +403,8 @@ window.LailaSalma = window.LailaSalma || {};
 
     LS.activeWorld = builder.build(worldGroup, scene);
     buildCamOccluders();
+    buildZoneBeacons();
+    cacheMiniMapBackground();
 
     const sp = customSpawn || (viaTrain ? meta.arrivalSpawn : meta.spawn);
     const baseH = LS.activeWorld.getGroundHeight ? LS.activeWorld.getGroundHeight(sp.x, sp.z) : 0;
@@ -576,7 +660,10 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'safari_academy') LS.openSchoolModal('safari');
     else if (zid === 'safari_shop') LS.openShopModal('safari');
     else if (zid === 'safari_stickers') LS.openGachaponModal('safari');
-    else if (zid === 'safari_cafe') LS.enjoySafariSmoothie();
+    else if (
+      zid === 'safari_cafe' || zid === 'sakura_bakery' || zid === 'sunny_florist' ||
+      zid === 'cozy_bookshop' || zid === 'kyoto_pottery' || zid === 'kyoto_fans'
+    ) LS.openLocalShopModal(zid);
     else if (zid === 'safari_jeep') LS.startSafariJeepRide();
     else if (zid === 'safari_feed_giraffe') LS.feedSafariAnimals('giraffe');
     else if (zid === 'safari_feed_elephant') LS.feedSafariAnimals('elephant');
@@ -1047,17 +1134,17 @@ window.LailaSalma = window.LailaSalma || {};
     if (moving) {
       const len = Math.hypot(inX, inZ);
       inX /= len; inZ /= len;
-      const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
-      const right = new THREE.Vector3(-forward.z, 0, forward.x);
-      const moveVec = new THREE.Vector3()
-        .addScaledVector(forward, -inZ)
-        .addScaledVector(right, inX)
+      _fwd.set(Math.sin(camYaw), 0, Math.cos(camYaw));
+      _right.set(-_fwd.z, 0, _fwd.x);
+      _moveVec.set(0, 0, 0)
+        .addScaledVector(_fwd, -inZ)
+        .addScaledVector(_right, inX)
         .normalize();
 
-      laila.root.position.addScaledVector(moveVec, speed * dt);
+      laila.root.position.addScaledVector(_moveVec, speed * dt);
       resolveCollisions(laila.root.position, 0.45);
 
-      const targetRot = Math.atan2(moveVec.x, moveVec.z);
+      const targetRot = Math.atan2(_moveVec.x, _moveVec.z);
       let diff = targetRot - laila.root.rotation.y;
       while (diff > Math.PI) diff -= Math.PI * 2;
       while (diff < -Math.PI) diff += Math.PI * 2;
@@ -1296,25 +1383,26 @@ window.LailaSalma = window.LailaSalma || {};
     if (LS.runtime.safariRide && LS.activeWorld && LS.activeWorld.safariJeep) {
       const jp = LS.activeWorld.safariJeep.position;
       const jy = LS.activeWorld.safariJeep.rotation.y;
-      const chasePos = new THREE.Vector3(
+      _chasePos.set(
         jp.x - Math.sin(jy) * 7.8 + Math.cos(jy) * 3.4,
         jp.y + 4.2,
         jp.z - Math.cos(jy) * 7.8 - Math.sin(jy) * 3.4
       );
-      const chaseLook = new THREE.Vector3(jp.x + Math.sin(jy) * 2.5, jp.y + 1.5, jp.z + Math.cos(jy) * 2.5);
-      camera.position.lerp(chasePos, Math.min(1, dt * 5.0));
-      camTarget.lerp(chaseLook, Math.min(1, dt * 7.0));
+      _chaseLook.set(jp.x + Math.sin(jy) * 2.5, jp.y + 1.5, jp.z + Math.cos(jy) * 2.5);
+      camera.position.lerp(_chasePos, Math.min(1, dt * 5.0));
+      camTarget.lerp(_chaseLook, Math.min(1, dt * 7.0));
       camera.lookAt(camTarget);
       camSnapNext = false;
       return;
     }
 
     if (LS.runtime.camMode === 1) {
-      const fwd = new THREE.Vector3(Math.sin(laila.root.rotation.y), 0, Math.cos(laila.root.rotation.y));
-      const desiredPos = p.clone().addScaledVector(fwd, 2.25).add(new THREE.Vector3(0, 1.32, 0));
-      const lookTarget = p.clone().add(new THREE.Vector3(0, 1.18, 0));
-      camera.position.lerp(desiredPos, Math.min(1, dt * 8.5));
-      camTarget.lerp(lookTarget, Math.min(1, dt * 12));
+      _fwd.set(Math.sin(laila.root.rotation.y), 0, Math.cos(laila.root.rotation.y));
+      _frontPos.copy(p).addScaledVector(_fwd, 2.25);
+      _frontPos.y += 1.32;
+      _frontLook.set(p.x, p.y + 1.18, p.z);
+      camera.position.lerp(_frontPos, Math.min(1, dt * 8.5));
+      camTarget.lerp(_frontLook, Math.min(1, dt * 12));
       camera.lookAt(camTarget);
       camSnapNext = false;
       return;
@@ -1322,24 +1410,25 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (LS.runtime.camMode === 2 && salma) {
       const sp = salma.root.position;
-      const fwd = new THREE.Vector3(Math.sin(salma.root.rotation.y), 0, Math.cos(salma.root.rotation.y));
-      const desiredPos = sp.clone().addScaledVector(fwd, 1.95).add(new THREE.Vector3(0, 1.1, 0));
-      const lookTarget = sp.clone().add(new THREE.Vector3(0, 0.95, 0));
-      camera.position.lerp(desiredPos, Math.min(1, dt * 8.5));
-      camTarget.lerp(lookTarget, Math.min(1, dt * 12));
+      _fwd.set(Math.sin(salma.root.rotation.y), 0, Math.cos(salma.root.rotation.y));
+      _frontPos.copy(sp).addScaledVector(_fwd, 1.95);
+      _frontPos.y += 1.1;
+      _frontLook.set(sp.x, sp.y + 0.95, sp.z);
+      camera.position.lerp(_frontPos, Math.min(1, dt * 8.5));
+      camTarget.lerp(_frontLook, Math.min(1, dt * 12));
       camera.lookAt(camTarget);
       camSnapNext = false;
       return;
     }
 
     // Standard 3rd-person orbit: smooth pivot target + crisp circular arc + anti-clip spring arm!
-    const desiredTarget = new THREE.Vector3(p.x, p.y + 1.25, p.z);
+    _desiredTarget.set(p.x, p.y + 1.25, p.z);
     if (camSnapNext) {
-      camTarget.copy(desiredTarget);
+      camTarget.copy(_desiredTarget);
       effectiveCamDist = camDist;
       camSnapNext = false;
     } else {
-      camTarget.lerp(desiredTarget, Math.min(1, dt * 12));
+      camTarget.lerp(_desiredTarget, Math.min(1, dt * 12));
     }
 
     camRayDir.set(
@@ -1372,7 +1461,9 @@ window.LailaSalma = window.LailaSalma || {};
     const toMapX = wx => ((wx - mb.minX) / (mb.maxX - mb.minX)) * W;
     const toMapY = wz => ((wz - mb.minZ) / (mb.maxZ - mb.minZ)) * H;
 
-    if (LS.activeWorld.drawMiniMap) {
+    if (miniMapBgCanvas) {
+      ctx.drawImage(miniMapBgCanvas, 0, 0);
+    } else if (LS.activeWorld.drawMiniMap) {
       LS.activeWorld.drawMiniMap(ctx, W, H, toMapX, toMapY);
     }
 
@@ -1626,6 +1717,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (LS.activeWorld && LS.activeWorld.update) {
           LS.activeWorld.update(dt, elapsed);
         }
+        updateZoneBeacons(elapsed);
         updateHDAtmosphere(dt, elapsed);
         if (LS.hdPost && LS.hdPost.update) LS.hdPost.update(elapsed);
         updateSparklesAndStars(dt);
@@ -1643,9 +1735,6 @@ window.LailaSalma = window.LailaSalma || {};
     const bootWorld = () => {
       if (LS.refreshMochiHD) LS.refreshMochiHD();
       LS.loadWorld(startWorld, false);
-      if (LS.isHD) {
-        dirLight.position.set(34, 24, 18);
-      }
       if (!animStarted) {
         animStarted = true;
         clock.getDelta();

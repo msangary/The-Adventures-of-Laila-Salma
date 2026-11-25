@@ -801,8 +801,39 @@ window.LailaSalma = window.LailaSalma || {};
       const gRoof = new THREE.Mesh(new THREE.ConeGeometry(4.2, 1.8, 8), LS.makeToonMat(0x363b45)); gRoof.position.y = 3.7; gaz.add(gRoof);
       worldGroup.add(gaz);
 
-      buildMachiya(-46.8, 4.5, 0.48, { wallHex: '#f2e8d4', roofHex: '#4f3b32', norenColor: 0x3b6ea5, signText: '🏺 KYOTO POTTERY STUDIO', width: 6.4, depth: 5.4, height: 4.4 });
-      buildMachiya(-22.5, 26.5, Math.PI - 0.24, { wallHex: '#f8efe0', roofHex: '#5a3a45', norenColor: 0xe07a34, signText: '🪭 FOLDING FAN ATELIER', width: 6.2, depth: 5.4, height: 4.4 });
+      const potteryG = buildMachiya(-46.8, 4.5, 0.48, { wallHex: '#f2e8d4', roofHex: '#4f3b32', norenColor: 0x3b6ea5, signText: '🏺 KYOTO POTTERY STUDIO', width: 6.4, depth: 5.4, height: 4.4 });
+      if (potteryG) {
+        const pBench = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.56, 0.62), LS.makeToonMat(0x5c3c24));
+        pBench.position.set(-1.55, 0.28, 3.18); pBench.castShadow = true; potteryG.add(pBench);
+        const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 0.42, 10), LS.makeToonMat(0x3b82a6));
+        vase.position.set(-2.05, 0.77, 3.18); potteryG.add(vase);
+        const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.11, 0.18, 10), LS.makeToonMat(0xc46b42));
+        bowl.position.set(-1.55, 0.65, 3.18); potteryG.add(bowl);
+        const jar = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), LS.makeToonMat(0xe8dec8));
+        jar.position.set(-1.05, 0.72, 3.18); potteryG.add(jar);
+      }
+      W.zones.push({
+        id: 'kyoto_pottery',
+        label: 'Visit Kyoto Pottery Studio 🏺',
+        pos: new THREE.Vector3(-46.8 + Math.sin(0.48) * 4.25, 0, 4.5 + Math.cos(0.48) * 4.25),
+        radius: 3.4
+      });
+
+      const fanG = buildMachiya(-22.5, 26.5, Math.PI - 0.24, { wallHex: '#f8efe0', roofHex: '#5a3a45', norenColor: 0xe07a34, signText: '🪭 FOLDING FAN ATELIER', width: 6.2, depth: 5.4, height: 4.4 });
+      if (fanG) {
+        const fStand = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.62, 0.52), LS.makeToonMat(0x4b3322));
+        fStand.position.set(-1.5, 0.31, 3.18); fStand.castShadow = true; fanG.add(fStand);
+        [0xe63946, 0xf5b841, 0xff8fab].forEach((fc, idx) => {
+          const fan = new THREE.Mesh(new THREE.CircleGeometry(0.28, 10, 0, Math.PI), LS.makeToonMat(fc, { side: THREE.DoubleSide }));
+          fan.position.set(-2.05 + idx * 0.55, 0.72, 3.22); fan.rotation.z = (idx - 1) * 0.16; fanG.add(fan);
+        });
+      }
+      W.zones.push({
+        id: 'kyoto_fans',
+        label: 'Visit Folding Fan Atelier 🪭',
+        pos: new THREE.Vector3(-22.5 + Math.sin(Math.PI - 0.24) * 4.25, 0, 26.5 + Math.cos(Math.PI - 0.24) * 4.25),
+        radius: 3.4
+      });
 
       // STAGGERED EAST MACHIYA (leaving generous open green garden meadows north & south!)
       buildMachiya(10.0, -5.0, -Math.PI / 2 + 0.12, {

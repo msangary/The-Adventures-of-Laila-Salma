@@ -658,6 +658,11 @@ window.LailaSalma = window.LailaSalma || {};
     if (!LS.chars.salma) return;
     if (LS.chars.salmaBubble) {
       LS.chars.salma.root.remove(LS.chars.salmaBubble);
+      LS.chars.salmaBubble = null;
+    }
+    if (!text) {
+      LS.runtime.salmaHintUntil = 0;
+      return;
     }
     const nb = LS.createSpeechBubbleSprite('Salma', text);
     nb.position.set(0, 2.35, 0);

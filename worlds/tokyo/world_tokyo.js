@@ -141,23 +141,83 @@ window.LailaSalma = window.LailaSalma || {};
       addCollider(x, z, Math.max(bw, bd) * 0.52 + 0.3, Math.max(bw, bd) * 0.52 + 0.3);
     }
 
-    function buildMiniShop(x, z, rotY, title, wallHex, awningHex, roofHex) {
+    function buildMiniShop(x, z, rotY, title, wallHex, awningHex, roofHex, opts) {
+      const cfg = opts || {};
       const g = new THREE.Group();
       g.position.set(x, 0, z);
       g.rotation.y = rotY;
 
+      const trimWood = LS.makeToonMat(0x5c3c24);
       const body = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.4, 4.4), LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture(wallHex) }));
       body.position.y = 1.7; body.castShadow = true; body.receiveShadow = true; g.add(body);
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.22, 4.6), LS.makeToonMat(0x9a8f82));
+      plinth.position.y = 0.11; plinth.receiveShadow = true; g.add(plinth);
       const roof = new THREE.Mesh(new THREE.ConeGeometry(4.0, 1.4, 4), LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture(roofHex) }));
       roof.position.y = 4.1; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
 
-      const awning = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.16, 1.25), LS.makeToonMat(awningHex));
-      awning.position.set(0, 2.35, 2.55); awning.rotation.x = 0.25; g.add(awning);
+      // Striped shop awning
+      const awning = new THREE.Mesh(new THREE.BoxGeometry(4.45, 0.16, 1.32), LS.makeToonMat(awningHex));
+      awning.position.set(0, 2.38, 2.58); awning.rotation.x = 0.25; awning.castShadow = true; g.add(awning);
+      const stripeMat = LS.makeToonMat(0xfffaf0);
+      for (let sx = -1.65; sx <= 1.66; sx += 0.825) {
+        const st = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.175, 1.33), stripeMat);
+        st.position.set(sx, 2.385, 2.58); st.rotation.x = 0.25; g.add(st);
+      }
 
-      const win = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.35, 0.12), LS.makeEmissiveMat(0xffe9b5, 0xffcc70, 0.45));
-      win.position.set(0.85, 1.4, 2.22); g.add(win);
-      const door = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.0, 0.14), LS.makeToonMat(0x6e472c));
-      door.position.set(-1.25, 1.0, 2.22); g.add(door);
+      // Framed shopfront window with warm mullions
+      const winFrame = new THREE.Mesh(new THREE.BoxGeometry(2.38, 1.52, 0.12), trimWood);
+      winFrame.position.set(0.85, 1.42, 2.20); g.add(winFrame);
+      const win = new THREE.Mesh(new THREE.BoxGeometry(2.18, 1.32, 0.14), LS.makeEmissiveMat(0xffe9b5, 0xffcc70, 0.52));
+      win.position.set(0.85, 1.42, 2.22); g.add(win);
+      const mullV = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.34, 0.16), trimWood);
+      mullV.position.set(0.85, 1.42, 2.23); g.add(mullV);
+      const mullH = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.07, 0.16), trimWood);
+      mullH.position.set(0.85, 1.42, 2.23); g.add(mullH);
+
+      // Cozy wooden door with glass pane & brass knob
+      const door = new THREE.Mesh(new THREE.BoxGeometry(1.12, 2.02, 0.14), LS.makeToonMat(0x6e472c));
+      door.position.set(-1.25, 1.02, 2.22); g.add(door);
+      const doorWin = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.72, 0.16), LS.makeEmissiveMat(0xffe8b0, 0xffc864, 0.42));
+      doorWin.position.set(-1.25, 1.46, 2.23); g.add(doorWin);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 6), LS.makeToonMat(0xf5c542));
+      knob.position.set(-0.86, 0.96, 2.31); g.add(knob);
+
+      // Warm glowing hanging paper lantern (+ HD glow halo)
+      const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffe29a }));
+      lantern.scale.set(1, 1.28, 1); lantern.position.set(-1.95, 2.15, 2.52); g.add(lantern);
+      if (LS.isHD && LS.createGlowSprite) {
+        const halo = LS.createGlowSprite(0xffd27d, 1.45);
+        halo.position.copy(lantern.position); g.add(halo);
+      }
+
+      // Themed outdoor shopfront display props!
+      if (cfg.kind === 'bakery') {
+        const table = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.62, 0.64), trimWood);
+        table.position.set(0.88, 0.31, 2.66); table.castShadow = true; g.add(table);
+        const cloth = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.08, 0.68), LS.makeToonMat(0xfff5e4));
+        cloth.position.set(0.88, 0.63, 2.66); g.add(cloth);
+        [0xe6a145, 0xff8fab, 0xd98236, 0xffb3c6].forEach((c, idx) => {
+          const pastry = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), LS.makeToonMat(c));
+          pastry.scale.set(1.15, 0.75, 1.0);
+          pastry.position.set(0.42 + idx * 0.30, 0.74, 2.66); g.add(pastry);
+        });
+      } else if (cfg.kind === 'florist') {
+        const stand = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.56, 0.62), trimWood);
+        stand.position.set(0.88, 0.28, 2.66); stand.castShadow = true; g.add(stand);
+        [0xff5d8f, 0xffd166, 0xc084fc, 0x38bdf8, 0xff8fab].forEach((c, idx) => {
+          const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.2, 7), LS.makeToonMat(0xb86643));
+          pot.position.set(0.28 + idx * 0.30, 0.64, 2.66); g.add(pot);
+          const bloom = new THREE.Mesh(new THREE.DodecahedronGeometry(0.15, 0), LS.makeToonMat(c));
+          bloom.position.set(0.28 + idx * 0.30, 0.84, 2.66); g.add(bloom);
+        });
+      } else if (cfg.kind === 'bookshop') {
+        const rack = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.78, 0.52), trimWood);
+        rack.position.set(0.88, 0.39, 2.62); rack.castShadow = true; g.add(rack);
+        [0xe63946, 0x457b9d, 0xf4a261, 0x2a9d8f, 0x8338ec, 0xf59e0b].forEach((c, idx) => {
+          const bk = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.32, 0.22), LS.makeToonMat(c));
+          bk.position.set(0.32 + idx * 0.22, 0.94, 2.62); bk.rotation.z = (idx % 2 === 0 ? 0.06 : -0.05); g.add(bk);
+        });
+      }
 
       const sign = new THREE.Mesh(
         new THREE.BoxGeometry(3.8, 0.72, 0.16),
@@ -165,10 +225,16 @@ window.LailaSalma = window.LailaSalma || {};
           map: LS.createSignTexture(title, { bg: '#fffaf0', border: '#c69f68', color: '#3d2c1e', font: 'bold 34px sans-serif' })
         })
       );
-      sign.position.set(0, 3.0, 2.35); g.add(sign);
+      sign.position.set(0, 3.06, 2.38); g.add(sign);
 
       worldGroup.add(g);
-      addCollider(x, z, 2.7, 2.7);
+      addCollider(x, z, 2.75, 2.75);
+
+      if (cfg.zoneId && cfg.zoneLabel) {
+        const zx = x + Math.sin(rotY) * 3.55;
+        const zz = z + Math.cos(rotY) * 3.55;
+        W.zones.push({ id: cfg.zoneId, label: cfg.zoneLabel, pos: new THREE.Vector3(zx, 0, zz), radius: 3.2 });
+      }
     }
 
     function buildTree(x, z, kind, scale, noCol) {
@@ -386,10 +452,16 @@ window.LailaSalma = window.LailaSalma || {};
       SC.addBench(worldGroup, -26.2, 3.2, Math.PI - 0.25);
       SC.addBench(worldGroup, -21.8, -3.2, -Math.PI / 2 + 0.2);
 
-      // Cozy East Shōtengai Mini-Shops curving along the northern park bend
-      buildMiniShop(20.5, -27.2, 0.18, '🥐 SAKURA BAKERY', '#fff5e4', 0xe07a34, '#5a3d2b');
-      buildMiniShop(28.2, -25.0, -0.34, '🌷 SUNNY FLORIST', '#f0f9f0', 0x52b788, '#3a5a40');
-      buildMiniShop(35.0, -19.5, -0.78, '📚 COZY BOOKSHOP', '#f4ede1', 0x3b6ea5, '#2b3d54');
+      // Cozy East Shōtengai Mini-Shops curving along the northern park bend (all interactive!)
+      buildMiniShop(20.5, -27.2, 0.18, '🥐 SAKURA BAKERY', '#fff5e4', 0xe07a34, '#5a3d2b', {
+        kind: 'bakery', zoneId: 'sakura_bakery', zoneLabel: 'Visit Sakura Bakery 🥐'
+      });
+      buildMiniShop(28.2, -25.0, -0.34, '🌷 SUNNY FLORIST', '#f0f9f0', 0x52b788, '#3a5a40', {
+        kind: 'florist', zoneId: 'sunny_florist', zoneLabel: 'Visit Sunny Florist 🌷'
+      });
+      buildMiniShop(35.0, -19.5, -0.78, '📚 COZY BOOKSHOP', '#f4ede1', 0x3b6ea5, '#2b3d54', {
+        kind: 'bookshop', zoneId: 'cozy_bookshop', zoneLabel: 'Browse Cozy Bookshop 📚'
+      });
 
       // Wide open sunlit empty meadows with delicate wildflowers, tall grass & a peaceful picnic spot!
       SC.addWildflowerMeadow(worldGroup, -21, 15, 10, 10, [0xffd166, 0xffffff, 0xff8fab, 0x90e0ef]);

@@ -619,22 +619,29 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   // Towering 2048x1024 Shinkai Anime Cumulus Sky Dome
-  LS.createShinkaiSkyTexture = function (mode) {
+  LS.createShinkaiSkyTexture = function (mode, worldId) {
     const c = document.createElement('canvas');
     c.width = 2048; c.height = 1024;
     const ctx = c.getContext('2d');
+    const isSafari = worldId === 'safari';
 
     const grad = ctx.createLinearGradient(0, 0, 0, 1024);
     if (mode === 1) {
-      grad.addColorStop(0.0, '#1c2854');
-      grad.addColorStop(0.32, '#5a4876');
-      grad.addColorStop(0.58, '#df7a52');
-      grad.addColorStop(0.78, '#ffbc68');
+      grad.addColorStop(0.0, isSafari ? '#261e4a' : '#1c2854');
+      grad.addColorStop(0.32, isSafari ? '#78425e' : '#5a4876');
+      grad.addColorStop(0.58, isSafari ? '#e86a3a' : '#df7a52');
+      grad.addColorStop(0.78, isSafari ? '#ffb84d' : '#ffbc68');
       grad.addColorStop(1.0, '#fff0c4');
     } else if (mode === 2) {
       grad.addColorStop(0.0, '#090f24');
       grad.addColorStop(0.5, '#1a2c56');
       grad.addColorStop(1.0, '#445882');
+    } else if (isSafari) {
+      grad.addColorStop(0.0, '#2a75c7');
+      grad.addColorStop(0.34, '#66aee8');
+      grad.addColorStop(0.62, '#c8e4f4');
+      grad.addColorStop(0.82, '#fbe7c2');
+      grad.addColorStop(1.0, '#ffd898');
     } else {
       grad.addColorStop(0.0, '#2368be');
       grad.addColorStop(0.36, '#56a0e4');
@@ -652,12 +659,14 @@ window.LailaSalma = window.LailaSalma || {};
         ctx.fill();
       }
     } else {
-      const sx = mode === 1 ? 1320 : 1460, sy = mode === 1 ? 520 : 300;
-      const sg = ctx.createRadialGradient(sx, sy, 14, sx, sy, 310);
-      sg.addColorStop(0, 'rgba(255, 252, 228, 0.98)');
-      sg.addColorStop(0.30, mode === 1 ? 'rgba(255, 186, 104, 0.58)' : 'rgba(255, 245, 206, 0.38)');
+      const sx = mode === 1 ? 1320 : (isSafari ? 1180 : 1460);
+      const sy = mode === 1 ? 520 : (isSafari ? 360 : 300);
+      const sRad = isSafari ? 380 : 310;
+      const sg = ctx.createRadialGradient(sx, sy, 16, sx, sy, sRad);
+      sg.addColorStop(0, 'rgba(255, 252, 228, 0.99)');
+      sg.addColorStop(0.30, (mode === 1 || isSafari) ? 'rgba(255, 198, 114, 0.56)' : 'rgba(255, 245, 206, 0.38)');
       sg.addColorStop(1, 'rgba(255, 232, 180, 0)');
-      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, 310, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, sy, sRad, 0, Math.PI * 2); ctx.fill();
     }
 
     function drawCumulus(cx, cy, scale) {

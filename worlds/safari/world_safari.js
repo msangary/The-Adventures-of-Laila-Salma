@@ -207,6 +207,22 @@ window.LailaSalma = window.LailaSalma || {};
         });
         const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 7.6, 10), timber);
         beam.rotation.z = Math.PI / 2; beam.position.y = 4.45; arch.add(beam);
+        // Festive savanna bunting flags & warm hanging camp lanterns under the Welcome Arch!
+        const flagCols = [0xf59e0b, 0xe76f51, 0x2a9d8f, 0xe9c46a, 0xd62828, 0x38bdf8];
+        for (let fi = 0; fi < 9; fi++) {
+          const fx = -2.8 + fi * 0.7;
+          const sag = Math.sin((fi / 8) * Math.PI) * 0.28;
+          const flag = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.36, 3), LS.makeToonMat(flagCols[fi % flagCols.length]));
+          flag.rotation.x = Math.PI; flag.position.set(fx, 4.18 - sag, 0.08); arch.add(flag);
+        }
+        [-3.05, 3.05].forEach(lx => {
+          const lan = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.34, 8), new THREE.MeshBasicMaterial({ color: 0xffe29a }));
+          lan.position.set(lx, 3.92, 0.22); arch.add(lan);
+          if (LS.isHD && LS.createGlowSprite) {
+            const halo = LS.createGlowSprite(0xffcf70, 1.55);
+            halo.position.copy(lan.position); arch.add(halo);
+          }
+        });
         const wSign = new THREE.Mesh(
           new THREE.BoxGeometry(6.2, 1.15, 0.20),
           new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🦁 AFRICAN SAFARI & WILDLIFE ZOO', { bg: '#5c3416', border: '#f5b841', color: '#fff8e8', font: 'bold 31px sans-serif', width: 640 }) })
@@ -224,9 +240,16 @@ window.LailaSalma = window.LailaSalma || {};
           const door = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.1, 0.12), timber);
           door.position.set(0, 1.05, 2.22); g.add(door);
           [-1.55, 1.55].forEach(wx => {
-            const win = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.85, 0.12), LS.makeEmissiveMat(0xffe6a7, 0xffc86b, 0.45));
+            const win = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.85, 0.12), LS.makeEmissiveMat(0xffe6a7, 0xffc86b, 0.48));
             win.position.set(wx, 1.85, 2.22); g.add(win);
           });
+          // Warm camp porch lantern (+ HD glow halo)
+          const lLan = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.28, 8), new THREE.MeshBasicMaterial({ color: 0xffe29a }));
+          lLan.position.set(1.02, 2.28, 2.38); g.add(lLan);
+          if (LS.isHD && LS.createGlowSprite) {
+            const halo = LS.createGlowSprite(0xffcf70, 1.35);
+            halo.position.copy(lLan.position); g.add(halo);
+          }
           const sign = new THREE.Mesh(
             new THREE.BoxGeometry(3.8, 0.72, 0.14),
             new THREE.MeshBasicMaterial({ map: LS.createSignTexture(opts.sign, { bg: opts.bg, border: '#f5b841', color: '#fff8eb', font: 'bold 30px sans-serif', width: 512 }) })
@@ -266,6 +289,21 @@ window.LailaSalma = window.LailaSalma || {};
           const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 2.7, 6), timber);
           post.position.set(p[0], 1.35, p[1]); cafe.add(post);
         });
+        // Colorful tropical smoothie pitchers & mango basket on the counter!
+        [0xffb703, 0xff5d8f, 0x52b788].forEach((sc, idx) => {
+          const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.10, 0.34, 8), LS.makeToonMat(sc));
+          jar.position.set(-0.95 + idx * 0.42, 1.22, 0.28); cafe.add(jar);
+        });
+        [0xf59e0b, 0xfb923c, 0xfacc15].forEach((mc, idx) => {
+          const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), LS.makeToonMat(mc));
+          fruit.position.set(0.62 + idx * 0.26, 1.16, 0.22); cafe.add(fruit);
+        });
+        const cLan = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.12, 0.26, 8), new THREE.MeshBasicMaterial({ color: 0xffe29a }));
+        cLan.position.set(-1.35, 2.25, 0.72); cafe.add(cLan);
+        if (LS.isHD && LS.createGlowSprite) {
+          const halo = LS.createGlowSprite(0xffcf70, 1.3);
+          halo.position.copy(cLan.position); cafe.add(halo);
+        }
         const cRoof = new THREE.Mesh(new THREE.ConeGeometry(3.0, 1.25, 4), thatch);
         cRoof.rotation.y = Math.PI / 4; cRoof.position.y = 3.15; cRoof.castShadow = true; cafe.add(cRoof);
         const cSign = new THREE.Mesh(
@@ -274,7 +312,7 @@ window.LailaSalma = window.LailaSalma || {};
         );
         cSign.position.set(0, 2.68, 0.85); cafe.add(cSign);
         worldGroup.add(cafe); addCollider(9.6, 23.2, 1.9, 1.0);
-        W.zones.push({ id: 'safari_cafe', label: 'Order Mango Sunrise Smoothie 🥭 (20c)', pos: new THREE.Vector3(7.6, 0, 24.4), radius: 3.1 });
+        W.zones.push({ id: 'safari_cafe', label: "Visit Mama Nia's Mango Smoothie Cafe 🥭", pos: new THREE.Vector3(7.6, 0, 24.4), radius: 3.2 });
 
         // Parked Zebra-Striped Safari Jeep (Interactive Guided Savanna Tour!)
         let jeep;
@@ -512,19 +550,38 @@ window.LailaSalma = window.LailaSalma || {};
         addCollider(3.0, -40.5, 7.6, 6.2);
 
         // Majestic Resting King Lion + Lioness perched atop Pride Rock!
-        const furM = LS.makeToonMat(0xe5a94c), maneM = LS.makeToonMat(0x7c3e18), darkM = LS.makeToonMat(0x1e1612);
+        const furM = LS.makeToonMat(0xe5a94c), maneM = LS.makeToonMat(0x7c3e18), creamM = LS.makeToonMat(0xfbe8c2), darkM = LS.makeToonMat(0x1e1612);
         const king = new THREE.Group(); king.position.set(3.4, 5.72, -35.8); king.rotation.y = 0.06;
         const kBody = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 8), furM); kBody.scale.set(0.82, 0.75, 1.55); kBody.position.y = 0.45; kBody.castShadow = true; king.add(kBody);
-        const kMane = new THREE.Mesh(new THREE.DodecahedronGeometry(0.72, 1), maneM); kMane.position.set(0, 0.94, 0.72); king.add(kMane);
+        const kMane = new THREE.Mesh(new THREE.DodecahedronGeometry(0.74, 1), maneM); kMane.position.set(0, 0.94, 0.72); kMane.castShadow = true; king.add(kMane);
         const kHead = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), furM); kHead.position.set(0, 0.96, 0.98); king.add(kHead);
-        [-0.18, 0.18].forEach(ex => {
-          const e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); e.position.set(ex, 1.04, 1.34); king.add(e);
+        const kSnout = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), creamM); kSnout.scale.set(1.05, 0.78, 1.15); kSnout.position.set(0, 0.88, 1.34); king.add(kSnout);
+        const kNose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), darkM); kNose.position.set(0, 0.94, 1.54); king.add(kNose);
+        [-0.28, 0.28].forEach(ex => {
+          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), furM); ear.position.set(ex, 1.32, 0.90); king.add(ear);
+          const paw = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), furM); paw.scale.set(0.85, 0.55, 1.6); paw.position.set(ex * 1.1, 0.14, 1.05); king.add(paw);
         });
+        [-0.17, 0.17].forEach(ex => {
+          const e = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); e.position.set(ex, 1.04, 1.35); king.add(e);
+        });
+        const kTail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.85, 6), furM);
+        kTail.rotation.x = 1.18; kTail.position.set(0.18, 0.36, -1.05); king.add(kTail);
+        const kTuft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), maneM); kTuft.position.set(0.26, 0.22, -1.42); king.add(kTuft);
         worldGroup.add(king);
 
         const queen = new THREE.Group(); queen.position.set(1.2, 5.25, -37.6); queen.rotation.y = 0.35;
-        const qBody = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 8), furM); qBody.scale.set(0.78, 0.72, 1.48); qBody.position.y = 0.38; queen.add(qBody);
+        const qBody = new THREE.Mesh(new THREE.SphereGeometry(0.52, 10, 8), furM); qBody.scale.set(0.78, 0.72, 1.48); qBody.position.y = 0.38; qBody.castShadow = true; queen.add(qBody);
         const qHead = new THREE.Mesh(new THREE.SphereGeometry(0.35, 10, 8), furM); qHead.position.set(0, 0.78, 0.74); queen.add(qHead);
+        const qSnout = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), creamM); qSnout.position.set(0, 0.72, 1.02); queen.add(qSnout);
+        const qNose = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), darkM); qNose.position.set(0, 0.77, 1.16); queen.add(qNose);
+        [-0.22, 0.22].forEach(ex => {
+          const ear = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), furM); ear.position.set(ex, 1.06, 0.68); queen.add(ear);
+          const paw = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), furM); paw.scale.set(0.85, 0.55, 1.55); paw.position.set(ex * 1.1, 0.12, 0.85); queen.add(paw);
+          const eye = new THREE.Mesh(new THREE.SphereGeometry(0.048, 6, 6), darkM); eye.position.set(ex * 0.65, 0.84, 1.04); queen.add(eye);
+        });
+        const qTail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.72, 6), furM);
+        qTail.rotation.x = 1.22; qTail.position.set(-0.15, 0.28, -0.88); queen.add(qTail);
+        const qTuft = new THREE.Mesh(new THREE.SphereGeometry(0.095, 8, 6), maneM); qTuft.position.set(-0.22, 0.18, -1.18); queen.add(qTuft);
         worldGroup.add(queen);
 
         addBaobab(-9.5, -42.0, 1.15);
@@ -545,12 +602,23 @@ window.LailaSalma = window.LailaSalma || {};
             st.position.set(0, 1.05, s); zg.add(st);
           }
           [[-0.24, 0.45], [0.24, 0.45], [-0.24, -0.45], [0.24, -0.45]].forEach(l => {
-            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.92, 6), wMat); leg.position.set(l[0], 0.46, l[1]); zg.add(leg);
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.84, 6), wMat); leg.position.set(l[0], 0.50, l[1]); zg.add(leg);
+            const hoof = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.12, 6), bMat); hoof.position.set(l[0], 0.06, l[1]); zg.add(hoof);
           });
+          const zTail = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.032, 0.48, 5), wMat);
+          zTail.position.set(0, 0.88, -0.86); zTail.rotation.x = 0.35; zg.add(zTail);
+          const zTuft = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 6), bMat);
+          zTuft.position.set(0, 0.65, -0.96); zg.add(zTuft);
+
           const neckPivot = new THREE.Group(); neckPivot.position.set(0, 1.25, 0.58);
           const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.68, 8), wMat); neck.position.set(0, 0.28, 0.14); neck.rotation.x = 0.35; neckPivot.add(neck);
+          const mane = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.56, 0.16), bMat); mane.position.set(0, 0.36, 0.02); mane.rotation.x = 0.35; neckPivot.add(mane);
           const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), wMat); head.scale.set(0.75, 0.82, 1.45); head.position.set(0, 0.58, 0.36); neckPivot.add(head);
           const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), bMat); muzzle.position.set(0, 0.54, 0.62); neckPivot.add(muzzle);
+          [-0.12, 0.12].forEach(ex => {
+            const ear = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.20, 6), wMat); ear.position.set(ex, 0.80, 0.26); ear.rotation.z = -ex * 1.4; neckPivot.add(ear);
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.038, 6, 6), bMat); eye.position.set(ex * 1.15, 0.62, 0.44); neckPivot.add(eye);
+          });
           zg.add(neckPivot);
           worldGroup.add(zg);
           addCollider(zc[0], zc[1], 0.85, 0.85);

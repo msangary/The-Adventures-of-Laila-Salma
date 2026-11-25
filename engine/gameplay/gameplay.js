@@ -466,7 +466,7 @@ window.LailaSalma = window.LailaSalma || {};
       const row = document.createElement('div');
       row.className = 'shop-item' + (isEquipped ? ' equipped' : '');
 
-      const originTag = item.shop === 'kyoto' ? '⛩️' : '🗼';
+      const originTag = item.shop === 'safari' ? '🦁' : (item.shop === 'kyoto' ? '⛩️' : '🗼');
       const info = document.createElement('div');
       info.innerHTML =
         '<strong><span class="swatch-dot" style="background:' + item.swatch + '"></span>' + item.name + ' ' + originTag + '</strong>' +
@@ -839,21 +839,123 @@ window.LailaSalma = window.LailaSalma || {};
     }
   };
 
-  LS.enjoySafariSmoothie = function () {
-    const cost = 20;
-    if (LS.state.coins < cost) {
-      LS.playSFX('wrong');
-      LS.showToast('🥭 Need 20 coins for a Mango Sunrise Smoothie! Feed animals or play quizzes to earn coins!');
-      return;
+  const LOCAL_SHOPS = {
+    sakura_bakery: {
+      title: '🥐 Sakura Bakery — Fresh Tokyo Pastries',
+      sub: '“Irasshaimase, Laila & Salma! Freshly baked melonpan, sakura cupcakes & strawberry cream puffs straight from the oven!”',
+      items: [
+        { name: '🍈 Crispy Melonpan', desc: 'Warm sugar-crust bun • Speed +25% & Infinite Run for 90s (+12 XP)', cost: 20, xp: 12, buff: { name: 'Crispy Melonpan', short: 'Melonpan⚡', speedMult: 1.25, infiniteStamina: true, durationMs: 90000 } },
+        { name: '🧁 Sakura Cream Cupcake', desc: 'Pink blossom frosting • Magical Sparkle Trail for 60s (+12 XP)', cost: 20, xp: 12, sparkleMs: 60000 },
+        { name: '🍓 Strawberry Shortcake Box', desc: 'Fluffy Tokyo cake • Super-Jump + Speed boost for 75s (+18 XP)', cost: 30, xp: 18, superJumpMs: 75000, buff: { name: 'Strawberry Shortcake', short: 'Cake⚡', speedMult: 1.28, infiniteStamina: true, durationMs: 75000 } }
+      ]
+    },
+    sunny_florist: {
+      title: '🌷 Sunny Florist — Tokyo Flower & Crown Shop',
+      sub: '“Hello, sisters! Pick bright tulip crowns, sakura bouquets, or lucky clovers that help Salma spot hiding kitties!”',
+      items: [
+        { name: '🌸 Sakura Petal Crown', desc: 'Twinkling flower crown • Blossom Sparkle Trail for 75s (+12 XP)', cost: 18, xp: 12, sparkleMs: 75000 },
+        { name: '🌻 Sunny Sunflower Bouquet', desc: 'Cheerful sunny energy • Super-Jump boost for 60s (+12 XP)', cost: 20, xp: 12, superJumpMs: 60000 },
+        { name: '🍀 Lucky Four-Leaf Clover', desc: 'Salma senses the nearest hiding animal + Speed boost for 60s (+15 XP)', cost: 25, xp: 15, hint: true, buff: { name: 'Lucky Clover', short: 'Clover🍀', speedMult: 1.22, infiniteStamina: true, durationMs: 60000 } }
+      ]
+    },
+    cozy_bookshop: {
+      title: '📚 Cozy Bookshop — Picture Books & Explorer Guides',
+      sub: '“Welcome to Sakura-cho’s cozy reading nook! Pick an adventure storybook or a secret town guide!”',
+      items: [
+        { name: '📖 Cat Detective Picture Book', desc: 'Clever clues! Salma reveals the nearest hiding friend (+18 XP)', cost: 15, xp: 18, hint: true },
+        { name: '🗺️ Japan Adventure Atlas', desc: 'Inspiring explorer facts • Big +35 XP learning boost!', cost: 22, xp: 35 },
+        { name: '✨ Magic Origami Craft Kit', desc: 'Sparkle Trail + Super-Jump for 60s (+20 XP)', cost: 28, xp: 20, sparkleMs: 60000, superJumpMs: 60000 }
+      ]
+    },
+    kyoto_pottery: {
+      title: '🏺 Kyoto Pottery Studio — Kiyomizu Ceramics',
+      sub: '“Welcome to our traditional Kyoto kiln! Paint glazed teacups, lucky fox figurines, or shimmering lotus bowls!”',
+      items: [
+        { name: '🍵 Paint a Matcha Teacup', desc: 'Cozy kiln crafting • +30 XP & warm Speed boost for 75s', cost: 20, xp: 30, buff: { name: 'Crafted Teacup', short: 'Pottery⚡', speedMult: 1.24, infiniteStamina: true, durationMs: 75000 } },
+        { name: '🦊 Lucky Ceramic Kitsune Charm', desc: 'Guides Salma straight toward the nearest hiding Kyoto fox (+18 XP)', cost: 20, xp: 18, hint: true },
+        { name: '🪷 Shimmering Lotus Bowl', desc: 'Sparkle Trail + Super-Jump for 65s (+22 XP)', cost: 28, xp: 22, sparkleMs: 65000, superJumpMs: 65000 }
+      ]
+    },
+    kyoto_fans: {
+      title: '🪭 Kyoto Folding Fan Atelier — Sensu Workshop',
+      sub: '“Step right in, Laila & Salma! Wave a hand-painted Kyoto sensu fan for breeze-light leaps and blossom trails!”',
+      items: [
+        { name: '🍁 Autumn Maple Breeze Fan', desc: 'Breeze-light steps • Speed +30% & Infinite Run for 90s (+15 XP)', cost: 22, xp: 15, buff: { name: 'Maple Breeze Fan', short: 'Breeze🪭', speedMult: 1.30, infiniteStamina: true, durationMs: 90000 } },
+        { name: '🌸 Sakura Wind-Jump Fan', desc: 'Soar over gardens • Super-Jump + Sparkle Trail for 65s (+16 XP)', cost: 25, xp: 16, superJumpMs: 65000, sparkleMs: 65000 },
+        { name: '✨ Golden Festival Master Fan', desc: 'Speed + Super-Jump + Sparkle Trail + Salma Animal Hint (+25 XP)', cost: 35, xp: 25, hint: true, superJumpMs: 65000, sparkleMs: 65000, buff: { name: 'Golden Festival Fan', short: 'Golden🪭', speedMult: 1.30, infiniteStamina: true, durationMs: 90000 } }
+      ]
+    },
+    safari_cafe: {
+      title: '🥭 Mama Nia’s Mango Smoothie Cafe',
+      sub: '“Jambo, Laila & Salma! Cool off in the savanna shade with fresh-blended tropical smoothies & explorer snacks!”',
+      items: [
+        { name: '🥭 Mango Sunrise Smoothie', desc: 'Golden tropical energy • Speed +28%, Infinite Run & Sparkles for 75s (+12 XP)', cost: 20, xp: 12, sparkleMs: 55000, buff: { name: 'Mango Sunrise Smoothie', short: 'Mango⚡', speedMult: 1.28, infiniteStamina: true, durationMs: 75000 } },
+        { name: '🍉 Baobab Melon Splash', desc: 'Bouncy savanna refresher • Super-Jump for 65s (+14 XP)', cost: 20, xp: 14, superJumpMs: 65000 },
+        { name: '🍍 Safari Explorer Trail Mix', desc: 'Full energy + Salma spots the nearest hiding Lion Cub! (+18 XP)', cost: 25, xp: 18, hint: true, buff: { name: 'Safari Trail Mix', short: 'Safari🦁', speedMult: 1.25, infiniteStamina: true, durationMs: 85000 } }
+      ]
     }
-    LS.addCoins(-cost);
-    LS.addXP(12);
-    LS.runtime.stamina = 100;
-    LS.runtime.buff = { name: 'Mango Sunrise Smoothie', short: 'Mango⚡', speedMult: 1.28, infiniteStamina: true, expiresAt: Date.now() + 75000 };
-    LS.runtime.sparkleUntil = Date.now() + 45000;
-    LS.playSFX('correct');
-    LS.updateHUD();
-    LS.showToast('🥭✨ Yum! Mango Sunrise Smoothie gives Speed + Infinite Run + Golden Sparkles for 75s (+12 XP)!');
+  };
+
+  LS.openLocalShopModal = function (shopKey) {
+    const shop = LOCAL_SHOPS[shopKey];
+    if (!shop) return;
+    LS.runtime.modalOpen = true;
+    const titleEl = document.getElementById('local-shop-title');
+    const subEl = document.getElementById('local-shop-sub');
+    const grid = document.getElementById('local-shop-items');
+    const msgEl = document.getElementById('local-shop-msg');
+    if (titleEl) titleEl.textContent = shop.title;
+    if (subEl) subEl.textContent = shop.sub;
+    if (msgEl) msgEl.textContent = '';
+    if (grid) {
+      grid.innerHTML = '';
+      shop.items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'ramen-item';
+        const info = document.createElement('div');
+        info.innerHTML = '<strong>' + item.name + '</strong><div class="ramen-desc">' + item.desc + '</div>';
+        const btn = document.createElement('button');
+        btn.className = 'btn-small';
+        btn.textContent = item.cost + 'c';
+        btn.onclick = () => {
+          if (LS.state.coins < item.cost) {
+            if (msgEl) msgEl.textContent = 'Not enough coins (' + item.cost + 'c)! Feed animals, find friends, or take a quiz.';
+            LS.playSFX('wrong');
+            return;
+          }
+          LS.addCoins(-item.cost);
+          if (item.xp) LS.addXP(item.xp);
+          LS.runtime.stamina = 100;
+          if (item.buff) {
+            LS.runtime.buff = {
+              name: item.buff.name,
+              short: item.buff.short,
+              speedMult: item.buff.speedMult,
+              infiniteStamina: item.buff.infiniteStamina,
+              expiresAt: Date.now() + item.buff.durationMs
+            };
+          }
+          if (item.sparkleMs) LS.runtime.sparkleUntil = Date.now() + item.sparkleMs;
+          if (item.superJumpMs) LS.runtime.superJumpUntil = Date.now() + item.superJumpMs;
+          LS.closeAllModals();
+          LS.playSFX('correct');
+          LS.updateHUD();
+          LS.showToast('✨ Enjoyed ' + item.name + (item.xp ? (' (+' + item.xp + ' XP)') : '') + '!');
+          if (item.hint && LS.showSalmaAnimalHint) {
+            setTimeout(() => LS.showSalmaAnimalHint(), 350);
+          }
+        };
+        row.appendChild(info);
+        row.appendChild(btn);
+        grid.appendChild(row);
+      });
+    }
+    const modal = document.getElementById('local-shop-modal');
+    if (modal) modal.classList.remove('hidden');
+  };
+
+  LS.enjoySafariSmoothie = function () {
+    LS.openLocalShopModal('safari_cafe');
   };
 
   LS.startSafariJeepRide = function () {
@@ -911,7 +1013,7 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.modalOpen = false;
     clearInterval(timerInterval);
     [
-      'passport-modal', 'airport-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
+      'passport-modal', 'airport-modal', 'local-shop-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
       'sushi-modal', 'tea-modal', 'shop-modal', 'gachapon-modal',
       'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal'
     ].forEach(id => {
