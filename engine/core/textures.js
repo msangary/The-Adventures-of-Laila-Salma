@@ -213,6 +213,11 @@ window.LailaSalma = window.LailaSalma || {};
     return tex;
   };
 
+  function hash01(n) {
+    const v = Math.sin(n * 127.1 + 311.7) * 43758.5453123;
+    return v - Math.floor(v);
+  }
+
   LS.createGrassTexture = function (style) {
     const key = 'grass_' + (style || 'tokyo');
     if (texCache[key]) return texCache[key];
@@ -220,33 +225,77 @@ window.LailaSalma = window.LailaSalma || {};
     c.width = 256; c.height = 256;
     const ctx = c.getContext('2d');
     const isKyoto = style === 'kyoto';
-    ctx.fillStyle = isKyoto ? '#5e884d' : '#6ea858';
+    ctx.fillStyle = isKyoto ? '#5d874b' : '#6ca656';
     ctx.fillRect(0, 0, 256, 256);
 
-    // Soft painterly Ghibli meadow/moss patches (zero harsh grid!)
+    // Seamless painterly Ghibli meadow/moss patches using hash scatter (zero linear banding!)
     const tones = isKyoto
-      ? ['rgba(78,118,62,0.34)', 'rgba(116,148,82,0.28)', 'rgba(84,96,54,0.22)', 'rgba(138,162,92,0.2)']
-      : ['rgba(94,152,72,0.34)', 'rgba(132,182,92,0.28)', 'rgba(84,134,64,0.24)', 'rgba(164,196,104,0.2)'];
-    for (let i = 0; i < 360; i++) {
+      ? ['rgba(74,114,58,0.28)', 'rgba(118,150,82,0.24)', 'rgba(84,102,56,0.2)', 'rgba(136,162,90,0.18)']
+      : ['rgba(90,148,70,0.28)', 'rgba(134,182,92,0.24)', 'rgba(80,132,62,0.22)', 'rgba(162,196,104,0.18)'];
+    for (let i = 0; i < 220; i++) {
       ctx.fillStyle = tones[i % tones.length];
-      const rx = ((i * 73) % 256);
-      const ry = ((i * 137) % 256);
-      const r = 8 + (i % 14);
-      ctx.beginPath();
-      ctx.arc(rx, ry, r, 0, Math.PI * 2);
-      ctx.fill();
+      const rx = hash01(i * 3.1 + 1.7) * 256;
+      const ry = hash01(i * 5.7 + 9.3) * 256;
+      const r = 10 + hash01(i * 7.3) * 18;
+      // Wrap across tile edges so repeats are 100% seamless
+      for (let ox = -256; ox <= 256; ox += 256) {
+        if (rx + ox < -r || rx + ox > 256 + r) continue;
+        for (let oy = -256; oy <= 256; oy += 256) {
+          if (ry + oy < -r || ry + oy > 256 + r) continue;
+          ctx.beginPath();
+          ctx.arc(rx + ox, ry + oy, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
     }
-    // Delicate grass blades & occasional tiny wild clover specks
-    for (let i = 0; i < 520; i++) {
-      ctx.fillStyle = i % 3 === 0 ? 'rgba(220,235,175,0.22)' : 'rgba(46,78,38,0.22)';
-      const gx = (i * 59 + 11) % 256;
-      const gy = (i * 97 + 23) % 256;
-      ctx.fillRect(gx, gy, 2, 5);
+    // Delicate randomly scattered grass blades & tiny clover specks
+    for (let i = 0; i < 420; i++) {
+      ctx.fillStyle = i % 3 === 0 ? 'rgba(222,238,178,0.2)' : 'rgba(46,78,38,0.2)';
+      const gx = hash01(i * 11.3 + 4.1) * 256;
+      const gy = hash01(i * 17.9 + 2.3) * 256;
+      ctx.fillRect(gx, gy, 2, 4);
     }
     const tex = new THREE.CanvasTexture(c);
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(28, 28);
+    tex.repeat.set(22, 22);
+    texCache[key] = tex;
+    return tex;
+  };
+
+  LS.createVillageLaneTexture = function (style) {
+    const key = 'village_lane_' + (style || 'tokyo');
+    if (texCache[key]) return texCache[key];
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 256;
+    const ctx = c.getContext('2d');
+    const isKyoto = style === 'kyoto';
+    ctx.fillStyle = isKyoto ? '#847a6c' : '#a79e8d';
+    ctx.fillRect(0, 0, 256, 256);
+    // Soft stone/pebble dappling + gentle mossy verge along outer edges
+    for (let i = 0; i < 650; i++) {
+      const px = hash01(i * 4.3 + 1.1) * 256;
+      const py = hash01(i * 6.9 + 7.7) * 256;
+      const sz = 2 + hash01(i * 2.1) * 5;
+      ctx.fillStyle = i % 3 === 0
+        ? (isKyoto ? 'rgba(104,96,84,0.34)' : 'rgba(130,122,108,0.3)')
+        : (isKyoto ? 'rgba(165,156,140,0.24)' : 'rgba(226,218,200,0.26)');
+      ctx.fillRect(px, py, sz, sz * 0.8);
+    }
+    // Soft organic mossy shoulder fade on left & right sides (no hard painted stripes!)
+    const gL = ctx.createLinearGradient(0, 0, 32, 0);
+    gL.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.68)' : 'rgba(106,154,82,0.58)');
+    gL.addColorStop(1, 'rgba(106,154,82,0)');
+    ctx.fillStyle = gL; ctx.fillRect(0, 0, 32, 256);
+    const gR = ctx.createLinearGradient(256, 0, 224, 0);
+    gR.addColorStop(0, isKyoto ? 'rgba(84,116,66,0.68)' : 'rgba(106,154,82,0.58)');
+    gR.addColorStop(1, 'rgba(106,154,82,0)');
+    ctx.fillStyle = gR; ctx.fillRect(224, 0, 32, 256);
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 2);
     texCache[key] = tex;
     return tex;
   };
@@ -632,25 +681,223 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   // Shared Natural Neighborhood Scenery Builders (zero extra lights, mobile-safe geometry)
+  function sampleCatmullRom(pts, stepsPerSeg) {
+    if (!pts || pts.length < 2) return pts || [];
+    const steps = stepsPerSeg || 8;
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const count = (i === pts.length - 2) ? steps : steps;
+      for (let s = 0; s < count; s++) {
+        const t = s / steps;
+        const t2 = t * t, t3 = t2 * t;
+        const x = 0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+        const z = 0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+        out.push([x, z]);
+      }
+    }
+    out.push(pts[pts.length - 1]);
+    return out;
+  }
+
+  function buildRibbonGeometry(sampled, width, yLevel, vScale) {
+    const hw = width * 0.5;
+    const positions = [];
+    const normals = [];
+    const uvs = [];
+    const indices = [];
+    let dist = 0;
+
+    for (let i = 0; i < sampled.length; i++) {
+      const cur = sampled[i];
+      const prev = sampled[Math.max(0, i - 1)];
+      const next = sampled[Math.min(sampled.length - 1, i + 1)];
+      if (i > 0) dist += Math.hypot(cur[0] - prev[0], cur[1] - prev[1]);
+      let tx = next[0] - prev[0];
+      let tz = next[1] - prev[1];
+      const tLen = Math.hypot(tx, tz) || 1;
+      tx /= tLen; tz /= tLen;
+      // Perpendicular normal in XZ plane
+      const nx = -tz, nz = tx;
+
+      positions.push(cur[0] - nx * hw, yLevel, cur[1] - nz * hw);
+      positions.push(cur[0] + nx * hw, yLevel, cur[1] + nz * hw);
+      normals.push(0, 1, 0, 0, 1, 0);
+      const v = dist * (vScale || 0.14);
+      uvs.push(0, v, 1, v);
+
+      if (i < sampled.length - 1) {
+        const b = i * 2;
+        indices.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
+      }
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
+    return geo;
+  }
+
   LS.scenery = {
-    addCurvedPath: function (parent, points, width, style) {
-      const mat = style === 'stone'
-        ? new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() })
-        : new THREE.MeshLambertMaterial({ map: LS.createGravelPathTexture() });
-      const w = width || 2.4;
-      for (let i = 0; i < points.length - 1; i++) {
-        const a = points[i], b = points[i + 1];
-        const dx = b[0] - a[0], dz = b[1] - a[1];
-        const len = Math.hypot(dx, dz);
-        const seg = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, len + w * 0.45), mat);
-        seg.position.set((a[0] + b[0]) / 2, 0.025, (a[1] + b[1]) / 2);
-        seg.rotation.y = Math.atan2(dx, dz);
-        seg.receiveShadow = true;
-        parent.add(seg);
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(w * 0.5, w * 0.5, 0.05, 10), mat);
-        cap.position.set(a[0], 0.025, a[1]);
-        cap.receiveShadow = true;
-        parent.add(cap);
+    sampleSpline: sampleCatmullRom,
+
+    addCurvedPath: function (parent, points, width, style, yLevel) {
+      let tex;
+      if (style === 'stone') tex = LS.createStonePathTexture();
+      else if (style === 'lane_tokyo') tex = LS.createVillageLaneTexture('tokyo');
+      else if (style === 'lane_kyoto') tex = LS.createVillageLaneTexture('kyoto');
+      else tex = LS.createGravelPathTexture();
+
+      const mat = new THREE.MeshLambertMaterial({ map: tex, side: THREE.DoubleSide });
+      const sampled = sampleCatmullRom(points, 8);
+      const y = (yLevel !== undefined) ? yLevel : (style && style.indexOf('lane_') === 0 ? 0.032 : 0.024);
+      const geo = buildRibbonGeometry(sampled, width || 2.5, y, style === 'stone' ? 0.16 : 0.12);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.receiveShadow = true;
+      parent.add(mesh);
+      return sampled;
+    },
+
+    addMeanderingStream: function (parent, points, width, addColliderFn, bridgeZones) {
+      const sampled = sampleCatmullRom(points, 8);
+      const w = width || 4.8;
+      // Soft earthy riverbank border beneath water
+      const bankGeo = buildRibbonGeometry(sampled, w + 1.5, 0.015, 0.1);
+      const bankMesh = new THREE.Mesh(bankGeo, LS.makeToonMat(0x5a584a, { side: THREE.DoubleSide }));
+      bankMesh.receiveShadow = true;
+      parent.add(bankMesh);
+
+      // Flowing water ribbon
+      const waterGeo = buildRibbonGeometry(sampled, w, 0.036, 0.12);
+      const waterMat = new THREE.MeshLambertMaterial({ map: LS.createWaterTexture(), transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+      const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+      parent.add(waterMesh);
+
+      const bridges = bridgeZones || [];
+      function nearBridge(px, pz) {
+        for (let b = 0; b < bridges.length; b++) {
+          if (Math.hypot(px - bridges[b].x, pz - bridges[b].z) < (bridges[b].r || 3.4)) return true;
+        }
+        return false;
+      }
+
+      // Scattered mossy bank boulders, reeds & gentle water colliders (clean gap at bridges!)
+      for (let i = 1; i < sampled.length - 1; i++) {
+        const cur = sampled[i];
+        const prev = sampled[i - 1], next = sampled[i + 1];
+        let tx = next[0] - prev[0], tz = next[1] - prev[1];
+        const tl = Math.hypot(tx, tz) || 1;
+        tx /= tl; tz /= tl;
+        const nx = -tz, nz = tx;
+
+        const isBridge = nearBridge(cur[0], cur[1]);
+        if (addColliderFn && !isBridge && i % 2 === 0) {
+          addColliderFn(cur[0], cur[1], w * 0.44, w * 0.44);
+        }
+        if (!isBridge && i % 4 === 0) {
+          const side = (i % 8 === 0) ? 1 : -1;
+          const bx = cur[0] + nx * side * (w * 0.56 + 0.35);
+          const bz = cur[1] + nz * side * (w * 0.56 + 0.35);
+          LS.scenery.addBoulder(parent, bx, bz, 0.55 + hash01(i * 3.7) * 0.45, true);
+        }
+        if (!isBridge && i % 5 === 2) {
+          const side = (i % 10 === 2) ? -1 : 1;
+          LS.scenery.addTallGrass(parent, cur[0] + nx * side * (w * 0.52 + 0.25), cur[1] + nz * side * (w * 0.52 + 0.25), 1.15);
+        }
+        if (!isBridge && i % 7 === 3) {
+          LS.scenery.addLilyPad(parent, cur[0] + nx * (hash01(i) - 0.5) * w * 0.4, 0.052, cur[1] + nz * (hash01(i + 4) - 0.5) * w * 0.4, 0.9, i % 14 === 3);
+        }
+      }
+      return sampled;
+    },
+
+    addMeadowPatch: function (parent, x, z, rx, rz, rotY, colorHex) {
+      const m = new THREE.Mesh(
+        new THREE.CircleGeometry(1, 20),
+        LS.makeToonMat(colorHex || 0x82bc64)
+      );
+      m.rotation.x = -Math.PI / 2;
+      m.rotation.z = rotY || 0;
+      m.scale.set(rx, rz, 1);
+      m.position.set(x, 0.012, z);
+      m.receiveShadow = true;
+      parent.add(m);
+    },
+
+    addTallGrass: function (parent, x, z, scale) {
+      const s = scale || 1;
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      g.scale.setScalar(s);
+      const bladeMat = LS.makeToonMat(0x4b8f44);
+      const tipMat = LS.makeToonMat(0x74b354);
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2 + (x * 0.3 + z * 0.2);
+        const r = 0.08 + (i % 2) * 0.16;
+        const h = 0.42 + (i % 3) * 0.16;
+        const blade = new THREE.Mesh(new THREE.ConeGeometry(0.06, h, 4), i % 2 === 0 ? bladeMat : tipMat);
+        blade.position.set(Math.cos(ang) * r, h * 0.46, Math.sin(ang) * r);
+        blade.rotation.z = Math.cos(ang) * 0.24;
+        blade.rotation.x = Math.sin(ang) * 0.24;
+        g.add(blade);
+      }
+      parent.add(g);
+    },
+
+    addLilyPad: function (parent, x, y, z, scale, hasBloom) {
+      const s = scale || 1;
+      const g = new THREE.Group();
+      g.position.set(x, y, z);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.36 * s, 0.36 * s, 0.03, 10), LS.makeToonMat(0x408a4c));
+      g.add(pad);
+      if (hasBloom) {
+        const bloom = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11 * s, 0), LS.makeToonMat(0xffa6c9));
+        bloom.position.y = 0.08;
+        g.add(bloom);
+      }
+      parent.add(g);
+    },
+
+    addSteppingStones: function (parent, points) {
+      const mat = LS.makeToonMat(0x8a877d);
+      points.forEach((p, idx) => {
+        const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.42 + (idx % 2) * 0.1, 0.48, 0.06, 8), mat);
+        stone.scale.set(1.15, 1, 0.85);
+        stone.rotation.y = idx * 0.9;
+        stone.position.set(p[0], 0.032, p[1]);
+        stone.receiveShadow = true;
+        parent.add(stone);
+      });
+    },
+
+    addSignpost: function (parent, x, z, rotY) {
+      const g = new THREE.Group();
+      g.position.set(x, 0, z);
+      g.rotation.y = rotY || 0;
+      const wood = LS.makeToonMat(0x7c5333), board = LS.makeToonMat(0xd4b483);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 2.0, 6), wood);
+      post.position.y = 1.0; post.castShadow = true; g.add(post);
+      const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.22, 0.07), board);
+      arm1.position.set(0.32, 1.72, 0); arm1.rotation.z = 0.04; g.add(arm1);
+      const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.2, 0.07), board);
+      arm2.position.set(-0.28, 1.38, 0.05); arm2.rotation.y = 0.55; arm2.rotation.z = -0.03; g.add(arm2);
+      parent.add(g);
+    },
+
+    addWildflowerMeadow: function (parent, cx, cz, radius, count, palette) {
+      const n = count || 8;
+      for (let i = 0; i < n; i++) {
+        const ang = hash01(cx * 3.1 + cz * 1.7 + i * 5.3) * Math.PI * 2;
+        const rad = Math.sqrt(hash01(cx * 1.9 + cz * 4.1 + i * 7.7)) * radius;
+        const px = cx + Math.cos(ang) * rad;
+        const pz = cz + Math.sin(ang) * rad;
+        if (i % 3 === 0) LS.scenery.addTallGrass(parent, px, pz, 0.85 + hash01(i * 2.9) * 0.45);
+        else LS.scenery.addFlowerPatch(parent, px, pz, palette);
       }
     },
 
@@ -659,9 +906,9 @@ window.LailaSalma = window.LailaSalma || {};
       g.position.set(x, 0.04, z);
       const cols = palette || [0xff8fab, 0xffd166, 0xffffff, 0x90e0ef];
       const stemMat = LS.makeToonMat(0x4c9a42);
-      for (let i = 0; i < 7; i++) {
-        const ang = (i / 7) * Math.PI * 2 + (x + z) * 0.3;
-        const r = 0.25 + (i % 3) * 0.32;
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2 + (x + z) * 0.3;
+        const r = 0.22 + (i % 3) * 0.34;
         const fx = Math.cos(ang) * r, fz = Math.sin(ang) * r;
         const tuft = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.22, 5), stemMat);
         tuft.position.set(fx, 0.08, fz);
@@ -782,8 +1029,9 @@ window.LailaSalma = window.LailaSalma || {};
         new THREE.SphereGeometry(radius, 14, 10),
         LS.makeToonMat(colorHex || 0x629950)
       );
-      m.scale.set(1.25, height / radius, 1.0);
-      m.position.set(x, -height * 0.35, z);
+      m.scale.set(1.3, height / radius, 1.05);
+      m.rotation.y = x * 0.2 + z * 0.1;
+      m.position.set(x, -height * 0.36, z);
       m.receiveShadow = true;
       parent.add(m);
     },

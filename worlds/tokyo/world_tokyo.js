@@ -34,9 +34,9 @@ window.LailaSalma = window.LailaSalma || {};
       W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
     }
 
-    // Smooth walkable arch over the West Sakura Creek footbridge (X=-41..-47, Z=2.0)
+    // Smooth walkable arch over the meandering West Sakura Creek footbridge (X=-41..-47, Z=3.0)
     W.getGroundHeight = function (x, z) {
-      if (x <= -41.0 && x >= -47.0 && Math.abs(z - 2.0) <= 2.1) {
+      if (x <= -41.0 && x >= -47.0 && Math.abs(z - 3.0) <= 2.1) {
         const t = Math.max(0, Math.min(1, (-41.0 - x) / 6.0));
         return Math.sin(t * Math.PI) * 0.55;
       }
@@ -202,7 +202,15 @@ window.LailaSalma = window.LailaSalma || {};
       return p;
     }
 
-    // 1. Painterly Grass Ground, Roads, Organic Curving Footpaths, Rolling Perimeter Hills, Mt. Fuji & Tokyo Tower
+    // 1. Painterly Meadow Ground, Curving Village Lane, Winding Footpaths, Open Meadows, Hills, Mt. Fuji & Tokyo Tower
+    const MAIN_LANE_PTS = [[-0.5, 41], [0.4, 30], [-0.4, 18], [1.8, 6], [-1.2, -7], [1.6, -21], [0.2, -35]];
+    const CREEK_PTS = [[-38, 44], [-45, 28], [-40, 14], [-44, 3.0], [-48, -11], [-42, -26], [-46, -42], [-40, -52]];
+    const TRAIL_WEST_PTS = [[0.2, 11], [-11, 9], [-21, 3], [-27, -2.5], [-34, 2.5], [-41, 3.0]];
+    const TRAIL_MEADOW_PTS = [[-0.2, 23], [-14, 26], [-26, 22], [-34, 12], [-35, 3.5]];
+    const TRAIL_WEST_FAR_PTS = [[-47, 3.0], [-53, -3.5], [-55, -16], [-48, -28]];
+    const TRAIL_EAST_PTS = [[1.2, -13], [11, -15], [19, -14], [25, -9], [23, 2], [20, 14], [24, 24]];
+    const TRAIL_NORTH_PTS = [[0.8, -28], [13, -32], [25, -28], [32, -19], [29, -11]];
+
     safeRun('environment', () => {
       const skyGeo = new THREE.SphereGeometry(260, 24, 16);
       W.skyMesh = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({
@@ -210,7 +218,7 @@ window.LailaSalma = window.LailaSalma || {};
       }));
       worldGroup.add(W.skyMesh);
 
-      // Soft painterly meadow grass (replaces flat neon green!)
+      // Soft band-free painterly meadow grass
       const ground = new THREE.Mesh(
         new THREE.PlaneGeometry(420, 420),
         new THREE.MeshLambertMaterial({ map: LS.createGrassTexture('tokyo') })
@@ -219,47 +227,39 @@ window.LailaSalma = window.LailaSalma || {};
       ground.receiveShadow = true;
       worldGroup.add(ground);
 
-      // Main N-S Sakura Boulevard (X=0, Z=-44..+40)
-      const road = new THREE.Mesh(
-        new THREE.PlaneGeometry(8.6, 88),
-        new THREE.MeshLambertMaterial({ map: LS.createRoadTexture('tokyo') })
-      );
-      road.rotation.x = -Math.PI / 2;
-      road.position.set(0, 0.02, -2);
-      road.receiveShadow = true;
-      worldGroup.add(road);
+      // Soft sunlit meadow washes across wide open grassy spaces
+      SC.addMeadowPatch(worldGroup, -22, 16, 13, 9.5, 0.35, 0x80ba64);
+      SC.addMeadowPatch(worldGroup, 16, 10, 11, 8.5, -0.4, 0x7db560);
+      SC.addMeadowPatch(worldGroup, -53, -8, 10, 14, 0.2, 0x82bc66);
+      SC.addMeadowPatch(worldGroup, 18, -36, 12, 8, 0.5, 0x7ab25e);
+      SC.addMeadowPatch(worldGroup, -26, -34, 13, 9, -0.25, 0x7bb460);
 
-      // East-West Cross Avenue (Z=8.0, X=-36..+36)
-      const crossRoad = new THREE.Mesh(new THREE.PlaneGeometry(74, 6.4), LS.makeToonMat(0x5b6068));
-      crossRoad.rotation.x = -Math.PI / 2;
-      crossRoad.position.set(0, 0.018, 8.0);
-      crossRoad.receiveShadow = true;
-      worldGroup.add(crossRoad);
+      // Gently curving Main Village Lane (replaces straight ruler highway & rigid crossroad!)
+      SC.addCurvedPath(worldGroup, MAIN_LANE_PTS, 6.2, 'lane_tokyo', 0.032);
 
-      const swMat = LS.makeToonMat(0xd6cfc2);
-      [-5.3, 5.3].forEach(sx => {
-        const swN = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.14, 52), swMat);
-        swN.position.set(sx, 0.07, -21); swN.receiveShadow = true; worldGroup.add(swN);
-        const swS = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.14, 28), swMat);
-        swS.position.set(sx, 0.07, 26); swS.receiveShadow = true; worldGroup.add(swS);
-      });
+      // Sweeping organic gravel footpaths connecting meadows, creek, park & shops
+      SC.addCurvedPath(worldGroup, TRAIL_WEST_PTS, 2.5, 'gravel', 0.025);
+      SC.addCurvedPath(worldGroup, TRAIL_MEADOW_PTS, 2.2, 'gravel', 0.024);
+      SC.addCurvedPath(worldGroup, TRAIL_WEST_FAR_PTS, 2.3, 'gravel', 0.024);
+      SC.addCurvedPath(worldGroup, TRAIL_EAST_PTS, 2.5, 'gravel', 0.025);
+      SC.addCurvedPath(worldGroup, TRAIL_NORTH_PTS, 2.2, 'gravel', 0.024);
 
-      // ORGANIC CURVING GRAVEL & STONE FOOTPATHS (breaks the rigid grid!)
-      // West Garden & Sakura Creek Footpath
-      SC.addCurvedPath(worldGroup, [[-6, 2], [-17, 1.5], [-28, -1.5], [-36, 1.5], [-41, 2.0]], 2.6, 'gravel');
-      SC.addCurvedPath(worldGroup, [[-47, 2.0], [-52, -3], [-54, -14], [-48, -24]], 2.4, 'gravel');
-      SC.addCurvedPath(worldGroup, [[-28, -1.5], [-24, -12], [-18, -24], [-10, -34]], 2.3, 'gravel');
-      // East Shotengai & Pocket Park Winding Footpath
-      SC.addCurvedPath(worldGroup, [[6, -12], [14, -15], [22, -14], [25, -8], [22, 4], [20, 14], [21, 24]], 2.6, 'gravel');
-      // Northern School Orchard Loop
-      SC.addCurvedPath(worldGroup, [[6, -34], [18, -34], [28, -28], [29, -16]], 2.3, 'gravel');
+      // Irregular stepping stones branching into quiet meadows & clubhouse garden
+      SC.addSteppingStones(worldGroup, [[-5.6, -1.5], [-4.2, -1.7], [-2.8, -1.3]]);
+      SC.addSteppingStones(worldGroup, [[6.2, 8.5], [8.1, 9.2], [10.0, 8.6], [11.9, 9.5], [13.8, 10.6]]);
+      SC.addSteppingStones(worldGroup, [[-17.0, 13.5], [-19.0, 14.8], [-21.2, 15.6]]);
 
-      // Gentle rolling grass mounds around town perimeter & parks
+      // Rustic trail signposts at organic forks
+      SC.addSignpost(worldGroup, -4.4, 11.8, 0.35);
+      SC.addSignpost(worldGroup, 6.8, -13.2, -0.5);
+      SC.addSignpost(worldGroup, -36.5, 5.2, 0.8);
+
+      // Gentle rolling grass mounds around perimeter & tucked asymmetrically into open meadows
       [
-        [-58, -36, 14, 4.2], [-60, 18, 15, 4.5], [-46, 38, 16, 4.0],
-        [44, -46, 16, 4.6], [16, -56, 18, 5.0], [-22, -56, 17, 4.8],
-        [62, -14, 15, 4.4], [62, 34, 16, 4.8]
-      ].forEach(m => SC.addGrassMound(worldGroup, m[0], m[1], m[2], m[3], 0x5c944c));
+        [-59, -35, 16, 4.6], [-62, 16, 17, 5.0], [-47, 40, 18, 4.4],
+        [43, -48, 17, 4.8], [14, -58, 19, 5.2], [-25, -55, 18, 5.0],
+        [64, -18, 16, 4.6], [62, 36, 17, 4.8], [-29, -39, 9.5, 1.9], [16, 4.5, 6.5, 1.25]
+      ].forEach(m => SC.addGrassMound(worldGroup, m[0], m[1], m[2], m[3], 0x5d964d));
 
       // Distant hills wrapping all 4 horizons naturally
       const hillMat = LS.makeToonMat(0x558f5f);
@@ -288,26 +288,11 @@ window.LailaSalma = window.LailaSalma || {};
       worldGroup.add(tower);
     });
 
-    // 2. West Sakura Creek, Arched Wooden Footbridge & West Flower Meadow!
+    // 2. Meandering West Sakura Creek, Arched Cedar Footbridge & Open West Flower Meadow!
     safeRun('west_sakura_creek', () => {
-      const creekWater = new THREE.Mesh(
-        new THREE.PlaneGeometry(5.4, 88),
-        new THREE.MeshLambertMaterial({ map: LS.createWaterTexture(), transparent: true, opacity: 0.9 })
-      );
-      creekWater.rotation.x = -Math.PI / 2;
-      creekWater.position.set(-44.0, 0.02, -4);
-      worldGroup.add(creekWater);
+      SC.addMeanderingStream(worldGroup, CREEK_PTS, 4.9, addCollider, [{ x: -44.0, z: 3.0, r: 3.8 }]);
 
-      // Natural stone creek banks (colliders north & south of footbridge at Z=2.0!)
-      addCollider(-44.0, -24.0, 2.7, 23.0);
-      addCollider(-44.0, 24.0, 2.7, 19.0);
-      for (let bz = -40; bz <= 34; bz += 5.5) {
-        if (Math.abs(bz - 2.0) < 3.5) continue;
-        SC.addBoulder(worldGroup, -41.2, bz, 0.65 + (Math.abs(bz) % 3) * 0.12, true);
-        SC.addBoulder(worldGroup, -46.8, bz + 2.0, 0.65 + (Math.abs(bz) % 2) * 0.15, true);
-      }
-
-      // Walkable arched cedar footbridge across Sakura Creek at (X=-44, Z=2.0)
+      // Walkable arched cedar footbridge across the meandering creek bend at (X=-44, Z=3.0)
       const plankMat = new THREE.MeshLambertMaterial({ map: LS.createCedarPlankTexture() });
       const railWood = LS.makeToonMat(0x6e472c);
       for (let i = 0; i < 6; i++) {
@@ -316,75 +301,78 @@ window.LailaSalma = window.LailaSalma || {};
         const ym = Math.sin(tm * Math.PI) * 0.55;
         const slope = Math.atan2(Math.sin(t1 * Math.PI) * 0.55 - Math.sin(t0 * Math.PI) * 0.55, 1.0);
         const deck = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.14, 3.0), plankMat);
-        deck.position.set(xm, ym + 0.02, 2.0); deck.rotation.z = -slope; deck.castShadow = true; worldGroup.add(deck);
+        deck.position.set(xm, ym + 0.02, 3.0); deck.rotation.z = -slope; deck.castShadow = true; worldGroup.add(deck);
         [-1.4, 1.4].forEach(rz => {
           const r = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.09, 0.1), railWood);
-          r.position.set(xm, ym + 0.82, 2.0 + rz); r.rotation.z = -slope; worldGroup.add(r);
+          r.position.set(xm, ym + 0.82, 3.0 + rz); r.rotation.z = -slope; worldGroup.add(r);
         });
       }
 
-      // Weeping willows & picnic blanket in the West Flower Meadow (X=-53, Z=-8)
-      buildTree(-40.2, -5.5, 'willow', 1.15);
-      buildTree(-48.0, 8.0, 'willow', 1.2);
-      buildTree(-48.5, -18.0, 'sakura', 1.25);
-      SC.addPicnicBlanket(worldGroup, -53.0, -7.5, 0.28);
-      SC.addBench(worldGroup, -38.5, 5.2, -Math.PI / 2);
-      [[-51, -2], [-55, -11], [-52, -16], [-56, 4], [-50, 9]].forEach(fp => SC.addFlowerPatch(worldGroup, fp[0], fp[1]));
+      // Weeping willows, lakeside bench & spacious open West Flower Meadow
+      buildTree(-38.8, -4.5, 'willow', 1.2);
+      buildTree(-49.2, 10.5, 'willow', 1.25);
+      buildTree(-50.5, -16.5, 'sakura', 1.3);
+      SC.addPicnicBlanket(worldGroup, -53.5, -7.5, 0.34);
+      SC.addBench(worldGroup, -37.2, 7.2, -Math.PI / 2 - 0.3);
+      SC.addWildflowerMeadow(worldGroup, -53, -6, 11, 10);
     });
 
-    // 3. Varied Organic Residential Clusters, East Shōtengai Mini-Shops & Natural Gardens
+    // 3. Asymmetrical Village Homes, Open Sunlit Meadows & Shōtengai Mini-Shops
     safeRun('houses_and_shops', () => {
-      // Main Street homes (varied stories & garden details)
-      buildHouse(-11.8, 19.0, Math.PI / 2, '#f5ebd6', '#46566b', { stories: 2 });
-      buildHouse(-11.8, -1.5, Math.PI / 2, '#ffe8ef', '#c94c79', { clubhouseSign: true, doorColor: 0xe05780, stories: 2 });
-      buildHouse(-11.8, -21.5, Math.PI / 2, '#eef2e6', '#3f5954', { stories: 1, hedgeWall: true });
-      buildHouse(11.8, 19.0, -Math.PI / 2, '#f7ece0', '#4f5a6e', { stories: 2 });
-      buildHouse(11.8, -22.5, -Math.PI / 2, '#f2e6d0', '#5e4959', { stories: 1, hedgeWall: true });
+      // Asymmetrical, staggered village homes (ZERO mirrored pairs — generous open meadows between clusters!)
+      buildHouse(-11.8, -1.5, Math.PI / 2 - 0.12, '#ffe8ef', '#c94c79', { clubhouseSign: true, doorColor: 0xe05780, stories: 2 });
+      buildHouse(-14.2, 17.8, Math.PI / 2 + 0.22, '#f5ebd6', '#46566b', { stories: 2 });
+      buildHouse(14.5, 24.5, -Math.PI / 2 - 0.32, '#f7ece0', '#4f5a6e', { stories: 1, hedgeWall: true });
+      buildHouse(-15.5, -23.0, Math.PI / 2 - 0.24, '#eef2e6', '#3f5954', { stories: 1, hedgeWall: true });
+      buildHouse(14.8, -22.0, -Math.PI / 2 + 0.26, '#f2e6d0', '#5e4959', { stories: 1, noWall: true });
 
-      // Organic West Residential Cottages (varied heights & gentle angles along curved lanes!)
-      buildHouse(-28.0, -16.5, 0.15, '#f4ebd9', '#5a4e68', { stories: 1, hedgeWall: true });
-      buildHouse(-36.5, -24.0, 0.42, '#e9f2ee', '#3b645c', { stories: 2 });
-      buildHouse(-26.5, 22.0, Math.PI - 0.12, '#f8efe2', '#46566b', { stories: 2 });
-      buildHouse(-36.0, 23.5, Math.PI + 0.18, '#fae8ed', '#b0486d', { stories: 1, hedgeWall: true });
-      buildHouse(-54.5, -26.5, Math.PI / 3, '#f7f0df', '#4d6152', { stories: 1, noWall: true });
-      buildHouse(-54.5, 14.5, Math.PI * 0.65, '#f5e8dc', '#5f4959', { stories: 1, noWall: true });
+      // Spaced-out hillside cottages nestled into western & meadow curves
+      buildHouse(-31.5, -18.5, 0.38, '#f4ebd9', '#5a4e68', { stories: 1, noWall: true });
+      buildHouse(-30.5, 25.5, Math.PI - 0.28, '#e9f2ee', '#3b645c', { stories: 2 });
+      buildHouse(-55.0, -25.5, 0.92, '#f7f0df', '#4d6152', { stories: 1, noWall: true });
+      buildHouse(-54.0, 17.5, 2.28, '#fae8ed', '#b0486d', { stories: 1, noWall: true });
 
-      // West Sakura Fountain Courtyard (X=-28, Z=-1.5) with benches, flowers & hedges
-      const plaza = new THREE.Mesh(new THREE.CylinderGeometry(7.2, 7.2, 0.08, 24), LS.makeToonMat(0xe0d6c3));
-      plaza.position.set(-28, 0.04, -1.5); plaza.receiveShadow = true; worldGroup.add(plaza);
-      const fountain = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.3, 0.72, 16), LS.makeToonMat(0xb8b2a6));
-      fountain.position.set(-28, 0.36, -1.5); fountain.castShadow = true; worldGroup.add(fountain);
-      const fWater = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 0.1, 16), LS.makeToonMat(0x48cae4));
-      fWater.position.set(-28, 0.68, -1.5); worldGroup.add(fWater);
-      addCollider(-28, -1.5, 2.3, 2.3);
-      SC.addBench(worldGroup, -28, 4.4, Math.PI);
-      SC.addBench(worldGroup, -22.2, -1.5, -Math.PI / 2);
+      // Organic West Fountain Clearing (X=-27.5, Z=-2.5) tucked asymmetrically off the creek trail
+      const plaza = new THREE.Mesh(new THREE.CylinderGeometry(6.6, 6.8, 0.07, 22), LS.makeToonMat(0xe0d6c3));
+      plaza.position.set(-27.5, 0.035, -2.5); plaza.receiveShadow = true; worldGroup.add(plaza);
+      const fountain = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.2, 0.72, 16), LS.makeToonMat(0xb8b2a6));
+      fountain.position.set(-27.5, 0.36, -2.5); fountain.castShadow = true; worldGroup.add(fountain);
+      const fWater = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.1, 16), LS.makeToonMat(0x48cae4));
+      fWater.position.set(-27.5, 0.68, -2.5); worldGroup.add(fWater);
+      addCollider(-27.5, -2.5, 2.2, 2.2);
+      SC.addBench(worldGroup, -26.2, 3.2, Math.PI - 0.25);
+      SC.addBench(worldGroup, -21.8, -3.2, -Math.PI / 2 + 0.2);
 
-      // Cozy East Shōtengai Mini-Shops along the curved lane north of Pocket Park!
-      buildMiniShop(19.5, -26.0, 0.12, '🥐 SAKURA BAKERY', '#fff5e4', 0xe07a34, '#5a3d2b');
-      buildMiniShop(26.8, -24.8, -0.22, '🌷 SUNNY FLORIST', '#f0f9f0', 0x52b788, '#3a5a40');
-      buildMiniShop(34.0, -21.0, -0.58, '📚 COZY BOOKSHOP', '#f4ede1', 0x3b6ea5, '#2b3d54');
+      // Cozy East Shōtengai Mini-Shops curving along the northern park bend
+      buildMiniShop(20.5, -27.2, 0.18, '🥐 SAKURA BAKERY', '#fff5e4', 0xe07a34, '#5a3d2b');
+      buildMiniShop(28.2, -25.0, -0.34, '🌷 SUNNY FLORIST', '#f0f9f0', 0x52b788, '#3a5a40');
+      buildMiniShop(35.0, -19.5, -0.78, '📚 COZY BOOKSHOP', '#f4ede1', 0x3b6ea5, '#2b3d54');
 
-      // Natural neighborhood life: fences, hedges, shrubs, wildflowers, parked bikes & boulders!
-      SC.addFenceRun(worldGroup, -18, 12, -36, 12, 'wood');
-      SC.addFenceRun(worldGroup, 14, -19, 14, -29, 'hedge');
-      SC.addFenceRun(worldGroup, 17, 13, 24, 13, 'hedge');
-      SC.addBike(worldGroup, -4.8, 5.5, 0.25, 0x52a69a);
-      SC.addBike(worldGroup, 16.5, -23.5, 1.1, 0xe05780);
-      SC.addBike(worldGroup, -23.5, 4.2, -0.6, 0xf59e0b);
+      // Wide open sunlit empty meadows with delicate wildflowers, tall grass & a peaceful picnic spot!
+      SC.addWildflowerMeadow(worldGroup, -21, 15, 10, 10, [0xffd166, 0xffffff, 0xff8fab, 0x90e0ef]);
+      SC.addPicnicBlanket(worldGroup, -22.5, 14.5, -0.42);
+      SC.addWildflowerMeadow(worldGroup, 16, 11, 9.5, 9, [0xff8fab, 0xffd166, 0xffffff, 0xc084fc]);
+      SC.addBench(worldGroup, 14.2, 7.6, -2.4);
+      SC.addWildflowerMeadow(worldGroup, -25, -33, 10, 9);
+      SC.addWildflowerMeadow(worldGroup, 19, -37, 9, 8);
+
+      // Asymmetric organic touches: short rustic fences, shrubs, bikes & mossy boulders
+      SC.addFenceRun(worldGroup, -18.5, 13.5, -25.0, 11.2, 'wood');
+      SC.addFenceRun(worldGroup, 12.2, 19.5, 17.5, 18.2, 'hedge');
+      SC.addBike(worldGroup, -5.6, 4.8, 0.42, 0x52a69a);
+      SC.addBike(worldGroup, 17.5, -24.5, 1.15, 0xe05780);
+      SC.addBike(worldGroup, -22.5, 2.8, -0.55, 0xf59e0b);
 
       [
-        [-7.5, 2.5, 0x90e0ef], [-18.5, -6.5, 0xff8fab], [-33.5, 5.5, 0xc084fc],
-        [16.5, -10.5, 0xff8fab], [28.5, -20.0, 0x90e0ef], [17.0, 14.5, 0xffd166],
-        [-10.5, -31.5, 0xff8fab], [10.5, -31.5, 0x90e0ef], [-49.0, 1.5, 0xc084fc]
-      ].forEach(sh => SC.addShrub(worldGroup, sh[0], sh[1], 1.0, sh[2]));
+        [-8.2, 3.2, 0x90e0ef], [-18.5, -6.5, 0xff8fab], [-33.5, 8.5, 0xc084fc],
+        [15.8, -11.5, 0xff8fab], [29.5, -19.5, 0x90e0ef], [11.5, 15.0, 0xffd166],
+        [-11.5, -31.0, 0xff8fab], [9.5, -32.5, 0x90e0ef], [-49.5, -0.5, 0xc084fc]
+      ].forEach(sh => SC.addShrub(worldGroup, sh[0], sh[1], 0.95 + (Math.abs(sh[0]) % 3) * 0.12, sh[2]));
 
       [
-        [-16, 4], [-22, -9], [-34, -8], [16, -2], [29, -4], [22, -19],
-        [12, -33], [-12, -33], [16, 26], [-18, 28], [33, -14], [-38, 15]
-      ].forEach(fp => SC.addFlowerPatch(worldGroup, fp[0], fp[1]));
-
-      [[-20, -22, 1.1], [36, -10, 1.2], [-34, -32, 1.3], [16, -38, 1.1], [-18, 34, 1.1]].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
+        [-21, -24, 1.2], [36, -9, 1.3], [-34, -33, 1.4], [15, -39, 1.1],
+        [-16, 33, 1.2], [11, 12, 0.9], [-28, 12, 1.0], [22, 19, 1.1]
+      ].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
     });
 
     // 4. Ichiban Ramen
@@ -579,23 +567,31 @@ window.LailaSalma = window.LailaSalma || {};
       const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 10), LS.makeToonMat(0xffbe0b));
       ballMesh.position.set(-2.5, 0.14, -5.2); ballMesh.visible = false; worldGroup.add(ballMesh); W.mochiBall = ballMesh;
 
-      const poleMat = LS.makeToonMat(0x5a5650), lampBulb = new THREE.MeshBasicMaterial({ color: 0xffe4a0 });
-      [[-5.6, 22], [-5.6, 12], [-5.6, -6], [-5.6, -24], [5.6, 20], [5.6, -16], [5.6, -32]].forEach(p => {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 8.0, 8), poleMat); pole.position.set(p[0], 4.0, p[1]); pole.castShadow = true; worldGroup.add(pole);
-        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), lampBulb); lamp.position.set(p[0] + (p[0] < 0 ? 0.5 : -0.5), 4.6, p[1]); worldGroup.add(lamp);
+      // Asymmetrical village lamps tucked at gentle lane bends (never mirrored pairs!)
+      const poleMat = LS.makeToonMat(0x5c4f44), lampBulb = new THREE.MeshBasicMaterial({ color: 0xffe4a0 });
+      [[-4.8, 23.5], [5.8, 12.0], [-5.2, -4.5], [6.4, -18.5], [-4.5, -28.0], [18.5, -16.5], [-21.0, 2.5]].forEach(p => {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.15, 6.2, 8), poleMat); pole.position.set(p[0], 3.1, p[1]); pole.castShadow = true; worldGroup.add(pole);
+        const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), lampBulb); lamp.position.set(p[0] + (p[0] < 0 ? 0.35 : -0.35), 5.6, p[1]); worldGroup.add(lamp);
       });
 
-      // Natural layered trees throughout the town + organic forested edges!
+      // Organic asymmetrical tree groves leaving wide sunlit meadows & clear sky views!
       [
-        [-7.2, 12.2, 'green', 1.15], [7.2, 2.8, 'sakura', 1.15], [-7.4, -7.2, 'sakura', 1.0],
-        [7.6, -13.2, 'green', 1.1], [-7.5, -31.0, 'sakura', 1.25], [7.5, -31.0, 'sakura', 1.25],
-        [-20, -4, 'sakura', 1.2], [-35, -6, 'sakura', 1.25], [-20, 14, 'green', 1.15],
-        [18, -18, 'sakura', 1.2], [33, -14, 'sakura', 1.2], [34, -4, 'green', 1.15],
-        [20, 32, 'sakura', 1.2], [-18, 32, 'sakura', 1.2], [14, -42, 'gold', 1.25], [-16, -42, 'sakura', 1.25],
-        // Perimeter natural forest line
-        [-60, -28, 'green', 1.4], [-60, -12, 'sakura', 1.35], [-60, 6, 'green', 1.4], [-58, 24, 'gold', 1.35],
-        [-42, -46, 'green', 1.4], [-26, -48, 'sakura', 1.35], [24, -46, 'green', 1.4], [38, -42, 'sakura', 1.35],
-        [-34, 38, 'green', 1.35], [-18, 42, 'sakura', 1.3], [18, 42, 'green', 1.3], [60, -24, 'green', 1.4], [60, 12, 'sakura', 1.35]
+        // Cozy small grove near Clubhouse & Boutique
+        [-8.2, 11.5, 'green', 1.2], [-9.6, -7.8, 'sakura', 1.1],
+        // Lone dramatic trees framing the open meadows
+        [10.5, 4.2, 'sakura', 1.35], [-17.5, 19.5, 'gold', 1.28], [21.5, 11.0, 'green', 1.2],
+        // Northern school & orchard natural scatter
+        [-9.2, -31.5, 'sakura', 1.3], [11.5, -34.0, 'gold', 1.25], [-19.0, -37.5, 'sakura', 1.25], [22.5, -34.5, 'green', 1.15],
+        // Pocket Park & Shōtengai organic edges
+        [17.2, -18.8, 'sakura', 1.18], [34.5, -13.5, 'sakura', 1.22], [35.8, -3.5, 'green', 1.15],
+        // West creek & fountain groves
+        [-21.5, -6.2, 'sakura', 1.25], [-34.5, -7.5, 'green', 1.2], [-37.0, 15.5, 'sakura', 1.15],
+        // Southern meadow accents
+        [20.5, 33.5, 'sakura', 1.22], [-15.5, 33.0, 'green', 1.18], [-24.0, 35.5, 'gold', 1.1],
+        // Asymmetric forested outer valley rim
+        [-60, -29, 'green', 1.45], [-59, -11, 'sakura', 1.38], [-61, 8, 'green', 1.42], [-57, 26, 'gold', 1.36],
+        [-43, -47, 'green', 1.42], [-27, -49, 'sakura', 1.35], [26, -47, 'green', 1.44], [39, -41, 'sakura', 1.35],
+        [-35, 39, 'green', 1.38], [-19, 43, 'sakura', 1.32], [17, 43, 'green', 1.3], [61, -25, 'green', 1.42], [60, 14, 'sakura', 1.35]
       ].forEach(t => buildTree(t[0], t[1], t[2], t[3], Math.abs(t[0]) > 54 || Math.abs(t[1]) > 42));
     });
 
@@ -786,20 +782,37 @@ window.LailaSalma = window.LailaSalma || {};
       }
     };
 
+    function strokeMapSpline(ctx, pts, toMapX, toMapY, color, width) {
+      const sp = SC.sampleSpline(pts, 6);
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      sp.forEach((p, idx) => {
+        const mx = toMapX(p[0]), my = toMapY(p[1]);
+        if (idx === 0) ctx.moveTo(mx, my); else ctx.lineTo(mx, my);
+      });
+      ctx.stroke();
+    }
+
     W.drawMiniMap = function (ctx, cw, ch, toMapX, toMapY) {
-      ctx.fillStyle = '#7bb464'; ctx.fillRect(0, 0, cw, ch);
-      // West Sakura Creek
-      ctx.fillStyle = '#3b9eb3'; ctx.fillRect(toMapX(-46.5), toMapY(-46), toMapX(-41.5) - toMapX(-46.5), toMapY(40) - toMapY(-46));
-      // Roads
-      ctx.fillStyle = '#5a6069';
-      ctx.fillRect(toMapX(-4.3), toMapY(-44), toMapX(4.3) - toMapX(-4.3), toMapY(41) - toMapY(-44));
-      ctx.fillRect(toMapX(-36), toMapY(4.8), toMapX(36) - toMapX(-36), toMapY(11.2) - toMapY(4.8));
+      ctx.fillStyle = '#74ad5c'; ctx.fillRect(0, 0, cw, ch);
+      // Soft open meadow clearings
+      ctx.fillStyle = '#88c26d';
+      [[-22, 16, 15], [16, 10, 12], [-53, -8, 13], [-25, -33, 13]].forEach(m => {
+        ctx.beginPath(); ctx.arc(toMapX(m[0]), toMapY(m[1]), m[2], 0, Math.PI * 2); ctx.fill();
+      });
+      // Meandering West Sakura Creek
+      strokeMapSpline(ctx, CREEK_PTS, toMapX, toMapY, '#3b9eb3', 6);
+      // Winding gravel footpaths & curving village lane
+      [TRAIL_WEST_PTS, TRAIL_MEADOW_PTS, TRAIL_WEST_FAR_PTS, TRAIL_EAST_PTS, TRAIL_NORTH_PTS].forEach(t => {
+        strokeMapSpline(ctx, t, toMapX, toMapY, '#cbbca0', 3.2);
+      });
+      strokeMapSpline(ctx, MAIN_LANE_PTS, toMapX, toMapY, '#9e9584', 6.8);
       // Airport Runway & Terminal
       ctx.fillStyle = '#454a52'; ctx.fillRect(toMapX(44.5), toMapY(-44), toMapX(55.5) - toMapX(44.5), toMapY(40) - toMapY(-44));
       ctx.fillStyle = '#1e3a5f'; ctx.fillRect(toMapX(27.5), toMapY(18), toMapX(39.5) - toMapX(27.5), toMapY(32) - toMapY(18));
       // Park & West Plaza
       ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.arc(toMapX(25.2), toMapY(-10.5), 11, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#e0d6c3'; ctx.beginPath(); ctx.arc(toMapX(-28), toMapY(-1.5), 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e0d6c3'; ctx.beginPath(); ctx.arc(toMapX(-27.5), toMapY(-2.5), 8.5, 0, Math.PI * 2); ctx.fill();
       // Landmarks
       ctx.fillStyle = '#b84a46'; ctx.fillRect(toMapX(-9), toMapY(-46), toMapX(9) - toMapX(-9), toMapY(-38) - toMapY(-46));
       ctx.fillStyle = '#d97724'; ctx.fillRect(toMapX(8), toMapY(-9), toMapX(14.5) - toMapX(8), toMapY(-2) - toMapY(-9));

@@ -48,9 +48,14 @@ window.LailaSalma = window.LailaSalma || {};
       if (x < -43.8 && x >= -58.0 && z >= -36.5 && z <= -18.5) {
         return 0.75;
       }
-      if (x >= 14.6 && x <= 17.8 && (Math.abs(z + 26.0) <= 2.0 || Math.abs(z + 13.0) <= 2.0 || Math.abs(z - 3.0) <= 2.0)) {
-        const t = Math.max(0, Math.min(1, (x - 14.6) / 3.2));
-        return Math.sin(t * Math.PI) * 0.36;
+      // 3 curved Yousuiro Stream footbridges at (19.5,-26), (15.5,-13), (18.5,3)
+      const bridges = [[19.5, -26.0], [15.5, -13.0], [18.5, 3.0]];
+      for (let i = 0; i < bridges.length; i++) {
+        const bx = bridges[i][0], bz = bridges[i][1];
+        if (Math.abs(x - bx) <= 2.3 && Math.abs(z - bz) <= 2.1) {
+          const t = Math.max(0, Math.min(1, (x - (bx - 2.3)) / 4.6));
+          return Math.sin(t * Math.PI) * 0.42;
+        }
       }
       return 0;
     }
@@ -172,7 +177,13 @@ window.LailaSalma = window.LailaSalma || {};
       worldGroup.add(tG);
     }
 
-    // 1. Sky, Painterly Mossy Ground (ZERO snow!), Main Road, Curving Paths, Hills & Pagoda
+    // 1. Sky, Seamless Mossy Ground (ZERO snow!), Curving Village Lane, Winding Alleys, Open Meadows & Hills
+    const KYOTO_LANE_PTS = [[0.2, 35], [-0.4, 24], [0.5, 14], [-1.2, 3], [1.1, -9], [-0.8, -22], [1.4, -36], [0.2, -50]];
+    const KYOTO_STREAM_PTS = [[19.5, 32], [15.0, 18], [18.5, 3.0], [15.5, -13.0], [19.5, -26.0], [16.5, -42], [19.0, -52]];
+    const KYOTO_SW_TRAIL_PTS = [[-1.0, 9.0], [-14, 10.5], [-26, 8.2], [-39, 11.5], [-47, 22], [-33, 27], [-16, 23], [-0.4, 23]];
+    const KYOTO_EAST_LOOP_PTS = [[22, -26], [31, -29], [41, -21], [43, -6], [40, 10], [32, 20], [21, 14]];
+    const KYOTO_PARK_TRAIL_PTS = [[18, -13], [24, -11], [27, -3], [24, 4], [20.5, 3.0]];
+
     safeRun('environment', () => {
       const skyGeo = new THREE.SphereGeometry(260, 24, 16);
       W.skyMesh = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({
@@ -200,41 +211,43 @@ window.LailaSalma = window.LailaSalma || {};
       addGroundPatch(-30.2, -14.8, -180, -37.5);
       addGroundPatch(-30.2, -14.8, -17.5, 180);
 
-      // Main N-S Road (X=0, Z=+36..-54)
-      const road = new THREE.Mesh(
-        new THREE.PlaneGeometry(7.2, 92),
-        new THREE.MeshLambertMaterial({ map: LS.createRoadTexture('kyoto') })
-      );
-      road.rotation.x = -Math.PI / 2; road.position.set(0, 0.02, -9); road.receiveShadow = true; worldGroup.add(road);
+      // Soft sunlit mossy meadow clearings across open Kyoto valleys
+      SC.addMeadowPatch(worldGroup, -22, -6, 12, 8.5, 0.28, 0x6f9d58);
+      SC.addMeadowPatch(worldGroup, -52, 16, 11, 13, -0.35, 0x6c9955);
+      SC.addMeadowPatch(worldGroup, 35, 16, 11, 9, 0.4, 0x709e58);
+      SC.addMeadowPatch(worldGroup, 26, -34, 12, 9.5, -0.22, 0x6d9b56);
+      SC.addMeadowPatch(worldGroup, -14, 16, 10, 7.5, 0.15, 0x719f5a);
 
-      const curbMat = LS.makeToonMat(0xcac3b3), railMat = LS.makeToonMat(0xebeae4);
-      const eastCurb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 92), curbMat); eastCurb.position.set(4.4, 0.06, -9); eastCurb.receiveShadow = true; worldGroup.add(eastCurb);
-      const westCurbSouth = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 60), curbMat); westCurbSouth.position.set(-4.4, 0.06, 5.2); westCurbSouth.receiveShadow = true; worldGroup.add(westCurbSouth);
-      const westCurbNorth = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 24), curbMat); westCurbNorth.position.set(-4.4, 0.06, -42.2); westCurbNorth.receiveShadow = true; worldGroup.add(westCurbNorth);
+      // Gently meandering Kyoto village lane (NO ruler-straight asphalt or rigid curbs!)
+      SC.addCurvedPath(worldGroup, KYOTO_LANE_PTS, 5.6, 'lane_kyoto', 0.032);
 
-      [[-3.8, -21.5, 6.2], [-3.8, -34.0, 7.2]].forEach(gr => {
-        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.22, gr[2]), railMat); bar.position.set(gr[0], 0.65, gr[1]); worldGroup.add(bar);
-        [-gr[2] / 2 + 0.4, gr[2] / 2 - 0.4].forEach(oz => { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.72, 6), railMat); post.position.set(gr[0], 0.36, gr[1] + oz); worldGroup.add(post); });
-      });
+      // Organic winding stone & gravel footpaths connecting gardens, stream & hamlet
+      SC.addCurvedPath(worldGroup, KYOTO_SW_TRAIL_PTS, 2.4, 'stone', 0.025);
+      SC.addCurvedPath(worldGroup, KYOTO_EAST_LOOP_PTS, 2.3, 'stone', 0.025);
+      SC.addCurvedPath(worldGroup, KYOTO_PARK_TRAIL_PTS, 2.2, 'gravel', 0.024);
+
+      // Charming stepping stones off the main lane toward quiet garden spots
+      SC.addSteppingStones(worldGroup, [[-4.8, -12.5], [-3.2, -12.1], [-1.6, -12.6]]);
+      SC.addSteppingStones(worldGroup, [[4.0, 12.0], [6.2, 12.8], [8.5, 12.1], [10.8, 13.0]]);
+      SC.addSteppingStones(worldGroup, [[-19.0, -13.5], [-21.0, -12.0], [-23.2, -10.5]]);
+
+      // Rustic wooden trail signposts at natural path forks
+      SC.addSignpost(worldGroup, -4.2, 10.6, 0.4);
+      SC.addSignpost(worldGroup, 11.8, -14.2, -0.6);
+      SC.addSignpost(worldGroup, 22.8, 4.5, 0.5);
 
       // Orange Convex Traffic Mirror opposite stone path
-      const mirG = new THREE.Group(); mirG.position.set(4.1, 0, -27.5);
+      const mirG = new THREE.Group(); mirG.position.set(3.8, 0, -27.5);
       const mirPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 3.0, 8), LS.makeToonMat(0xf59e0b)); mirPole.position.y = 1.5; mirG.add(mirPole);
       const mirRim = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.1, 16), LS.makeToonMat(0xf97316)); mirRim.rotation.z = Math.PI / 2; mirRim.position.set(-0.08, 2.75, 0); mirG.add(mirRim);
       const mirFace = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10), LS.makeEmissiveMat(0xcbd5e1, 0x94a3b8, 0.35)); mirFace.scale.set(0.35, 1, 1); mirFace.position.set(-0.14, 2.75, 0); mirG.add(mirFace);
       worldGroup.add(mirG);
 
-      // ORGANIC WINDING STONE & GRAVEL ALLEYS (connects every Kyoto district naturally!)
-      // Southwest Momiji Craft Village & Zen Rock Garden trail
-      SC.addCurvedPath(worldGroup, [[-6, 7.5], [-18, 7.8], [-32, 7.8], [-44, 12], [-50, 22], [-34, 25], [-18, 22]], 2.5, 'stone');
-      // East Canal Promenade & Foothill Machiya Hamlet lane
-      SC.addCurvedPath(worldGroup, [[19, -26], [28, -28], [38, -22], [42, -8], [41, 8], [34, 18], [22, 14]], 2.5, 'stone');
-      SC.addCurvedPath(worldGroup, [[19, -13], [24, -12], [27, -4], [25, 4], [19, 3]], 2.4, 'gravel');
-
-      // Gentle mossy perimeter grass mounds
+      // Gentle mossy rolling grass mounds around perimeter & valley edges
       [
-        [-68, -42, 16, 4.8], [-66, 22, 17, 5.2], [-48, 38, 16, 4.5],
-        [56, -42, 17, 5.2], [58, 12, 16, 4.8], [46, 36, 16, 4.4], [-18, -62, 18, 5.2]
+        [-68, -42, 17, 4.9], [-66, 22, 18, 5.3], [-48, 39, 17, 4.6],
+        [56, -42, 18, 5.3], [58, 12, 17, 4.9], [46, 37, 17, 4.5],
+        [-18, -62, 19, 5.2], [-48, 29, 8.5, 1.8], [32, -37, 9.0, 2.0]
       ].forEach(m => SC.addGrassMound(worldGroup, m[0], m[1], m[2], m[3], 0x4f7d45));
 
       // Misty Kyoto Mountains & Distant 5-Story Pagoda
@@ -338,8 +351,12 @@ window.LailaSalma = window.LailaSalma || {};
         const ring = new THREE.Mesh(new THREE.RingGeometry(0.18, 0.3, 18), new THREE.MeshBasicMaterial({ color: 0xd8f3ff, transparent: true, opacity: 0.0, side: THREE.DoubleSide }));
         ring.rotation.x = -Math.PI / 2; ring.position.set(-17.5 - i * 0.9, -0.41, -21.8 + (i % 2) * 0.9); worldGroup.add(ring); W.rippleRings.push(ring);
       }
-      // Natural shoreline mossy boulders & shrubs around the lake edge
-      [[-14.5, -17.0, 0.85], [-21.5, -16.8, 0.95], [-28.5, -16.8, 0.9], [-20.0, -38.2, 1.0]].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
+      // Natural shoreline mossy boulders, waterside reeds & floating lily pads to soften lake edges
+      [[-14.5, -17.0, 0.95], [-17.5, -17.1, 0.72], [-21.5, -16.8, 1.05], [-26.0, -17.1, 0.85], [-29.8, -17.0, 1.0],
+       [-14.6, -37.2, 0.9], [-20.0, -38.2, 1.15], [-27.5, -37.9, 0.95], [-30.6, -21.0, 0.85], [-30.5, -34.0, 0.95]
+      ].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
+      [[-15.8, -16.9], [-24.0, -16.9], [-29.5, -19.2], [-15.2, -36.0], [-23.8, -38.0], [-30.6, -32.2]].forEach(rg => SC.addTallGrass(worldGroup, rg[0], rg[1], 1.25));
+      [[-18.2, -19.5, true], [-19.4, -20.2, false], [-24.6, -19.4, true], [-28.0, -23.5, false], [-26.2, -35.2, true], [-18.5, -34.8, false]].forEach(lp => SC.addLilyPad(worldGroup, lp[0], -0.41, lp[1], 1.1, lp[2]));
     });
 
     // 3. Lakeside Sushi Stand (桜寿司)
@@ -466,78 +483,90 @@ window.LailaSalma = window.LailaSalma || {};
       bSign.position.set(-14.5, 1.85, -42.5); worldGroup.add(bSign);
     });
 
-    // 6. Machiya Street + Southwest Momiji Craft Village & Zen Rock Garden + East Riverside Promenade, Park & Foothill Hamlet!
+    // 6. Asymmetrical Machiya Clusters, Organic Zen Rock Garden, Meandering Yousuiro Stream, Open Meadows & Hamlet!
     safeRun('machiya_and_natural_villages', () => {
-      // WEST MACHIYA ROW
-      buildMachiya(-10.5, -12.5, Math.PI / 2, {
+      // STAGGERED WEST MACHIYA (with open lakeside meadow south of Kimono Shop!)
+      buildMachiya(-10.8, -12.5, Math.PI / 2 - 0.1, {
         wallHex: '#f6ebd4', roofHex: '#4a3a35', norenColor: 0xc94c79,
         signText: '🏮 LAILA & SALMA RYOKAN', signBg: '#fff0f6', signBorder: '#c94c79', signColor: '#6b2144'
       });
       W.zones.push({ id: 'kyoto_ryokan', label: "Enter Laila & Salma's 3D Ryokan Suite 🏮", pos: new THREE.Vector3(-5.8, 0, -12.5), radius: 3.1 });
 
-      buildMachiya(-10.5, 2.0, Math.PI / 2, {
+      buildMachiya(-12.2, 2.2, Math.PI / 2 + 0.16, {
         wallHex: '#ffeef2', roofHex: '#6b3a5b', norenColor: 0xd62828,
         signText: '👘 KYOTO KIMONO SHOP', signBg: '#fff0f5', signBorder: '#d62828', signColor: '#7f1d1d'
       });
-      W.zones.push({ id: 'kimono_shop', label: 'Browse Kyoto Kimonos & Fox Masks 👘', pos: new THREE.Vector3(-5.8, 0, 2.0), radius: 3.2 });
+      W.zones.push({ id: 'kimono_shop', label: 'Browse Kyoto Kimonos & Fox Masks 👘', pos: new THREE.Vector3(-6.8, 0, 2.2), radius: 3.3 });
 
-      buildMachiya(-10.5, 13.5, Math.PI / 2, { wallHex: '#ede3ce', roofHex: '#3f4752' });
+      // SOUTHWEST MOMIJI CRAFT VILLAGE & ORGANIC OVAL RAKED ZEN ROCK GARDEN (Karesansui)
+      const zenGeo = new THREE.CylinderGeometry(6.8, 7.0, 0.08, 28);
+      const zenPad = new THREE.Mesh(zenGeo, new THREE.MeshLambertMaterial({ map: LS.createZenGravelTexture() }));
+      zenPad.scale.set(1.25, 1, 0.72);
+      zenPad.rotation.y = 0.22;
+      zenPad.position.set(-35.5, 0.04, 18.0); zenPad.receiveShadow = true; worldGroup.add(zenPad);
+      // Single curved-style asymmetric bamboo screen along north side (open on south & meadow sides!)
+      SC.addFenceRun(worldGroup, -42.5, 13.4, -34.0, 12.2, 'bamboo');
+      SC.addFenceRun(worldGroup, -34.0, 12.2, -28.0, 14.2, 'bamboo');
+      [[-39.2, 17.2, 1.35], [-33.8, 19.2, 1.15], [-31.0, 16.8, 0.85], [-40.5, 20.5, 0.72]].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
+      SC.addBench(worldGroup, -35.5, 11.4, -0.14);
+      addStoneLantern(-27.6, 14.8, 0); addStoneLantern(-43.0, 14.0, 0);
 
-      // SOUTHWEST MOMIJI CRAFT VILLAGE & RAKED ZEN ROCK GARDEN (X=-24..-54, Z=2..28)
-      // Raked Zen Gravel Garden (Karesansui) at (-36, 18)
-      const zenPad = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.08, 9.5), new THREE.MeshLambertMaterial({ map: LS.createZenGravelTexture() }));
-      zenPad.position.set(-36, 0.04, 18.0); zenPad.receiveShadow = true; worldGroup.add(zenPad);
-      SC.addFenceRun(worldGroup, -43.5, 13.0, -28.5, 13.0, 'bamboo');
-      SC.addFenceRun(worldGroup, -43.5, 23.0, -28.5, 23.0, 'bamboo');
-      [[-39, 17, 1.35], [-34, 19.5, 1.15], [-31.5, 16.5, 0.9]].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
-      SC.addBench(worldGroup, -36, 12.0, 0);
-      addStoneLantern(-28.2, 13.2, 0); addStoneLantern(-43.8, 13.2, 0);
-
-      // Maple Gazebo & Craft Machiya (Pottery Studio & Fan Atelier)
-      const gaz = new THREE.Group(); gaz.position.set(-32, 0, 7.8);
+      // Maple Gazebo & spaced Craft Machiya (Pottery Studio & Fan Atelier)
+      const gaz = new THREE.Group(); gaz.position.set(-31.5, 0, 7.2);
       const gDeck = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 0.25, 8), LS.makeToonMat(0x8b6343)); gDeck.position.y = 0.12; gaz.add(gDeck);
       for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + Math.PI / 4; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.8, 6), LS.makeToonMat(0xc83e37)); p.position.set(Math.cos(a) * 2.4, 1.5, Math.sin(a) * 2.4); gaz.add(p); }
       const gRoof = new THREE.Mesh(new THREE.ConeGeometry(4.2, 1.8, 8), LS.makeToonMat(0x363b45)); gRoof.position.y = 3.7; gaz.add(gRoof);
       worldGroup.add(gaz);
 
-      buildMachiya(-46.5, 4.5, 0.45, { wallHex: '#f2e8d4', roofHex: '#4f3b32', norenColor: 0x3b6ea5, signText: '🏺 KYOTO POTTERY STUDIO', width: 6.4, depth: 5.4, height: 4.4 });
-      buildMachiya(-22.5, 25.5, Math.PI - 0.18, { wallHex: '#f8efe0', roofHex: '#5a3a45', norenColor: 0xe07a34, signText: '🪭 FOLDING FAN ATELIER', width: 6.2, depth: 5.4, height: 4.4 });
-      buildMachiya(-52.5, 20.5, Math.PI / 2 - 0.2, { wallHex: '#efe5d1', roofHex: '#3c4552', width: 6.0, depth: 5.2, height: 4.2 });
+      buildMachiya(-46.8, 4.5, 0.48, { wallHex: '#f2e8d4', roofHex: '#4f3b32', norenColor: 0x3b6ea5, signText: '🏺 KYOTO POTTERY STUDIO', width: 6.4, depth: 5.4, height: 4.4 });
+      buildMachiya(-22.5, 26.5, Math.PI - 0.24, { wallHex: '#f8efe0', roofHex: '#5a3a45', norenColor: 0xe07a34, signText: '🪭 FOLDING FAN ATELIER', width: 6.2, depth: 5.4, height: 4.4 });
 
-      // EAST MACHIYA ROW
-      buildMachiya(10.2, -5.0, -Math.PI / 2, {
+      // STAGGERED EAST MACHIYA (leaving generous open green garden meadows north & south!)
+      buildMachiya(10.0, -5.0, -Math.PI / 2 + 0.12, {
         wallHex: '#edf5e4', roofHex: '#2f4f3e', norenColor: 0x2d6a4f,
         signText: '🍵 UJI MATCHA TEA HOUSE', signBg: '#1b4332', signBorder: '#95d5b2', signColor: '#ecfdf5'
       });
-      const umb = new THREE.Group(); umb.position.set(5.8, 0, -2.5);
+      const umb = new THREE.Group(); umb.position.set(5.4, 0, -2.5);
       const uPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.5, 8), LS.makeToonMat(0x5c3c24)); uPole.position.y = 1.25; umb.add(uPole);
       const uTop = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.55, 12), LS.makeToonMat(0xd62828)); uTop.position.y = 2.55; umb.add(uTop);
       const uBench = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.42, 1.9), LS.makeToonMat(0xc9302c)); uBench.position.set(0.35, 0.21, 0); umb.add(uBench);
       worldGroup.add(umb);
-      W.zones.push({ id: 'tea_house', label: 'Order Matcha & Wagashi Treats 🍵', pos: new THREE.Vector3(5.8, 0, -5.0), radius: 3.3 });
+      W.zones.push({ id: 'tea_house', label: 'Order Matcha & Wagashi Treats 🍵', pos: new THREE.Vector3(5.6, 0, -5.0), radius: 3.3 });
 
-      buildMachiya(10.2, -21.0, -Math.PI / 2, {
+      buildMachiya(10.8, -21.2, -Math.PI / 2 - 0.14, {
         wallHex: '#f7efe0', roofHex: '#7a3b34', norenColor: 0x3b6ea5,
         signText: '📚 KYOTO TEMPLE ACADEMY', signBg: '#234232', signBorder: '#e0a458', signColor: '#fff8eb'
       });
-      W.zones.push({ id: 'kyoto_academy', label: 'Enter Kyoto Temple Academy Quiz 📚', pos: new THREE.Vector3(5.8, 0, -21.0), radius: 3.4 });
+      W.zones.push({ id: 'kyoto_academy', label: 'Enter Kyoto Temple Academy Quiz 📚', pos: new THREE.Vector3(6.2, 0, -21.2), radius: 3.4 });
 
-      buildMachiya(10.2, 10.5, -Math.PI / 2, { wallHex: '#f0e6d2', roofHex: '#434c5e' });
-      buildMachiya(10.2, -35.0, -Math.PI / 2, { wallHex: '#eae0cc', roofHex: '#3c4552' });
-
-      // East Yousuiro Canal (X=16.2, Z=+26..-48) with THREE arched wooden footbridges at Z=-26.0, -13.0, +3.0!
-      const canal = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 76), new THREE.MeshLambertMaterial({ map: LS.createWaterTexture() }));
-      canal.rotation.x = -Math.PI / 2; canal.position.set(16.2, 0.015, -11); worldGroup.add(canal);
-      [14.9, 17.5].forEach(cx => { const edge = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 76), LS.makeToonMat(0x6b6860)); edge.position.set(cx, 0.12, -11); worldGroup.add(edge); });
+      // MEANDERING EAST YOUSUIRO STREAM with 3 arched cedar footbridges at natural bends!
+      const bridgeSpecs = [
+        { x: 19.5, z: -26.0, lead: [[1.0, -25.0], [10.0, -26.2], [17.4, -26.0]] },
+        { x: 15.5, z: -13.0, lead: [[1.0, -12.8], [8.5, -13.4], [13.4, -13.0]] },
+        { x: 18.5, z: 3.0, lead: [[0.5, 3.8], [9.5, 4.2], [16.4, 3.0]] }
+      ];
+      SC.addMeanderingStream(
+        worldGroup, KYOTO_STREAM_PTS, 3.2, addCollider,
+        bridgeSpecs.map(b => ({ x: b.x, z: b.z, r: 3.1 }))
+      );
 
       const plankMat = new THREE.MeshLambertMaterial({ map: LS.createCedarPlankTexture() });
       const railWood = LS.makeToonMat(0x6e472c);
-      [-26.0, -13.0, 3.0].forEach(bz => {
-        const fb = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.18, 3.2), plankMat); fb.position.set(16.2, 0.28, bz); fb.castShadow = true; worldGroup.add(fb);
-        [-1.5, 1.5].forEach(rz => { const r = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 0.12), railWood); r.position.set(16.2, 1.0, bz + rz); worldGroup.add(r); });
-        const pLead = new THREE.Mesh(new THREE.BoxGeometry(13.5, 0.06, 2.5), new THREE.MeshLambertMaterial({ map: LS.createStonePathTexture() }));
-        pLead.position.set(10.2, 0.03, bz); worldGroup.add(pLead);
-        addStoneLantern(18.2, bz + 2.0, 0);
+      bridgeSpecs.forEach(bs => {
+        for (let i = 0; i < 5; i++) {
+          const t0 = i / 5, t1 = (i + 1) / 5, tm = (t0 + t1) / 2;
+          const xm = (bs.x - 2.3) + tm * 4.6;
+          const ym = Math.sin(tm * Math.PI) * 0.42;
+          const slope = Math.atan2(Math.sin(t1 * Math.PI) * 0.42 - Math.sin(t0 * Math.PI) * 0.42, 4.6 / 5);
+          const deck = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.14, 3.0), plankMat);
+          deck.position.set(xm, ym + 0.04, bs.z); deck.rotation.z = slope; deck.castShadow = true; worldGroup.add(deck);
+          [-1.4, 1.4].forEach(rz => {
+            const r = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.09, 0.1), railWood);
+            r.position.set(xm, ym + 0.82, bs.z + rz); r.rotation.z = slope; worldGroup.add(r);
+          });
+        }
+        SC.addCurvedPath(worldGroup, bs.lead, 2.3, 'stone', 0.025);
+        addStoneLantern(bs.x + 2.5, bs.z + 2.1, 0);
       });
 
       // KYOTO GACHAPON & DRINK VENDING PLAZA (X=21.2..23.2, Z=-15.8)
@@ -591,37 +620,47 @@ window.LailaSalma = window.LailaSalma || {};
       hopMesh.rotation.x = -Math.PI / 2; hopMesh.position.copy(W.hopscotchPos); worldGroup.add(hopMesh);
       W.zones.push({ id: 'park_hopscotch', label: 'Play Kyoto Hopscotch (+20c) 🎯', pos: new THREE.Vector3(25.2, 0, 1.2), radius: 2.4 });
 
-      // EAST FOOTHILL MACHIYA HAMLET (staggered hillside traditional cottages tucked into the trees!)
-      buildMachiya(45.5, -24.5, -Math.PI / 2 - 0.25, { wallHex: '#f4ead7', roofHex: '#3d4550', width: 6.2, depth: 5.4, height: 4.5 });
-      buildMachiya(48.5, -8.0, -Math.PI / 2 + 0.12, { wallHex: '#efe2ce', roofHex: '#4f3a32', width: 6.4, depth: 5.5, height: 4.6 });
-      buildMachiya(46.0, 11.5, -Math.PI / 2 + 0.35, { wallHex: '#f6ede0', roofHex: '#3a4f44', width: 6.0, depth: 5.2, height: 4.4 });
-      buildMachiya(31.5, 22.5, Math.PI + 0.2, { wallHex: '#f2e6d0', roofHex: '#4a4352', width: 6.2, depth: 5.2, height: 4.5 });
+      // AIRY EAST FOOTHILL MACHIYA HAMLET (3 widely spaced hillside cottages with open meadows between them!)
+      buildMachiya(46.0, -24.5, -Math.PI / 2 - 0.32, { wallHex: '#f4ead7', roofHex: '#3d4550', width: 6.2, depth: 5.4, height: 4.5 });
+      buildMachiya(48.5, -5.5, -Math.PI / 2 + 0.18, { wallHex: '#efe2ce', roofHex: '#4f3a32', width: 6.4, depth: 5.5, height: 4.6 });
+      buildMachiya(34.5, 22.5, Math.PI + 0.28, { wallHex: '#f2e6d0', roofHex: '#4a4352', width: 6.2, depth: 5.2, height: 4.5 });
 
-      // Organic shrubs, wildflowers, bikes & lush trees across all of Kyoto!
-      SC.addBike(worldGroup, -5.4, 8.5, 0.3, 0xd62828);
-      SC.addBike(worldGroup, 19.2, -9.5, -0.8, 0x2d6a4f);
-      [
-        [-19, 10, 0xff8fab], [-26, 20, 0x90e0ef], [19.5, -3, 0xff8fab], [20.5, 8, 0xc084fc],
-        [36, -18, 0xffd166], [39, 4, 0x90e0ef], [-42, -16, 0xff8fab]
-      ].forEach(sh => SC.addShrub(worldGroup, sh[0], sh[1], 1.0, sh[2]));
-      [
-        [-22, 4], [-38, 8], [-28, 26], [22, -22], [35, -14], [24, 10],
-        [38, 16], [19, -34], [-18, 18], [-44, 18], [41, -16]
-      ].forEach(fp => SC.addFlowerPatch(worldGroup, fp[0], fp[1], [0xff8fab, 0xf29f3d, 0xffffff, 0x95d5b2]));
+      // WIDE OPEN TRANQUIL KYOTO MEADOWS (breathing space with wildflowers, tall grass & mossy boulders!)
+      const kyotoPal = [0xff8fab, 0xf29f3d, 0xffffff, 0x95d5b2];
+      SC.addWildflowerMeadow(worldGroup, -22, -6, 10, 9, kyotoPal);
+      SC.addPicnicBlanket(worldGroup, -23.5, -8.5, 0.45);
+      SC.addWildflowerMeadow(worldGroup, -53, 18, 10, 10, kyotoPal);
+      SC.addWildflowerMeadow(worldGroup, 34, 15, 10, 9, kyotoPal);
+      SC.addWildflowerMeadow(worldGroup, 26, -34, 10, 9, kyotoPal);
+      SC.addWildflowerMeadow(worldGroup, -12, 16, 8, 7, kyotoPal);
+      SC.addWildflowerMeadow(worldGroup, 11.8, 15.5, 5.5, 6, kyotoPal);
 
+      SC.addBike(worldGroup, -5.8, 8.2, 0.38, 0xd62828);
+      SC.addBike(worldGroup, 19.6, -8.8, -0.75, 0x2d6a4f);
       [
-        [-6.8, -19.5, 'maple', 1.15], [6.8, -13.0, 'sakura', 1.1], [-6.8, -5.0, 'sakura', 1.05],
-        [6.8, 2.0, 'maple', 1.15], [-14.2, -36.5, 'maple', 1.2], [-31.8, -18.5, 'sakura', 1.25],
-        [-31.8, -36.5, 'maple', 1.25], [6.8, -28.0, 'maple', 1.1],
-        // Weeping willows along East Canal!
-        [18.8, -19.5, 'willow', 1.15], [18.8, -5.0, 'willow', 1.15], [18.8, 10.0, 'willow', 1.15],
-        [24.0, -32.0, 'maple', 1.25], [38.0, -14.5, 'sakura', 1.2], [37.0, 8.0, 'maple', 1.2],
-        [-24.0, 14.0, 'maple', 1.25], [-40.0, 2.0, 'sakura', 1.2], [-44.0, 25.0, 'maple', 1.25],
-        // Lush perimeter forest framing all 4 edges
-        [-62, -28, 'cedar', 1.45, 0, true], [-62, -10, 'maple', 1.35, 0, true], [-60, 12, 'cedar', 1.4, 0, true],
-        [-54, 30, 'maple', 1.35, 0, true], [-28, 34, 'sakura', 1.3, 0, true], [22, 34, 'maple', 1.3, 0, true],
-        [54, -34, 'cedar', 1.45, 0, true], [55, -16, 'maple', 1.35, 0, true], [55, 2, 'sakura', 1.35, 0, true], [52, 22, 'cedar', 1.4, 0, true],
-        [28, -46, 'cedar', 1.4, 0, true], [12, -48, 'maple', 1.35, 0, true]
+        [-18.5, 11.5, 0xff8fab], [-26.5, 21.0, 0x90e0ef], [21.5, -3.5, 0xff8fab], [22.0, 9.5, 0xc084fc],
+        [37.0, -18.5, 0xffd166], [39.5, 4.5, 0x90e0ef], [-42.5, -15.5, 0xff8fab], [8.5, -33.0, 0xff8fab]
+      ].forEach(sh => SC.addShrub(worldGroup, sh[0], sh[1], 0.95 + (Math.abs(sh[0]) % 3) * 0.1, sh[2]));
+      [
+        [9.5, 13.5, 1.1], [10.5, -35.5, 1.2], [-14.0, 16.5, 1.1], [-51.0, 15.0, 1.3], [36.0, 11.5, 1.2], [29.0, -33.0, 1.25]
+      ].forEach(b => SC.addBoulder(worldGroup, b[0], b[1], b[2], true));
+
+      // Organic asymmetrical Kyoto tree groves (maple, weeping willow, sakura, cedar — never lined up!)
+      [
+        [-7.5, -19.2, 'maple', 1.22], [7.8, -13.8, 'sakura', 1.12], [-8.4, -5.2, 'sakura', 1.08],
+        [8.6, 4.5, 'maple', 1.22], [-13.8, -36.8, 'maple', 1.25], [-32.5, -18.0, 'sakura', 1.28],
+        [-32.0, -37.2, 'maple', 1.25], [8.5, -30.5, 'maple', 1.2],
+        // Weeping willows bending naturally over the meandering East Stream!
+        [22.0, -19.5, 'willow', 1.22], [13.5, -4.5, 'willow', 1.18], [21.2, 11.0, 'willow', 1.22],
+        // Open meadow accent trees & hillside groves
+        [25.0, -33.5, 'maple', 1.3], [38.5, -15.0, 'sakura', 1.22], [38.0, 9.5, 'maple', 1.22],
+        [-24.5, 13.5, 'maple', 1.28], [-41.0, 1.5, 'sakura', 1.22], [-46.5, 25.5, 'maple', 1.28],
+        [-13.5, 14.5, 'sakura', 1.25], [11.5, 17.5, 'maple', 1.22],
+        // Lush asymmetric outer valley forest
+        [-62, -28, 'cedar', 1.48, 0, true], [-62, -9, 'maple', 1.38, 0, true], [-60, 13, 'cedar', 1.42, 0, true],
+        [-54, 31, 'maple', 1.36, 0, true], [-29, 35, 'sakura', 1.32, 0, true], [23, 35, 'maple', 1.32, 0, true],
+        [54, -34, 'cedar', 1.48, 0, true], [55, -16, 'maple', 1.36, 0, true], [55, 3, 'sakura', 1.36, 0, true], [52, 23, 'cedar', 1.42, 0, true],
+        [29, -47, 'cedar', 1.42, 0, true], [13, -49, 'maple', 1.35, 0, true]
       ].forEach(t => buildKyotoTree(t[0], t[1], t[2], t[3], t[4] || 0, t[5]));
     });
 
@@ -814,18 +853,41 @@ window.LailaSalma = window.LailaSalma || {};
       }
     };
 
+    function strokeMapSpline(ctx, pts, toMapX, toMapY, color, width) {
+      const sp = SC.sampleSpline(pts, 6);
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      sp.forEach((p, idx) => {
+        const mx = toMapX(p[0]), my = toMapY(p[1]);
+        if (idx === 0) ctx.moveTo(mx, my); else ctx.lineTo(mx, my);
+      });
+      ctx.stroke();
+    }
+
     W.drawMiniMap = function (ctx, cw, ch, toMapX, toMapY) {
-      ctx.fillStyle = '#6c9c5c'; ctx.fillRect(0, 0, cw, ch);
+      ctx.fillStyle = '#629152'; ctx.fillRect(0, 0, cw, ch);
+      // Soft open meadow clearings
+      ctx.fillStyle = '#75a661';
+      [[-22, -6, 13], [-52, 16, 14], [35, 16, 13], [26, -34, 13]].forEach(m => {
+        ctx.beginPath(); ctx.arc(toMapX(m[0]), toMapY(m[1]), m[2], 0, Math.PI * 2); ctx.fill();
+      });
       // Bamboo Woods
-      ctx.fillStyle = '#366f40'; ctx.fillRect(toMapX(-60), toMapY(-57), toMapX(-14) - toMapX(-60), toMapY(-40) - toMapY(-57));
-      // Koi Lake & East Canal
-      ctx.fillStyle = '#2b7a8c'; ctx.fillRect(toMapX(-30.2), toMapY(-37.5), toMapX(-14.8) - toMapX(-30.2), toMapY(-17.5) - toMapY(-37.5));
-      ctx.fillStyle = '#348ea3'; ctx.fillRect(toMapX(15.0), toMapY(-48), toMapX(17.5) - toMapX(15.0), toMapY(26) - toMapY(-48));
-      // Zen Rock Garden & East Park
-      ctx.fillStyle = '#d4cec0'; ctx.fillRect(toMapX(-43.5), toMapY(13), toMapX(-28.5) - toMapX(-43.5), toMapY(23) - toMapY(13));
+      ctx.fillStyle = '#366f40';
+      ctx.beginPath(); ctx.ellipse(toMapX(-37), toMapY(-48), 28, 11, -0.08, 0, Math.PI * 2); ctx.fill();
+      // Koi Lake & Meandering East Yousuiro Stream
+      ctx.fillStyle = '#2b7a8c';
+      ctx.beginPath(); ctx.ellipse(toMapX(-22.5), toMapY(-27.5), 11.5, 14, 0, 0, Math.PI * 2); ctx.fill();
+      strokeMapSpline(ctx, KYOTO_STREAM_PTS, toMapX, toMapY, '#348ea3', 4.5);
+      // Winding trails & curving Kyoto village lane
+      [KYOTO_SW_TRAIL_PTS, KYOTO_EAST_LOOP_PTS, KYOTO_PARK_TRAIL_PTS].forEach(t => {
+        strokeMapSpline(ctx, t, toMapX, toMapY, '#9e927d', 2.8);
+      });
+      strokeMapSpline(ctx, KYOTO_LANE_PTS, toMapX, toMapY, '#877e6f', 6.0);
+      // Organic Oval Zen Rock Garden & East Blossom Park
+      ctx.fillStyle = '#d4cec0';
+      ctx.beginPath(); ctx.ellipse(toMapX(-35.5), toMapY(18.0), 10, 6.2, 0.22, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#52b788'; ctx.beginPath(); ctx.arc(toMapX(29.5), toMapY(-1.0), 10, 0, Math.PI * 2); ctx.fill();
-      // Road, Stone Path & Shrine
-      ctx.fillStyle = '#5a6069'; ctx.fillRect(toMapX(-3.6), toMapY(-54), toMapX(3.6) - toMapX(-3.6), toMapY(37) - toMapY(-54));
+      // Bridge, Shrine & Station
       ctx.fillStyle = '#8b6343'; ctx.fillRect(toMapX(-43), toMapY(-29.2), toMapX(-3.1) - toMapX(-43), toMapY(-25.8) - toMapY(-29.2));
       ctx.fillStyle = '#c83e37'; ctx.fillRect(toMapX(-54.5), toMapY(-34.5), toMapX(-44.5) - toMapX(-54.5), toMapY(-20.5) - toMapY(-34.5));
       ctx.fillStyle = '#1d4ed8'; ctx.fillRect(toMapX(-7.5), toMapY(34.5), toMapX(7.5) - toMapX(-7.5), toMapY(39.5) - toMapY(34.5));
@@ -833,7 +895,7 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 6.5px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('🎋', toMapX(-35), toMapY(-46));
       ctx.fillText('⛩️', toMapX(-49.5), toMapY(-26));
-      ctx.fillText('🪨', toMapX(-36), toMapY(19));
+      ctx.fillText('🪨', toMapX(-35.5), toMapY(19));
       ctx.fillText('🛝', toMapX(29.5), toMapY(0));
       ctx.fillText('🚅 TOKYO', toMapX(0), toMapY(38.0));
     };
