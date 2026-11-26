@@ -1745,6 +1745,8 @@ window.LailaSalma = window.LailaSalma || {};
       blush: 'rgba(228, 118, 108, 0.34)',
       portrait: null,
       smileTeeth: false,
+      charismaticMale: false,
+      goatee: false,
       blink: false,
       happy: false,
       elder: false,
@@ -1761,6 +1763,7 @@ window.LailaSalma = window.LailaSalma || {};
     const isLaila = cfg.portrait === 'laila';
     const isSalma = cfg.portrait === 'salma';
     const isGirlPortrait = isLaila || isSalma;
+    const isCharisMale = Boolean(cfg.charismaticMale);
 
     const r = (cfg.skinHex >> 16) & 255;
     const g = (cfg.skinHex >> 8) & 255;
@@ -1772,8 +1775,9 @@ window.LailaSalma = window.LailaSalma || {};
     const hg = (cfg.hairHex >> 8) & 255;
     const hb = cfg.hairHex & 255;
     const browCol = cfg.elder ? '#a8a8ad'
-      : (isLaila ? '#261812' : (isSalma ? '#352118'
-        : ('rgb(' + Math.max(20, Math.round(hr * 0.78)) + ',' + Math.max(14, Math.round(hg * 0.78)) + ',' + Math.max(12, Math.round(hb * 0.78)) + ')')));
+      : (isCharisMale ? '#18110e'
+        : (isLaila ? '#261812' : (isSalma ? '#352118'
+          : ('rgb(' + Math.max(20, Math.round(hr * 0.78)) + ',' + Math.max(14, Math.round(hg * 0.78)) + ',' + Math.max(12, Math.round(hb * 0.78)) + ')'))));
 
     function drawSoftShade(x, y, rx, ry, color) {
       ctx.save();
@@ -1790,49 +1794,62 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     // 1. Sculpted Soft Portrait Skin Shading (orbital depth, bridge glow, nostrils & warm cheeks)
-    const eyeCXLeft = isGirlPortrait ? 154 : 166;
+    const eyeCXLeft = isGirlPortrait ? 154 : (isCharisMale ? 170 : 166);
     const eyeCXRight = 512 - eyeCXLeft;
-    const eyeCY = isSalma ? 256 : 248;
+    const eyeCY = isSalma ? 256 : (isCharisMale ? 242 : 248);
 
-    const socketTint = isDarkSkin ? 'rgba(38, 18, 10, 0.22)' : 'rgba(176, 110, 82, 0.16)';
+    const socketTint = isDarkSkin ? 'rgba(34, 16, 8, 0.28)' : 'rgba(176, 110, 82, 0.16)';
     drawSoftShade(eyeCXLeft, eyeCY - 6, 68, 42, socketTint);
     drawSoftShade(eyeCXRight, eyeCY - 6, 68, 42, socketTint);
 
-    // Subtle nose-bridge glow, petite button-nose shadow & delicate nostril crescents
-    drawSoftShade(256, 294, 14, 24, isDarkSkin ? 'rgba(255, 224, 198, 0.16)' : 'rgba(255, 250, 245, 0.32)');
-    drawSoftShade(256, 314, 16, 10, isDarkSkin ? 'rgba(255, 224, 198, 0.18)' : 'rgba(255, 252, 248, 0.42)');
-    drawSoftShade(256, 326, 22, 8, isDarkSkin ? 'rgba(36, 16, 10, 0.32)' : 'rgba(160, 92, 66, 0.28)');
-    ctx.strokeStyle = isDarkSkin ? 'rgba(42, 18, 10, 0.52)' : 'rgba(146, 82, 60, 0.52)';
-    ctx.lineWidth = 2.6;
+    // Subtle nose-bridge glow, contoured nose shadow & nostril crescents
+    drawSoftShade(256, 294, isCharisMale ? 16 : 14, 24, isDarkSkin ? 'rgba(255, 224, 198, 0.19)' : 'rgba(255, 250, 245, 0.32)');
+    drawSoftShade(256, 314, isCharisMale ? 20 : 16, 11, isDarkSkin ? 'rgba(255, 224, 198, 0.20)' : 'rgba(255, 252, 248, 0.42)');
+    drawSoftShade(256, 326, isCharisMale ? 26 : 22, 9, isDarkSkin ? 'rgba(30, 14, 8, 0.36)' : 'rgba(160, 92, 66, 0.28)');
+    ctx.strokeStyle = isDarkSkin ? 'rgba(36, 14, 8, 0.56)' : 'rgba(146, 82, 60, 0.52)';
+    ctx.lineWidth = isCharisMale ? 3.2 : 2.6;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(244, 322, 4.4, 0.2 * Math.PI, 0.9 * Math.PI);
+    ctx.arc(isCharisMale ? 240 : 244, 322, isCharisMale ? 5.2 : 4.4, 0.2 * Math.PI, 0.9 * Math.PI);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(268, 322, 4.4, 0.1 * Math.PI, 0.8 * Math.PI);
+    ctx.arc(isCharisMale ? 272 : 268, 322, isCharisMale ? 5.2 : 4.4, 0.1 * Math.PI, 0.8 * Math.PI);
     ctx.stroke();
 
-    // Rich Warm Portrait Cheek Blush + signature delicate blush wisps for Laila & Salma!
-    const cheekCol = isLaila ? 'rgba(222, 104, 78, 0.44)'
-      : (isSalma ? 'rgba(244, 122, 138, 0.48)'
-        : (isDarkSkin ? 'rgba(192, 86, 70, 0.30)' : 'rgba(232, 114, 108, 0.32)'));
-    const cheekY = isSalma ? 320 : 314;
-    drawSoftShade(116, cheekY, 64, 34, cheekCol);
-    drawSoftShade(396, cheekY, 64, 34, cheekCol);
-
-    if (isGirlPortrait) {
-      ctx.strokeStyle = isSalma ? 'rgba(232, 106, 124, 0.55)' : 'rgba(198, 86, 66, 0.48)';
+    // Rich Warm Portrait Cheek Blush (or sculpted bronze cheekbones for charismaticMale!)
+    if (isCharisMale) {
+      drawSoftShade(126, 296, 52, 22, 'rgba(255, 212, 178, 0.15)');
+      drawSoftShade(386, 296, 52, 22, 'rgba(255, 212, 178, 0.15)');
+      drawSoftShade(118, 336, 54, 28, 'rgba(28, 12, 6, 0.28)');
+      drawSoftShade(394, 336, 54, 28, 'rgba(28, 12, 6, 0.28)');
+      // Warm comedian laugh lines beside the grin
+      ctx.strokeStyle = 'rgba(34, 16, 10, 0.36)';
       ctx.lineWidth = 2.8;
       ctx.lineCap = 'round';
-      [-1, 1].forEach(side => {
-        const bx = side < 0 ? 112 : 400;
-        for (let i = -1; i <= 1; i++) {
-          ctx.beginPath();
-          ctx.moveTo(bx + i * 11 - 2, cheekY - 12);
-          ctx.lineTo(bx + i * 11 + 4, cheekY + 1);
-          ctx.stroke();
-        }
-      });
+      ctx.beginPath(); ctx.moveTo(192, 334); ctx.quadraticCurveTo(176, 366, 184, 396); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(320, 334); ctx.quadraticCurveTo(336, 366, 328, 396); ctx.stroke();
+    } else {
+      const cheekCol = isLaila ? 'rgba(222, 104, 78, 0.44)'
+        : (isSalma ? 'rgba(244, 122, 138, 0.48)'
+          : (isDarkSkin ? 'rgba(192, 86, 70, 0.30)' : 'rgba(232, 114, 108, 0.32)'));
+      const cheekY = isSalma ? 320 : 314;
+      drawSoftShade(116, cheekY, 64, 34, cheekCol);
+      drawSoftShade(396, cheekY, 64, 34, cheekCol);
+
+      if (isGirlPortrait) {
+        ctx.strokeStyle = isSalma ? 'rgba(232, 106, 124, 0.55)' : 'rgba(198, 86, 66, 0.48)';
+        ctx.lineWidth = 2.8;
+        ctx.lineCap = 'round';
+        [-1, 1].forEach(side => {
+          const bx = side < 0 ? 112 : 400;
+          for (let i = -1; i <= 1; i++) {
+            ctx.beginPath();
+            ctx.moveTo(bx + i * 11 - 2, cheekY - 12);
+            ctx.lineTo(bx + i * 11 + 4, cheekY + 1);
+            ctx.stroke();
+          }
+        });
+      }
     }
 
     // 2. Bold Sculpted Portrait Eyebrows (confident clean arched shape + fine hair feathering!)
@@ -1841,9 +1858,9 @@ window.LailaSalma = window.LailaSalma || {};
       const innerX = side < 0 ? (eyeCXLeft + 56) : (eyeCXRight - 56);
       const midX = side < 0 ? (eyeCXLeft + 2) : (eyeCXRight - 2);
       const outerX = side < 0 ? (eyeCXLeft - 62) : (eyeCXRight + 62);
-      const baseY = isSalma ? 186 : 176;
-      const archLift = isLaila ? 22 : (isSalma ? 15 : 16);
-      const thick = isLaila ? 13.5 : (isSalma ? 14.0 : (cfg.elder ? 11.5 : 10.0));
+      const baseY = isSalma ? 186 : (isCharisMale ? 182 : 176);
+      const archLift = isLaila ? 22 : (isCharisMale ? 14 : (isSalma ? 15 : 16));
+      const thick = isLaila ? 13.5 : (isSalma ? 14.0 : (isCharisMale ? 12.2 : (cfg.elder ? 11.5 : 10.0)));
 
       ctx.fillStyle = browCol;
       ctx.globalAlpha = 0.94;
@@ -1875,18 +1892,29 @@ window.LailaSalma = window.LailaSalma || {};
     // 3. Portrait-Inspired High-Detail Luminous Eyes (big expressive warm brown eyes, double eyelid crease, lush lashes & dual catchlights!)
     function drawEye(cx, side) {
       const cy = eyeCY;
-      const ew = isSalma ? 63 : (isLaila ? 61 : 46);
-      const ehTop = isSalma ? 44 : (isLaila ? 41 : 28);
-      const ehBot = isSalma ? 35 : (isLaila ? 32 : 22);
+      const ew = isSalma ? 63 : (isLaila ? 61 : (isCharisMale ? 46 : 46));
+      const ehTop = isSalma ? 44 : (isLaila ? 41 : (isCharisMale ? 20 : 28));
+      const ehBot = isSalma ? 35 : (isLaila ? 32 : (isCharisMale ? 15 : 22));
 
       // Crisp double-eyelid crease fold above eye
-      ctx.strokeStyle = isDarkSkin ? 'rgba(38, 18, 10, 0.58)' : 'rgba(116, 62, 44, 0.64)';
+      ctx.strokeStyle = isDarkSkin ? 'rgba(34, 16, 8, 0.62)' : 'rgba(116, 62, 44, 0.64)';
       ctx.lineWidth = isGirlPortrait ? 3.8 : 3.0;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(cx - ew * 0.88, cy - ehTop * 0.54);
       ctx.quadraticCurveTo(cx, cy - ehTop * 1.42, cx + ew * 0.90, cy - ehTop * 0.46);
       ctx.stroke();
+      if (isCharisMale) {
+        // Warm laughing eye crinkles at outer corners (Dave Chappelle + Thierry Henry warm charm!)
+        ctx.strokeStyle = 'rgba(34, 16, 8, 0.42)';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(cx + side * (ew + 2), cy + 2);
+        ctx.lineTo(cx + side * (ew + 15), cy - 3);
+        ctx.moveTo(cx + side * (ew + 2), cy + 8);
+        ctx.lineTo(cx + side * (ew + 14), cy + 12);
+        ctx.stroke();
+      }
 
       if (cfg.blink || cfg.happy) {
         ctx.strokeStyle = '#1b0d08';
@@ -2149,6 +2177,48 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.stroke();
 
       drawSoftShade(256, my + 26, 20, 7, isDarkSkin ? 'rgba(34, 16, 10, 0.26)' : 'rgba(148, 92, 74, 0.22)');
+    }
+
+    // 5. Sharp Groomed Mustache & Goatee (Thierry Henry / Dave Chappelle style!)
+    if (cfg.goatee) {
+      ctx.save();
+      // Subtle close-cropped shadow stubble along lower jawline
+      drawSoftShade(256, 444, 106, 42, 'rgba(18, 13, 11, 0.24)');
+
+      // Crisp neatly trimmed upper-lip mustache curving around the smile
+      ctx.fillStyle = 'rgba(20, 14, 12, 0.90)';
+      ctx.beginPath();
+      ctx.moveTo(256, my - 23);
+      ctx.quadraticCurveTo(222, my - 25, 194, my - 4);
+      ctx.quadraticCurveTo(190, my + 5, 198, my + 6);
+      ctx.quadraticCurveTo(220, my - 10, 256, my - 10);
+      ctx.quadraticCurveTo(292, my - 10, 314, my + 6);
+      ctx.quadraticCurveTo(322, my + 5, 318, my - 4);
+      ctx.quadraticCurveTo(290, my - 25, 256, my - 23);
+      ctx.closePath();
+      ctx.fill();
+
+      // Subtle side goatee connectors framing the wide grin
+      ctx.strokeStyle = 'rgba(20, 14, 12, 0.80)';
+      ctx.lineWidth = 8.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(198, my + 4); ctx.quadraticCurveTo(194, my + 34, 212, my + 56); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(314, my + 4); ctx.quadraticCurveTo(318, my + 34, 300, my + 56); ctx.stroke();
+
+      // Neat soul patch + sculpted chin goatee
+      ctx.fillStyle = 'rgba(20, 14, 12, 0.86)';
+      ctx.beginPath();
+      ctx.ellipse(256, my + 44, 14, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(206, my + 52);
+      ctx.quadraticCurveTo(256, my + 46, 306, my + 52);
+      ctx.quadraticCurveTo(300, my + 84, 256, my + 90);
+      ctx.quadraticCurveTo(212, my + 84, 206, my + 52);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     }
 
     const tex = finalizeTex(new THREE.CanvasTexture(c));

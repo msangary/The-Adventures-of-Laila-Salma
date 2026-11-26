@@ -708,6 +708,10 @@ window.LailaSalma = window.LailaSalma || {};
     bodyPivot.add(headGroup);
 
     const headMesh = new THREE.Mesh(isSalmaPortrait ? geos.headSalma : geos.head, skinMat);
+    if (cfg.faceOpts && cfg.faceOpts.charismaticMale) {
+      headMesh.scale.set(0.95, 1.05, 1.0);
+    }
+    if (cfg.bald) skinMat.roughness = 0.44;
     headMesh.castShadow = true;
     headMesh.receiveShadow = true;
     headGroup.add(headMesh);
@@ -822,6 +826,18 @@ window.LailaSalma = window.LailaSalma || {};
         wing.scale.set(1.0, 0.72, 0.65);
         headGroup.add(wing);
       });
+    }
+
+    // Optional Sleek Close-Trimmed 3D Chin Goatee (Thierry Henry / Dave Chappelle silhouette from side angles!)
+    if (cfg.faceOpts && cfg.faceOpts.goatee) {
+      const gMat = new THREE.MeshStandardMaterial({
+        color: 0x171210,
+        roughness: 0.72
+      });
+      const chinGoatee = new THREE.Mesh(new THREE.SphereGeometry(0.036, 12, 8), gMat);
+      chinGoatee.scale.set(0.95, 0.68, 0.45);
+      chinGoatee.position.set(0, -0.098, 0.112);
+      headGroup.add(chinGoatee);
     }
 
     // 5. Silky Natural Layered 3D Hair (skipped cleanly when cfg.bald is true!)
@@ -1097,9 +1113,17 @@ window.LailaSalma = window.LailaSalma || {};
     }
 
     // Optional White Doctor's Coat & 3D Stethoscope (for Mostafa!)
+    if (cfg.athletic) {
+      torso.scale.x = 1.08;
+    }
     if (cfg.doctorCoat) {
       const coatMat = LS.makeToonMat(0xfcfdff);
       const pocketMat = LS.makeToonMat(0xeef2f6);
+      const shirtMat = LS.makeToonMat(0x1e293b);
+      // Crisp dark navy inner shirt peeking cleanly behind open white coat lapels!
+      const innerShirt = new THREE.Mesh(new THREE.BoxGeometry(0.115, 0.34, 0.03), shirtMat);
+      innerShirt.position.set(0, 1.21, 0.104);
+      bodyPivot.add(innerShirt);
       // Long white coat flaps draping smoothly down past the hips
       [-1, 1].forEach(side => {
         const panel = new THREE.Mesh(new THREE.BoxGeometry(0.145, 0.44, 0.19), coatMat);

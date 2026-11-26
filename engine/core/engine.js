@@ -591,7 +591,7 @@ window.LailaSalma = window.LailaSalma || {};
     } else if (worldId === 'dest_grandparents') {
       LS.setSalmaBubbleText("Nano & Gedo's house! Nano is watching TV and Gedo is drinking warm tea! 💛🫖", 4800);
     } else if (worldId === 'dest_mai_mostafa') {
-      LS.setSalmaBubbleText("Cross the river bridge to Mai & Mostafa's! Lasagna with Mai & board games with Nouzi & Bibo! 🌉🎲", 5500);
+      LS.setSalmaBubbleText("Whoa, 18th floor overlooking the river!! Lasagna with Mai & board games with Nouzi & Bibo! 🏙️🌊🎲", 5500);
     } else if (worldId === 'safari') {
       LS.setSalmaBubbleText('Whoa, African Safari!! Quiz with Dr. Kofi, ride the Balloon or Jeep, & snap wildlife [F]! 🎈🦒', 0);
       LS.unlockStamp('safari_arrival');
@@ -700,7 +700,7 @@ window.LailaSalma = window.LailaSalma || {};
     if (titleEl) titleEl.textContent = 'Gray Nissan Qashqai → ' + toMeta.title;
     if (subEl) {
       subEl.textContent = targetWorldId === 'dest_mai_mostafa'
-        ? "Buckle up, Laila & Salma! Driving the gray Qashqai across the river to Mai & Mostafa's house!"
+        ? "Buckle up, Laila & Salma! Driving the gray Qashqai & riding the elevator up to the 18th floor at Mai & Mostafa's!"
         : (targetWorldId === 'home_neighborhood'
           ? 'Driving the gray Nissan Qashqai back home to Sunnyside Gated Community...'
           : 'Buckle up, Laila & Salma! Cruising in the gray Nissan Qashqai to ' + toMeta.title + '...');

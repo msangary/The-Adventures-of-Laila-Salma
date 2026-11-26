@@ -1146,20 +1146,22 @@ window.LailaSalma = window.LailaSalma || {};
   }
 
   // =========================================================================
-  // DESTINATION 5: MAI & MOSTAFA'S HOUSE ACROSS THE RIVER (dest_mai_mostafa)
-  // HIGH-DETAIL SHOWCASE EDITION:
-  // - Flower-lined riverbanks, lotus pads, swimming ducks, lantern bridge & butterflies!
-  // - Full kitchen & steaming homemade lasagna behind Mai!
-  // - Dr. Mostafa (dark-skinned, bald, white doctor's coat + stethoscope) watching TV
-  //   under his framed medical diploma!
-  // - Nouzi (5yo slim athletic girl) doing gymnastics with balance beam & trophy shelf!
-  // - Bibo (4yo boy) zooming toy cars through a mini toy garage & alphabet blocks!
+  // DESTINATION 5: MAI & MOSTAFA'S 18TH-FLOOR HOME OVERLOOKING THE RIVER
+  // Direct indoor transport into their sunlit high-rise apartment:
+  // - Floor-to-ceiling panoramic glass windows & 18th-floor balcony overlooking
+  //   the sparkling river, sailboat feluccas, bridge & skyline towers far below!
+  // - Full kitchen & steaming homemade lasagna with Mai!
+  // - Dr. Mostafa (Thierry Henry + Dave Chappelle likeness: bald, goatee, warm
+  //   wide grin, athletic white orthopedic doctor's coat + stethoscope) watching TV
+  //   and asking: "Are your bones okay?"
+  // - Nouzi (5yo slim athletic girl) doing gymnastics with balance beam & trophies!
+  // - Bibo (4yo boy) sitting on his play rug zooming toy cars around his garage!
   // - Painted 4-player Board Game Table for Laila, Salma, Nouzi & Bibo!
   // =========================================================================
   function buildMaiMostafa(worldGroup) {
     const W = {
       id: 'dest_mai_mostafa',
-      isInterior: false,
+      isInterior: true,
       colliders: [],
       zones: [],
       hiddenAnimals: [],
@@ -1168,288 +1170,311 @@ window.LailaSalma = window.LailaSalma || {};
       nouziChar: null,
       biboChar: null,
       biboToyCars: [],
-      riverDucks: [],
-      butterflies: [],
+      riverBoats: [],
+      skyClouds: [],
       lasagnaSteams: [],
       diningConfigs: {
         mai_dining: {
-          lailaSeat: new THREE.Vector3(-5.8, 0.18, -7.8),
-          salmaSeat: new THREE.Vector3(-3.6, 0.18, -7.8),
-          lailaDishPos: new THREE.Vector3(-5.3, 0.88, -7.8),
-          salmaDishPos: new THREE.Vector3(-4.1, 0.88, -7.8),
-          oishiiPos: new THREE.Vector3(-4.7, 1.88, -7.8),
+          lailaSeat: new THREE.Vector3(-6.7, 0.14, -4.0),
+          salmaSeat: new THREE.Vector3(-4.5, 0.14, -4.0),
+          lailaDishPos: new THREE.Vector3(-6.2, 0.88, -4.0),
+          salmaDishPos: new THREE.Vector3(-5.0, 0.88, -4.0),
+          oishiiPos: new THREE.Vector3(-5.6, 1.88, -4.0),
           seatYaw: 0,
-          camPos: new THREE.Vector3(-4.7, 2.35, -3.9),
-          camLook: new THREE.Vector3(-4.7, 1.05, -7.8),
+          camPos: new THREE.Vector3(-5.6, 2.35, -0.2),
+          camLook: new THREE.Vector3(-5.6, 1.05, -4.0),
           caption: "Mai's Homemade Lasagna! 🧀🍝💛",
-          exitPos: new THREE.Vector3(-4.7, 0, -4.8)
+          exitPos: new THREE.Vector3(-5.6, 0, -1.5)
         }
       }
     };
     const addCol = (x, z, hw, hd) => W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+    W.getGroundHeight = () => 0;
 
-    W.getGroundHeight = function (x, z) {
-      if (Math.abs(x) < 3.0 && z > 5.8 && z < 12.2) {
-        const u = (z - 5.8) / 6.4;
-        return Math.sin(u * Math.PI) * 0.62;
-      }
-      return 0;
-    };
-
+    // -----------------------------------------------------------------------
+    // 18TH-FLOOR SKY & PANORAMIC RIVER + CITY SKYLINE FAR BELOW!
+    // -----------------------------------------------------------------------
     const sky = new THREE.Mesh(
-      new THREE.SphereGeometry(195, 24, 16),
+      new THREE.SphereGeometry(215, 24, 16),
       new THREE.MeshBasicMaterial({ map: LS.createSkyTexture(LS.state.timeMode, 'tokyo'), side: THREE.BackSide })
     );
     worldGroup.add(sky);
     W.skyMesh = sky;
-    if (LS.hdAssets && LS.hdAssets.addMountainRange) LS.hdAssets.addMountainRange(worldGroup, 'tokyo');
 
-    const meadow = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), LS.makeSurfaceMat(LS.createGrassTexture('tokyo')));
-    meadow.rotation.x = -Math.PI / 2; meadow.receiveShadow = true; worldGroup.add(meadow);
-
-    // Instanced wind-swept Ghibli grass along both riverbanks!
-    if (LS.hdAssets && LS.hdAssets.addInstancedGrass) {
-      LS.hdAssets.addInstancedGrass(worldGroup, { minX: -24, maxX: 24, minZ: -15, maxZ: 24 }, (x, z) => {
-        if (z > 5.2 && z < 12.8) return false;
-        if (Math.abs(x) < 12.2 && z < 2.6 && z > -14.8) return false;
-        if (Math.abs(x) < 3.0 && z >= 2.2 && z <= 5.6) return false;
-        if (Math.abs(x) < 7.5 && z > 12.0 && z < 23.0) return false;
-        return true;
-      }, 'home');
+    // Sparkling wide river far below the 18th floor — framed right in the panoramic window sightline!
+    const riverY = -12;
+    const riverBed = new THREE.Mesh(new THREE.PlaneGeometry(280, 82), LS.makeToonMat(0x1f7a96));
+    riverBed.rotation.x = -Math.PI / 2; riverBed.position.set(0, riverY - 0.12, -58); worldGroup.add(riverBed);
+    const riverWater = new THREE.Mesh(new THREE.PlaneGeometry(280, 76), LS.makeWaterMat(0.94));
+    riverWater.rotation.x = -Math.PI / 2; riverWater.position.set(0, riverY, -58); worldGroup.add(riverWater);
+    // Sparkling sun-glint ripples shimmering across the river far below
+    for (let s = 0; s < 14; s++) {
+      const gl = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.5 + (s % 3) * 3.0, 0.72),
+        new THREE.MeshBasicMaterial({ color: 0xeafcff, transparent: true, opacity: 0.48 })
+      );
+      gl.rotation.x = -Math.PI / 2;
+      gl.position.set(-56 + s * 9.5, riverY + 0.08, -42 - (s % 5) * 9.5);
+      worldGroup.add(gl);
     }
 
-    // SPARKLING TURQUOISE GHIBLI RIVER + Lily Pads, Lotus Blossoms & Swimming River Ducks!
-    const riverBed = new THREE.Mesh(new THREE.PlaneGeometry(110, 7.6), LS.makeToonMat(0x2a7f8e));
-    riverBed.rotation.x = -Math.PI / 2; riverBed.position.set(0, 0.02, 9.0); worldGroup.add(riverBed);
-    const riverWater = new THREE.Mesh(new THREE.PlaneGeometry(110, 6.4), LS.makeWaterMat(0.92));
-    riverWater.rotation.x = -Math.PI / 2; riverWater.position.set(0, 0.06, 9.0); worldGroup.add(riverWater);
+    // Animated white sailboat feluccas gliding gently across the river 18 floors below!
+    [[-26, -54, 1.1], [8, -64, -0.8], [30, -50, 0.9], [-6, -76, -0.7], [18, -82, 0.85]].forEach((bp, bi) => {
+      const boat = new THREE.Group();
+      const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.65, 1.15), LS.makeToonMat(0x8c5a3c));
+      hull.position.y = 0.28; boat.add(hull);
+      const sail = new THREE.Mesh(new THREE.ConeGeometry(1.45, 3.8, 3), LS.makeToonMat(0xfffdf8));
+      sail.position.set(0, 2.35, 0); sail.rotation.y = Math.PI / 2; boat.add(sail);
+      boat.position.set(bp[0], riverY + 0.05, bp[1]);
+      boat.userData = { baseX: bp[0], z: bp[1], speed: bp[2], phase: bi * 1.9 };
+      worldGroup.add(boat); W.riverBoats.push(boat);
+    });
 
-    // Lily pads & pink lotus flowers floating along the river!
-    const padMat = LS.makeToonMat(0x3f8f47);
-    const lotMat = LS.makeToonMat(0xff8fab);
-    [[-6.5, 7.8], [-9.2, 10.2], [6.8, 8.2], [10.4, 9.8], [-12.5, 8.5], [13.2, 7.6]].forEach((lp, li) => {
-      const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.04, 10), padMat);
-      pad.position.set(lp[0], 0.09, lp[1]); worldGroup.add(pad);
-      if (li % 2 === 0) {
-        const l = new THREE.Mesh(new THREE.SphereGeometry(0.16, 7, 6), lotMat);
-        l.scale.set(1.2, 0.7, 1.2); l.position.set(lp[0], 0.18, lp[1]); worldGroup.add(l);
+    // Green tree-lined opposite riverbank & distant bridge far below!
+    const bankGrass = LS.makeToonMat(0x6db05e);
+    const farGround = new THREE.Mesh(new THREE.PlaneGeometry(320, 120), bankGrass);
+    farGround.rotation.x = -Math.PI / 2; farGround.position.set(0, riverY + 0.2, -152); worldGroup.add(farGround);
+    const nearBank = new THREE.Mesh(new THREE.BoxGeometry(280, 2.2, 14), LS.makeToonMat(0xcbc0ae));
+    nearBank.position.set(0, riverY + 0.4, -14); worldGroup.add(nearBank);
+    const farProm = new THREE.Mesh(new THREE.BoxGeometry(300, 1.8, 7), LS.makeToonMat(0xd6cbb8));
+    farProm.position.set(0, riverY + 0.6, -98); worldGroup.add(farProm);
+
+    // Distant multi-arch city bridge spanning the river on the left horizon!
+    const brMat = LS.makeToonMat(0xe2dbd0);
+    const brDeck = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.0, 82), brMat);
+    brDeck.position.set(-46, riverY + 3.6, -58); worldGroup.add(brDeck);
+    [-32, -50, -68, -86].forEach(bz => {
+      const pier = new THREE.Mesh(new THREE.BoxGeometry(3.4, 4.4, 2.4), LS.makeToonMat(0xb0a798));
+      pier.position.set(-46, riverY + 1.4, bz); worldGroup.add(pier);
+    });
+
+    // City Skyline High-Rise Towers along opposite riverbank & neighboring 18-story flanks!
+    const towerPalette = [0xf2e3cf, 0xe4d5c3, 0xd4e2eb, 0xebd7cc, 0xdce4d8, 0xe8dec8];
+    const winBandMat = LS.makeToonMat(0x69a4c9);
+    const skylineSpecs = [
+      // Opposite riverbank skyline rising cleanly above the sparkling turquoise river!
+      [-72, -110, 13, 30, 12], [-54, -106, 11, 38, 11], [-36, -114, 13, 28, 12],
+      [-18, -108, 12, 42, 11], [0, -112, 14, 34, 12], [18, -106, 11, 46, 11],
+      [36, -112, 13, 36, 12], [54, -108, 12, 32, 11], [72, -114, 13, 40, 12],
+      // Neighboring tall high-rise towers flanking left & right (authentic 18th-floor altitude feel!)
+      [-32, -26, 13, 34, 13], [32, -28, 13, 36, 13]
+    ];
+    skylineSpecs.forEach((sp, ti) => {
+      const [tx, tz, tw, th, td] = sp;
+      const tMesh = new THREE.Mesh(new THREE.BoxGeometry(tw, th, td), LS.makeToonMat(towerPalette[ti % towerPalette.length]));
+      tMesh.position.set(tx, riverY + th / 2, tz);
+      worldGroup.add(tMesh);
+      for (let wy = riverY + 4; wy < riverY + th - 2; wy += 3.8) {
+        const band = new THREE.Mesh(new THREE.BoxGeometry(tw + 0.18, 1.45, td + 0.18), winBandMat);
+        band.position.set(tx, wy, tz);
+        worldGroup.add(band);
       }
     });
 
-    // Animated swimming river ducks drifting past the bridge!
-    [-9, 8].forEach((startX, di) => {
-      const dg = new THREE.Group();
-      const db = new THREE.Mesh(new THREE.SphereGeometry(0.24, 9, 8), LS.makeToonMat(0xfff8eb));
-      db.scale.set(0.9, 0.75, 1.35); db.position.y = 0.12; dg.add(db);
-      const dh = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 7), LS.makeToonMat(0x2a9d8f));
-      dh.position.set(0, 0.30, 0.20); dg.add(dh);
-      dg.userData = { cx: startX, cz: di === 0 ? 9.4 : 8.5, phase: di * 2.2 };
-      worldGroup.add(dg); W.riverDucks.push(dg);
-    });
-
-    // Stone Embankments + Lush Riverbank Flowerbeds!
-    const bankMat = LS.makeToonMat(0xcbc0ae);
-    [[-16, 5.7], [16, 5.7], [-16, 12.3], [16, 12.3]].forEach(bp => {
-      const b = new THREE.Mesh(new THREE.BoxGeometry(26, 0.44, 0.68), bankMat);
-      b.position.set(bp[0], 0.22, bp[1]); worldGroup.add(b);
-    });
-    const flCols = [0xff7aa2, 0xffd166, 0xc77dff, 0x90e0ef];
-    [-6.2, -9.8, 6.2, 9.8].forEach((fx, fi) => {
-      [5.0, 13.0].forEach(fz => {
-        const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42, 0), padMat);
-        bush.scale.set(1.3, 0.75, 1.1); bush.position.set(fx, 0.28, fz); worldGroup.add(bush);
-        const bl = new THREE.Mesh(new THREE.SphereGeometry(0.16, 7, 6), LS.makeToonMat(flCols[(fi + Math.round(fz)) % 4]));
-        bl.position.set(fx, 0.56, fz); worldGroup.add(bl);
+    // Soft fluffy Ghibli clouds drifting past at 18th-floor eye level!
+    const cloudMat = LS.makeToonMat(0xfffdf8, { transparent: true, opacity: 0.90 });
+    [[-38, 8.5, -72], [14, 11.0, -84], [48, 7.5, -68], [-8, 13.5, -94]].forEach((cp, ci) => {
+      const cg = new THREE.Group();
+      [[0, 0, 0, 3.6], [3.2, -0.4, 0.4, 2.6], [-3.0, -0.5, -0.3, 2.7], [0.9, 1.1, -0.2, 2.3]].forEach(b => {
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(b[3], 9, 7), cloudMat);
+        puff.scale.set(1.3, 0.72, 0.85);
+        puff.position.set(b[0], b[1], b[2]);
+        cg.add(puff);
       });
-    });
-    addCol(-14.5, 9.0, 11.4, 3.1);
-    addCol(14.5, 9.0, 11.4, 3.1);
-
-    // Charming Arched Wooden Bridge with Glowing Vintage Corner Lanterns!
-    const bridgeWood = LS.makeToonMat(0x8c5a3c);
-    const railWood = LS.makeToonMat(0x6e4429);
-    for (let i = 0; i < 12; i++) {
-      const u = (i + 0.5) / 12;
-      const bz = 5.8 + u * 6.4;
-      const by = Math.sin(u * Math.PI) * 0.62;
-      const plank = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.14, 0.52), bridgeWood);
-      plank.position.set(0, by + 0.04, bz); plank.receiveShadow = true; plank.castShadow = true; worldGroup.add(plank);
-      if (i % 3 === 0 || i === 11) {
-        [-2.45, 2.45].forEach(rx => {
-          const post = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.05, 0.18), railWood);
-          post.position.set(rx, by + 0.56, bz); worldGroup.add(post);
-          if (i === 0 || i === 11) {
-            const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), LS.makeEmissiveMat(0xfff4cf, 0xffd57a, 0.92));
-            lamp.position.set(rx, by + 1.18, bz); worldGroup.add(lamp);
-            if (LS.createGlowSprite) {
-              const h = LS.createGlowSprite(0xffe094, 1.25);
-              h.position.copy(lamp.position); worldGroup.add(h);
-            }
-          }
-        });
-      }
-    }
-    [-2.45, 2.45].forEach(rx => {
-      const rBeam = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 6.5), railWood);
-      rBeam.position.set(rx, 1.32, 9.0); worldGroup.add(rBeam);
-    });
-
-    // Gravel Driveway on South Bank + Parked Gray Nissan Qashqai!
-    const drive = new THREE.Mesh(new THREE.PlaneGeometry(14, 11), LS.makeSurfaceMat(LS.createGravelPathTexture()));
-    drive.rotation.x = -Math.PI / 2; drive.position.set(0, 0.025, 17.5); drive.receiveShadow = true; worldGroup.add(drive);
-
-    if (LS.createNissanQashqai) {
-      const qashqai = LS.createNissanQashqai();
-      qashqai.position.set(-4.8, 0, 17.2);
-      qashqai.rotation.y = Math.PI * 0.35;
-      worldGroup.add(qashqai);
-      addCol(-4.8, 17.2, 2.2, 1.4);
-    }
-
-    // Lush Ghibli trees & fluttering riverbank butterflies!
-    [[-11, 14.5, 'sakura', 1.18], [10.5, 14.5, 'green', 1.22], [-14.5, 2.0, 'olive', 1.24], [14.5, 2.0, 'sakura', 1.22], [-15.5, -10.0, 'green', 1.3], [15.5, -10.0, 'gold', 1.25]].forEach(tc => {
-      if (LS.ghibli && LS.ghibli.buildGhibliTree) {
-        const t = LS.ghibli.buildGhibliTree(tc[2], tc[3]);
-        t.position.set(tc[0], 0, tc[1]); worldGroup.add(t);
-      }
-    });
-    [[-6.5, 13.0], [6.5, 13.0], [-7.0, 4.8], [7.0, 4.8]].forEach((bp, i) => {
-      const bG = new THREE.Group();
-      const wMat = LS.makeToonMat(flCols[i % 4]);
-      const wL = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.11), wMat); wL.position.x = -0.07; bG.add(wL);
-      const wR = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.02, 0.11), wMat); wR.position.x = 0.07; bG.add(wR);
-      bG.userData = { cx: bp[0], cz: bp[1], phase: i * 1.4, wL: wL, wR: wR };
-      worldGroup.add(bG); W.butterflies.push(bG);
+      cg.position.set(cp[0], cp[1], cp[2]);
+      cg.userData = { baseX: cp[0], y: cp[1], z: cp[2], speed: 0.45 + (ci % 2) * 0.25 };
+      worldGroup.add(cg); W.skyClouds.push(cg);
     });
 
     // -----------------------------------------------------------------------
-    // MAI & MOSTAFA'S HIGH-DETAIL RIVERFRONT HOUSE (Z = -13.5 .. +1.5, X = -11 .. +11)
+    // 18TH-FLOOR LUXURY APARTMENT SHELL (22m x 15m x 4.6m)
+    // Open panoramic glass North Wall overlooking the river!
     // -----------------------------------------------------------------------
-    const hFloor = new THREE.Mesh(new THREE.PlaneGeometry(22, 15.5), LS.makeSurfaceMat(LS.createCedarPlankTexture(), { color: 0xe6c89c }));
-    hFloor.rotation.x = -Math.PI / 2; hFloor.position.set(0, 0.03, -6.0); hFloor.receiveShadow = true; worldGroup.add(hFloor);
-    const walk = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), LS.makeSurfaceMat(LS.createStonePathTexture()));
-    walk.rotation.x = -Math.PI / 2; walk.position.set(0, 0.025, 3.6); worldGroup.add(walk);
+    const W_AP = 22, D_AP = 15, H_AP = 4.6;
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(W_AP, D_AP),
+      LS.makeSurfaceMat(LS.createCedarPlankTexture(), { color: 0xe6c89c })
+    );
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; worldGroup.add(floor);
 
-    const hWallMat = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture('#fdf3e2') });
-    const trimMat = LS.makeToonMat(0x8c5e3c);
-    const bWall = new THREE.Mesh(new THREE.BoxGeometry(22.3, 4.6, 0.35), hWallMat);
-    bWall.position.set(0, 2.3, -13.8); bWall.castShadow = true; worldGroup.add(bWall);
-    const lWall = new THREE.Mesh(new THREE.BoxGeometry(0.35, 4.6, 15.6), hWallMat);
-    lWall.position.set(-11.0, 2.3, -6.0); worldGroup.add(lWall);
-    const rWall = new THREE.Mesh(new THREE.BoxGeometry(0.35, 4.6, 15.6), hWallMat);
-    rWall.position.set(11.0, 2.3, -6.0); worldGroup.add(rWall);
-    // Crisp Wainscoting & Baseboards inside Mai & Mostafa's House!
-    const wsMat = LS.makeToonMat(0xf0dfc6);
-    const bWs = new THREE.Mesh(new THREE.BoxGeometry(22.0, 1.0, 0.08), wsMat);
-    bWs.position.set(0, 0.50, -13.60); worldGroup.add(bWs);
-    addCol(0, -13.8, 11.2, 0.4);
-    addCol(-11.0, -6.0, 0.4, 7.8);
-    addCol(11.0, -6.0, 0.4, 7.8);
+    const wallMat = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture('#fdf6e8') });
+    const wainMat = LS.makeToonMat(0xf3e4cd);
+    const trimMat = LS.makeToonMat(0x7c4e2e);
+    const bronzeMat = LS.makeToonMat(0x2f353d);
+    const whiteTrim = LS.makeToonMat(0xfffaf2);
 
-    // Sunlit Curtained Back Windows + Porch Fairy String Lights + Chimney!
-    addDetailedWallWindow(worldGroup, -0.2, 2.55, -13.58, 0, 3.2, 1.85, 0xf7d1cd, trimMat);
-    addHangingStringLights(worldGroup, -10.2, 1.8, 10.2, 1.8, 4.18, 11, 0xffd57a);
+    // West, East & South solid interior walls + modern wainscoting & crown molding
+    const wW = new THREE.Mesh(new THREE.BoxGeometry(0.26, H_AP, D_AP), wallMat);
+    wW.position.set(-W_AP / 2, H_AP / 2, 0); worldGroup.add(wW);
+    const wE = new THREE.Mesh(new THREE.BoxGeometry(0.26, H_AP, D_AP), wallMat);
+    wE.position.set(W_AP / 2, H_AP / 2, 0); worldGroup.add(wE);
+    const wS = new THREE.Mesh(new THREE.BoxGeometry(W_AP, H_AP, 0.26), wallMat);
+    wS.position.set(0, H_AP / 2, D_AP / 2); worldGroup.add(wS);
 
-    [-10.6, -4.5, 4.5, 10.6].forEach(px => {
-      const col = new THREE.Mesh(new THREE.BoxGeometry(0.45, 4.6, 0.45), trimMat);
-      col.position.set(px, 2.3, 1.7); col.castShadow = true; worldGroup.add(col);
-    });
-    const frontHeader = new THREE.Mesh(new THREE.BoxGeometry(22.4, 0.55, 0.55), trimMat);
-    frontHeader.position.set(0, 4.6, 1.7); worldGroup.add(frontHeader);
-    const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(16.8, 3.2, 4), LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#c25a3c') }));
-    houseRoof.position.set(0, 6.25, -6.0); houseRoof.rotation.y = Math.PI / 4; houseRoof.scale.set(1.06, 1.0, 0.78);
-    houseRoof.castShadow = true; worldGroup.add(houseRoof);
-    const hChim = new THREE.Mesh(new THREE.BoxGeometry(1.05, 2.2, 1.05), LS.makeToonMat(0xb85842));
-    hChim.position.set(-5.8, 6.8, -8.5); worldGroup.add(hChim);
-
-    // Warm Hanging Pendant Lamps inside the house!
-    [[-4.7, -7.8], [5.4, -8.8], [0, -3.8]].forEach(lp => {
-      const shade = new THREE.Mesh(new THREE.ConeGeometry(0.40, 0.28, 10), LS.makeToonMat(0xfff4e0));
-      shade.position.set(lp[0], 3.85, lp[1]); worldGroup.add(shade);
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), LS.makeEmissiveMat(0xfff7dc, 0xffd57a, 0.9));
-      bulb.position.set(lp[0], 3.70, lp[1]); worldGroup.add(bulb);
+    [[-W_AP / 2 + 0.15, 0, 0.06, D_AP], [W_AP / 2 - 0.15, 0, 0.06, D_AP]].forEach(b => {
+      const ws = new THREE.Mesh(new THREE.BoxGeometry(b[2], 1.0, b[3]), wainMat);
+      ws.position.set(b[0], 0.50, b[1]); worldGroup.add(ws);
+      const rl = new THREE.Mesh(new THREE.BoxGeometry(b[2] + 0.06, 0.08, b[3]), trimMat);
+      rl.position.set(b[0], 1.02, b[1]); worldGroup.add(rl);
+      const cr = new THREE.Mesh(new THREE.BoxGeometry(b[2] + 0.08, 0.16, b[3]), whiteTrim);
+      cr.position.set(b[0], H_AP - 0.12, b[1]); worldGroup.add(cr);
     });
 
-    const houseSign = new THREE.Mesh(
-      new THREE.BoxGeometry(7.6, 1.0, 0.18),
+    // Ceiling Slab + Warm Modern Recessed Beams + 4 Glowing Pendant Lamps (0 extra WebGL lights!)
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W_AP, D_AP), LS.makeToonMat(0xfffaf0));
+    ceil.rotation.x = Math.PI / 2; ceil.position.y = H_AP; worldGroup.add(ceil);
+    [-3.6, 0, 3.6].forEach(bz => {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(W_AP - 0.2, 0.16, 0.22), trimMat);
+      beam.position.set(0, H_AP - 0.08, bz); worldGroup.add(beam);
+    });
+    [[-5.6, -3.6], [5.2, -3.6], [-5.6, 2.2], [5.6, 2.2]].forEach(lp => {
+      const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.72, 6), bronzeMat);
+      cord.position.set(lp[0], H_AP - 0.36, lp[1]); worldGroup.add(cord);
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.20, 9, 7), LS.makeEmissiveMat(0xfff7dc, 0xffd57a, 0.90));
+      bulb.position.set(lp[0], H_AP - 0.78, lp[1]); worldGroup.add(bulb);
+      if (LS.createGlowSprite) {
+        const glow = LS.createGlowSprite(0xffe094, 1.5);
+        glow.position.set(lp[0], H_AP - 0.80, lp[1]); worldGroup.add(glow);
+      }
+    });
+
+    // FLOOR-TO-CEILING PANORAMIC GLASS CURTAIN WALL & 18TH-FLOOR RIVER BALCONY (North Wall z = -7.5)!
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(W_AP, 0.24, 0.32), whiteTrim);
+    sill.position.set(0, 0.12, -D_AP / 2); worldGroup.add(sill);
+    const header = new THREE.Mesh(new THREE.BoxGeometry(W_AP, 0.36, 0.38), whiteTrim);
+    header.position.set(0, H_AP - 0.18, -D_AP / 2); worldGroup.add(header);
+    const panGlass = new THREE.Mesh(
+      new THREE.PlaneGeometry(W_AP - 0.5, H_AP - 0.60),
+      new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0.10, side: THREE.DoubleSide, depthWrite: false })
+    );
+    panGlass.position.set(0, H_AP / 2, -D_AP / 2); worldGroup.add(panGlass);
+    for (let mx = -10.6; mx <= 10.7; mx += 3.55) {
+      const mul = new THREE.Mesh(new THREE.BoxGeometry(0.11, H_AP - 0.50, 0.18), bronzeMat);
+      mul.position.set(mx, H_AP / 2, -D_AP / 2); worldGroup.add(mul);
+    }
+    const transom = new THREE.Mesh(new THREE.BoxGeometry(W_AP - 0.4, 0.08, 0.14), bronzeMat);
+    transom.position.set(0, 3.45, -D_AP / 2); worldGroup.add(transom);
+
+    // Slim 18th-Floor Balcony Terrace outside the panoramic glass with clear railing & potted palms!
+    const balcFloor = new THREE.Mesh(new THREE.BoxGeometry(W_AP + 0.4, 0.20, 1.35), LS.makeToonMat(0xcbbca7));
+    balcFloor.position.set(0, -0.08, -D_AP / 2 - 0.68); worldGroup.add(balcFloor);
+    const balcRail = new THREE.Mesh(new THREE.BoxGeometry(W_AP + 0.3, 0.08, 0.09), bronzeMat);
+    balcRail.position.set(0, 1.02, -D_AP / 2 - 1.30); worldGroup.add(balcRail);
+    const balcGlass = new THREE.Mesh(
+      new THREE.BoxGeometry(W_AP + 0.2, 0.94, 0.04),
+      new THREE.MeshBasicMaterial({ color: 0xcbeeff, transparent: true, opacity: 0.20 })
+    );
+    balcGlass.position.set(0, 0.52, -D_AP / 2 - 1.30); worldGroup.add(balcGlass);
+    for (let px = -10.5; px <= 10.6; px += 3.5) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.07, 1.04, 0.07), bronzeMat);
+      post.position.set(px, 0.52, -D_AP / 2 - 1.30); worldGroup.add(post);
+    }
+    addIndoorPlant(worldGroup, -9.2, -D_AP / 2 - 0.68, 0xc66b47, true);
+    addIndoorPlant(worldGroup, 9.2, -D_AP / 2 - 0.68, 0xc66b47, true);
+
+    // Subtle Apartment Header Plaque above Panoramic Glass ("18F • MAI & MOSTAFA'S RIVER VIEW HOME")
+    const aptSign = new THREE.Mesh(
+      new THREE.BoxGeometry(7.2, 0.58, 0.12),
       new THREE.MeshBasicMaterial({
-        map: LS.createSignTexture("🏡 MAI & MOSTAFA'S RIVER HOUSE 🌉", {
-          bg: '#fff8ec', border: '#e07a5f', color: '#4a2b14', font: 'bold 26px sans-serif', width: 620, height: 100
+        map: LS.createSignTexture("🏙️ 18F • MAI & MOSTAFA'S RIVER VIEW HOME 🌊", {
+          bg: '#fff9ef', border: '#c66b47', color: '#4a2b14', font: 'bold 21px sans-serif', width: 660, height: 76
         })
       })
     );
-    houseSign.position.set(0, 4.55, 2.02); worldGroup.add(houseSign);
+    aptSign.position.set(0, 4.18, -D_AP / 2 + 0.22); worldGroup.add(aptSign);
+
+    // South Entryway: Apartment Front Door (18F Plaque) + Welcome Mat back to Elevator & Qashqai!
+    const door = new THREE.Mesh(new THREE.BoxGeometry(1.95, 2.75, 0.22), trimMat);
+    door.position.set(0, 1.38, D_AP / 2 - 0.15); worldGroup.add(door);
+    const plaque = new THREE.Mesh(
+      new THREE.BoxGeometry(0.74, 0.34, 0.05),
+      new THREE.MeshBasicMaterial({ map: LS.createSignTexture('18F', { bg: '#d4a359', border: '#4a2b14', color: '#2b1a0e', font: 'bold 34px sans-serif', width: 120, height: 64 }) })
+    );
+    plaque.position.set(0, 2.15, D_AP / 2 - 0.28); worldGroup.add(plaque);
+    const dKnob = new THREE.Mesh(new THREE.SphereGeometry(0.065, 7, 6), LS.makeToonMat(0xe9c46a));
+    dKnob.position.set(0.68, 1.26, D_AP / 2 - 0.30); worldGroup.add(dKnob);
+    const wMat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.04, 1.15), LS.makeToonMat(0x4b5563));
+    wMat.position.set(0, 0.02, D_AP / 2 - 0.9); worldGroup.add(wMat);
 
     // -----------------------------------------------------------------------
-    // AREA 1 (Northwest): MAI'S KITCHEN COUNTER, OVEN & STEAMING LASAGNA TABLE!
+    // AREA 1 (Northwest, River View): MAI'S KITCHEN & HOMEMADE LASAGNA!
     // -----------------------------------------------------------------------
-    const mCab = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.92, 1.15), LS.makeToonMat(0xe8dfd0));
-    mCab.position.set(-6.6, 0.46, -12.8); mCab.castShadow = true; worldGroup.add(mCab);
-    const mTop = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.10, 1.25), LS.makeToonMat(0xd9a773));
-    mTop.position.set(-6.6, 0.96, -12.8); worldGroup.add(mTop);
-    const oven = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.72, 0.08), LS.makeEmissiveMat(0x3a2e2a, 0xff9f43, 0.35));
-    oven.position.set(-5.6, 0.48, -12.20); worldGroup.add(oven);
-    addCol(-6.6, -12.8, 2.9, 0.75);
+    const dinRugMat = LS.createWovenRugTexture
+      ? LS.makeSurfaceMat(LS.createWovenRugTexture('#f6e4cc', '#c66b47', '#e9c46a'))
+      : LS.makeToonMat(0xf4e3cc);
+    const dinRug = new THREE.Mesh(new THREE.PlaneGeometry(5.8, 4.2), dinRugMat);
+    dinRug.rotation.x = -Math.PI / 2; dinRug.position.set(-5.6, 0.018, -4.0); worldGroup.add(dinRug);
 
-    if (LS.createWovenRugTexture) {
-      const dRug = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 3.6), LS.makeSurfaceMat(LS.createWovenRugTexture('#f8e8d4', '#e07a5f', '#ffd166')));
-      dRug.rotation.x = -Math.PI / 2; dRug.position.set(-4.7, 0.042, -7.8); worldGroup.add(dRug);
-    }
+    // Open Kitchen Counter & Glowing Lasagna Oven along West Wall!
+    const kCounter = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.96, 5.2), LS.makeToonMat(0xf5e8d5));
+    kCounter.position.set(-10.2, 0.48, -4.0); kCounter.castShadow = true; worldGroup.add(kCounter);
+    const kTop = new THREE.Mesh(new THREE.BoxGeometry(1.26, 0.10, 5.35), LS.makeToonMat(0xfffdf8));
+    kTop.position.set(-10.2, 1.00, -4.0); worldGroup.add(kTop);
+    const ovenWin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.46, 0.84), LS.makeEmissiveMat(0xffcf87, 0xff9f43, 0.72));
+    ovenWin.position.set(-9.60, 0.56, -4.0); worldGroup.add(ovenWin);
+    addCol(-10.1, -4.0, 0.75, 2.75);
 
-    const dTab = new THREE.Group();
-    dTab.position.set(-4.7, 0.03, -7.8);
-    const dTop = new THREE.Mesh(new THREE.BoxGeometry(2.65, 0.12, 1.65), trimMat);
-    dTop.position.y = 0.80; dTop.castShadow = true; dTab.add(dTop);
-    const dRun = new THREE.Mesh(new THREE.BoxGeometry(2.68, 0.02, 0.52), LS.makeToonMat(0xfff5e4));
-    dRun.position.y = 0.87; dTab.add(dRun);
-    const dLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, 0.78, 10), trimMat);
-    dLeg.position.y = 0.39; dTab.add(dLeg);
-    // Steaming Homemade Lasagna Pan + Fresh Salad Bowl!
-    const pan = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.14, 0.54), LS.makeToonMat(0xfffaf0));
-    pan.position.set(0, 0.93, 0); dTab.add(pan);
-    const lasCheese = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.06, 0.46), LS.makeToonMat(0xf5c85c));
-    lasCheese.position.set(0, 1.01, 0); dTab.add(lasCheese);
-    const salad = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.14, 0.11, 10), LS.makeToonMat(0x4b9349));
-    salad.position.set(0.75, 0.92, -0.35); dTab.add(salad);
+    const dinTab = new THREE.Group();
+    dinTab.position.set(-5.6, 0, -4.0);
+    const dtTop = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.12, 1.75), trimMat);
+    dtTop.position.y = 0.80; dtTop.castShadow = true; dinTab.add(dtTop);
+    const dtRun = new THREE.Mesh(new THREE.BoxGeometry(2.90, 0.02, 0.56), LS.makeToonMat(0xfff8eb));
+    dtRun.position.y = 0.87; dinTab.add(dtRun);
+    [[-1.2, -0.7], [1.2, -0.7], [-1.2, 0.7], [1.2, 0.7]].forEach(lp => {
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.80, 7), trimMat);
+      l.position.set(lp[0], 0.40, lp[1]); dinTab.add(l);
+    });
+    // Bubbling Golden Baked Lasagna Dish + Animated Steam + Fresh Salad Bowl!
+    const pan = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.14, 0.58), LS.makeToonMat(0xfffdf8));
+    pan.position.set(0, 0.94, 0); dinTab.add(pan);
+    const las = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.10, 0.48), LS.makeToonMat(0xe89c3e));
+    las.position.set(0, 1.01, 0); dinTab.add(las);
+    const salad = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 0.14, 10), LS.makeToonMat(0x52b788));
+    salad.position.set(0.85, 0.94, 0.18); dinTab.add(salad);
     for (let i = 0; i < 2; i++) {
-      const st = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 6), LS.makeToonMat(0xffffff, { transparent: true, opacity: 0.45 }));
-      st.userData = { bx: -4.7, by: 1.15, bz: -7.8, phase: i * 0.5 };
+      const st = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), LS.makeToonMat(0xffffff, { transparent: true, opacity: 0.45 }));
+      st.userData = { bx: -5.6 + (i === 0 ? -0.18 : 0.18), by: 1.12, bz: -4.0, phase: i * 0.55 };
       worldGroup.add(st); W.lasagnaSteams.push(st);
     }
-    [-1.18, 1.18].forEach(cx => {
-      const ch = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.46, 0.54), LS.makeToonMat(0x9c6b49));
-      ch.position.set(cx, 0.23, 0); dTab.add(ch);
-      const bk = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.56, 0.52), LS.makeToonMat(0x8c5a3c));
-      bk.position.set(cx + (cx < 0 ? -0.24 : 0.24), 0.68, 0); dTab.add(bk);
+    // 4-legged dining chairs
+    [[-1.45, 0], [1.45, 0]].forEach(ch => {
+      const stTop = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.08, 0.52), LS.makeToonMat(0xb67d52));
+      stTop.position.set(ch[0], 0.35, ch[1]); dinTab.add(stTop);
+      [[-0.20, -0.20], [0.20, -0.20], [-0.20, 0.20], [0.20, 0.20]].forEach(lg => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.34, 0.05), trimMat);
+        leg.position.set(ch[0] + lg[0], 0.17, ch[1] + lg[1]); dinTab.add(leg);
+      });
+      const bk = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.58, 0.50), trimMat);
+      bk.position.set(ch[0] + (ch[0] < 0 ? -0.23 : 0.23), 0.68, ch[1]); dinTab.add(bk);
     });
-    worldGroup.add(dTab);
-    addCol(-4.7, -7.8, 1.4, 0.95);
+    worldGroup.add(dinTab);
+    addCol(-5.6, -4.0, 1.55, 1.0);
 
     // -----------------------------------------------------------------------
-    // AREA 2 (Northeast): DR. MOSTAFA WATCHING TV + MEDICAL DIPLOMA & SIDE TABLE!
+    // AREA 2 (Northeast, River View): DR. MOSTAFA'S TV LOUNGE!
     // -----------------------------------------------------------------------
     const tvRugMat = LS.createWovenRugTexture
       ? LS.makeSurfaceMat(LS.createWovenRugTexture('#dcebd8', '#3d5a80', '#e9c46a'))
       : LS.makeToonMat(0xdce8dc);
-    const tvRug = new THREE.Mesh(new THREE.PlaneGeometry(7.0, 5.4), tvRugMat);
-    tvRug.rotation.x = -Math.PI / 2; tvRug.position.set(5.6, 0.045, -8.8); worldGroup.add(tvRug);
+    const tvRug = new THREE.Mesh(new THREE.PlaneGeometry(7.2, 5.0), tvRugMat);
+    tvRug.rotation.x = -Math.PI / 2; tvRug.position.set(5.6, 0.018, -3.8); worldGroup.add(tvRug);
 
-    // Framed Medical Diploma on the back wall behind Dr. Mostafa!
-    const dipFrame = new THREE.Mesh(new THREE.BoxGeometry(1.75, 1.25, 0.09), LS.makeToonMat(0xd4a359));
-    dipFrame.position.set(6.2, 2.55, -13.56); worldGroup.add(dipFrame);
+    // Framed Medical Diploma on East Wall above the TV!
+    const dipFrame = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.15, 1.75), LS.makeToonMat(0xd4a359));
+    dipFrame.position.set(10.80, 3.25, -3.8); worldGroup.add(dipFrame);
     const dipArt = new THREE.Mesh(
-      new THREE.BoxGeometry(1.54, 1.04, 0.11),
+      new THREE.BoxGeometry(0.11, 0.96, 1.54),
       new THREE.MeshBasicMaterial({ map: LS.createSignTexture('🩺 DR. MOSTAFA, MD', { bg: '#fffdf5', border: '#3d5a80', color: '#1e3a5f', font: 'bold 24px sans-serif', width: 320, height: 200 }) })
     );
-    dipArt.position.set(6.2, 2.55, -13.56); worldGroup.add(dipArt);
+    dipArt.position.set(10.80, 3.25, -3.8); worldGroup.add(dipArt);
 
-    W.tvObj = createAnimatedTV(worldGroup, 9.8, 0.03, -8.8, -Math.PI / 2, 'sports');
-    addCol(9.8, -8.8, 0.85, 1.5);
+    W.tvObj = createAnimatedTV(worldGroup, 10.1, 0, -3.8, -Math.PI / 2, 'sports');
+    addCol(10.1, -3.8, 0.85, 1.5);
 
     const mSofaMat = LS.makeToonMat(0x3d5a80);
     const mCushMat = LS.makeToonMat(0x52739e);
     const mSofaG = new THREE.Group();
-    mSofaG.position.set(4.5, 0.03, -8.8);
+    mSofaG.position.set(4.5, 0, -3.8);
     mSofaG.rotation.y = Math.PI / 2;
     const msBase = new THREE.Mesh(new THREE.BoxGeometry(3.15, 0.24, 0.66), mSofaMat);
     msBase.position.set(0, 0.20, -0.02); msBase.castShadow = true; mSofaG.add(msBase);
@@ -1468,34 +1493,32 @@ window.LailaSalma = window.LailaSalma || {};
     const mPill = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.32, 0.18), LS.makeToonMat(0xf4a261));
     mPill.position.set(1.02, 0.56, -0.08); mPill.rotation.x = 0.22; mSofaG.add(mPill);
     worldGroup.add(mSofaG);
-    // Side table with coffee cup beside Mostafa's sofa
     const mSide = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.56, 12), trimMat);
-    mSide.position.set(4.5, 0.28, -11.0); worldGroup.add(mSide);
+    mSide.position.set(4.5, 0.28, -5.95); worldGroup.add(mSide);
     const mCup = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.14, 9), LS.makeToonMat(0xfffdf8));
-    mCup.position.set(4.5, 0.63, -11.0); worldGroup.add(mCup);
-    addCol(4.5, -8.8, 0.62, 1.72);
+    mCup.position.set(4.5, 0.63, -5.95); worldGroup.add(mCup);
+    addCol(4.5, -3.8, 0.62, 1.72);
 
-    addIndoorPlant(worldGroup, 9.8, -12.6, 0x2a9d8f, true);
-    addIndoorPlant(worldGroup, -9.8, 0.8, 0xe07a5f, false);
-    addIndoorPlant(worldGroup, 9.8, 0.8, 0xe07a5f, false);
+    addIndoorPlant(worldGroup, 9.8, -6.5, 0x2a9d8f, true);
+    addIndoorPlant(worldGroup, -9.8, 6.2, 0xe07a5f, false);
+    addIndoorPlant(worldGroup, 9.8, 6.2, 0xe07a5f, false);
 
     // -----------------------------------------------------------------------
     // AREA 3 (Southwest): NOUZI'S GYMNASTICS MAT, BALANCE BEAM & MEDAL RACK!
     // -----------------------------------------------------------------------
     const gymMat = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.09, 2.9), LS.makeToonMat(0xffb3c6));
-    gymMat.position.set(-6.4, 0.06, -1.8); gymMat.receiveShadow = true; worldGroup.add(gymMat);
+    gymMat.position.set(-6.4, 0.045, 2.2); gymMat.receiveShadow = true; worldGroup.add(gymMat);
     const gymStripe = new THREE.Mesh(new THREE.BoxGeometry(4.52, 0.10, 0.28), LS.makeToonMat(0xffffff));
-    gymStripe.position.set(-6.4, 0.062, -1.8); worldGroup.add(gymStripe);
-    // Low padded gymnastics practice balance beam + gold medals shelf on West Wall!
+    gymStripe.position.set(-6.4, 0.047, 2.2); worldGroup.add(gymStripe);
     const beam = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.16, 0.22), LS.makeToonMat(0xe5a97c));
-    beam.position.set(-6.4, 0.34, -3.7); beam.castShadow = true; worldGroup.add(beam);
+    beam.position.set(-6.4, 0.32, 0.35); beam.castShadow = true; worldGroup.add(beam);
     [-7.4, -5.4].forEach(bx => {
       const bLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.34), LS.makeToonMat(0x4a5568));
-      bLeg.position.set(bx, 0.16, -3.7); worldGroup.add(bLeg);
+      bLeg.position.set(bx, 0.14, 0.35); worldGroup.add(bLeg);
     });
     const medalShelf = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.09, 1.8), trimMat);
-    medalShelf.position.set(-10.68, 2.05, -1.8); worldGroup.add(medalShelf);
-    [-2.2, -1.8, -1.4].forEach(mz => {
+    medalShelf.position.set(-10.68, 2.05, 2.2); worldGroup.add(medalShelf);
+    [1.8, 2.2, 2.6].forEach(mz => {
       const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.06, 0.22, 8), LS.makeToonMat(0xfbbf24));
       cup.position.set(-10.65, 2.22, mz); worldGroup.add(cup);
     });
@@ -1511,12 +1534,12 @@ window.LailaSalma = window.LailaSalma || {};
       pigtails: true,
       pants: true
     });
-    nouzi.root.position.set(-6.4, 0.10, -1.8);
+    nouzi.root.position.set(-6.4, 0.08, 2.2);
     worldGroup.add(nouzi.root);
     W.nouziChar = nouzi;
 
     const nouziBub = LS.createSpeechBubbleSprite ? LS.createSpeechBubbleSprite('Nouzi 🤸‍♀️', 'Watch my cartwheel & handstand, Laila & Salma! ✨') : null;
-    if (nouziBub) { nouziBub.position.set(-6.4, 1.88, -1.8); worldGroup.add(nouziBub); }
+    if (nouziBub) { nouziBub.scale.multiplyScalar(0.62); nouziBub.position.set(-6.4, 1.82, 2.2); worldGroup.add(nouziBub); }
 
     // -----------------------------------------------------------------------
     // AREA 4 (Southeast): BIBO'S TOY CAR TRACK, MINI GARAGE & ALPHABET BLOCKS!
@@ -1525,15 +1548,14 @@ window.LailaSalma = window.LailaSalma || {};
       ? LS.makeSurfaceMat(LS.createWovenRugTexture('#d8f3fc', '#3b82f6', '#ffd166'))
       : LS.makeToonMat(0xcaf0f8);
     const toyRug = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 3.8), toyRugMat);
-    toyRug.rotation.x = -Math.PI / 2; toyRug.position.set(6.4, 0.045, -1.8); worldGroup.add(toyRug);
+    toyRug.rotation.x = -Math.PI / 2; toyRug.position.set(6.4, 0.018, 2.2); worldGroup.add(toyRug);
     const track = new THREE.Mesh(new THREE.TorusGeometry(1.18, 0.18, 6, 26), LS.makeToonMat(0x4b5563));
-    track.rotation.x = Math.PI / 2; track.position.set(6.4, 0.06, -1.8); worldGroup.add(track);
-    // Cute Mini Wooden Toy Garage & Stacked Colorful Alphabet Blocks!
+    track.rotation.x = Math.PI / 2; track.position.set(6.4, 0.04, 2.2); worldGroup.add(track);
     const garage = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.62, 0.72), LS.makeToonMat(0xe63946));
-    garage.position.set(8.4, 0.34, -2.9); garage.castShadow = true; worldGroup.add(garage);
+    garage.position.set(8.4, 0.31, 1.1); garage.castShadow = true; worldGroup.add(garage);
     const gRoof = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.10, 0.80), LS.makeToonMat(0xfacc15));
-    gRoof.position.set(8.4, 0.68, -2.9); worldGroup.add(gRoof);
-    [[8.2, 0.16, -0.5, 0x3b82f6], [8.55, 0.16, -0.45, 0x22c55e], [8.38, 0.42, -0.48, 0xffd166]].forEach(bl => {
+    gRoof.position.set(8.4, 0.65, 1.1); worldGroup.add(gRoof);
+    [[8.2, 0.13, 3.5, 0x3b82f6], [8.55, 0.13, 3.55, 0x22c55e], [8.38, 0.39, 3.52, 0xffd166]].forEach(bl => {
       const cube = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), LS.makeToonMat(bl[3]));
       cube.position.set(bl[0], bl[1], bl[2]); worldGroup.add(cube);
     });
@@ -1541,10 +1563,10 @@ window.LailaSalma = window.LailaSalma || {};
     [0xe63946, 0xfacc15, 0x3b82f6].forEach((cHex, ci) => {
       const tc = new THREE.Group();
       const cb = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.13, 0.44), LS.makeToonMat(cHex));
-      cb.position.y = 0.10; tc.add(cb);
+      cb.position.y = 0.08; tc.add(cb);
       const ct = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.09, 0.24), LS.makeToonMat(0xfffdf8));
-      ct.position.set(0, 0.19, -0.02); tc.add(ct);
-      tc.userData = { cx: 6.4, cz: -1.8, radius: 1.18, phase: ci * 2.1 };
+      ct.position.set(0, 0.17, -0.02); tc.add(ct);
+      tc.userData = { cx: 6.4, cz: 2.2, radius: 1.18, phase: ci * 2.1 };
       worldGroup.add(tc); W.biboToyCars.push(tc);
     });
 
@@ -1557,19 +1579,19 @@ window.LailaSalma = window.LailaSalma || {};
       shoeColor: 0xfacc15,
       pants: true
     });
-    bibo.root.position.set(6.4, 0.05, -1.8);
+    bibo.root.position.set(6.4, 0.03, 2.2);
     if (LS.applyArticulatedPose) LS.applyArticulatedPose(bibo, 0, 'floor_sit', 0);
     worldGroup.add(bibo.root);
     W.biboChar = bibo;
 
     const biboBub = LS.createSpeechBubbleSprite ? LS.createSpeechBubbleSprite('Bibo 🚗', 'Vroom vroom! Come play cars & board games with me! 🏎️') : null;
-    if (biboBub) { biboBub.position.set(6.4, 1.48, -1.8); worldGroup.add(biboBub); }
+    if (biboBub) { biboBub.scale.multiplyScalar(0.62); biboBub.position.set(6.4, 1.45, 2.2); worldGroup.add(biboBub); }
 
     // -----------------------------------------------------------------------
-    // AREA 5 (Center): PAINTED 4-PLAYER KIDS' BOARD GAME TABLE! (X = 0, Z = -3.8)
+    // AREA 5 (Center): PAINTED 4-PLAYER KIDS' BOARD GAME TABLE! (X = 0, Z = -0.6)
     // -----------------------------------------------------------------------
     const bgTable = new THREE.Group();
-    bgTable.position.set(0, 0.03, -3.8);
+    bgTable.position.set(0, 0, -0.6);
     const bgTop = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.10, 2.1), trimMat);
     bgTop.position.y = 0.56; bgTop.castShadow = true; bgTable.add(bgTop);
     [[-0.86, -0.86], [0.86, -0.86], [-0.86, 0.86], [0.86, 0.86]].forEach(lp => {
@@ -1592,40 +1614,49 @@ window.LailaSalma = window.LailaSalma || {};
       cush.position.set(c[0], 0.09, c[1]); bgTable.add(cush);
     });
     worldGroup.add(bgTable);
-    addCol(0, -3.8, 1.18, 1.18);
+    addCol(0, -0.6, 1.18, 1.18);
 
+    // MAI & DR. MOSTAFA (Thierry Henry + Dave Chappelle likeness asking "Are your bones okay?")
     LS.spawnWorldNPCs(worldGroup, [
       {
         name: 'Mai 🍝',
-        line: 'Welcome Laila & Salma! I just baked fresh homemade lasagna — would you like to have some? 🧀🍝💛',
-        pos: new THREE.Vector3(-4.7, 0.03, -9.8),
+        line: 'Welcome up to the 18th floor, Laila & Salma! I just baked homemade lasagna — would you like to have some? 🧀🍝💛',
+        pos: new THREE.Vector3(-5.6, 0, -5.8),
         baseRot: 0,
         waveOnNear: true,
         char: { scale: 0.92, skinColor: 0xdca886, hairColor: 0x261a14, topColor: 0xe07a5f, bottomColor: 0x3d5a80, longHair: true }
       },
       {
-        name: 'Mostafa (Dr.) 🩺📺',
-        line: 'Hey Laila & Salma! Just relaxing in my coat and watching TV after the clinic — have fun with Nouzi & Bibo! 🩺📺',
-        pos: new THREE.Vector3(4.48, 0.04, -8.8),
+        name: 'Mostafa (Dr.) 🩺🦴',
+        line: 'Hey Laila & Salma! How are my favorite nieces — are your bones okay? 🦴😄🩺',
+        pos: new THREE.Vector3(4.48, 0.02, -3.8),
         baseRot: Math.PI / 2,
         seated: true,
         char: {
-          scale: 0.98,
-          skinColor: 0x6b442a,
+          scale: 1.0,
+          athletic: true,
+          skinColor: 0x5c3822,
+          hairColor: 0x161210,
           bald: true,
           doctorCoat: true,
           stethoscope: true,
           topColor: 0xffffff,
-          bottomColor: 0x2b3a4a,
-          pants: true
+          bottomColor: 0x1e293b,
+          pants: true,
+          faceOpts: {
+            charismaticMale: true,
+            goatee: true,
+            smileTeeth: true,
+            eyeColor: '#1e120c',
+            eyeHighlight: '#5a3a24'
+          }
         }
       }
     ]);
 
-    W.zones.push({ id: 'mai_lasagna', label: "Talk to Mai — Have Homemade Lasagna? 🧀🍝", pos: new THREE.Vector3(-4.7, 0, -5.6), radius: 2.8 });
-    W.zones.push({ id: 'kids_board_game', label: 'Play a Board Game with Laila, Salma, Nouzi & Bibo! 🎲🎉', pos: new THREE.Vector3(0, 0, -1.6), radius: 2.8 });
-    W.zones.push({ id: 'home_qashqai', label: 'Hop in Gray Nissan Qashqai (Drive Home or Elsewhere) 🚙', pos: new THREE.Vector3(-1.8, 0, 17.2), radius: 3.6 });
-    W.zones.push({ id: 'home_qashqai', label: 'Take Qashqai Keys — Drive Home or Elsewhere 🚙', pos: new THREE.Vector3(0, 0, 1.2), radius: 2.3 });
+    W.zones.push({ id: 'mai_lasagna', label: "Talk to Mai — Have Homemade Lasagna? 🧀🍝", pos: new THREE.Vector3(-5.6, 0, -2.0), radius: 2.8 });
+    W.zones.push({ id: 'kids_board_game', label: 'Play a Board Game with Laila, Salma, Nouzi & Bibo! 🎲🎉', pos: new THREE.Vector3(0, 0, 1.5), radius: 2.8 });
+    W.zones.push({ id: 'home_qashqai', label: 'Take Elevator Down to Gray Nissan Qashqai (Drive Home or Elsewhere) 🛗🚙', pos: new THREE.Vector3(0, 0, 6.2), radius: 2.3 });
 
     W.update = function (dt, elapsed) {
       if (W.tvObj) W.tvObj.update(elapsed);
@@ -1637,7 +1668,7 @@ window.LailaSalma = window.LailaSalma || {};
         const bp = W.nouziChar.bodyPivot;
         if (cycle < 3.0) {
           const u = cycle / 3.0;
-          r.position.set(-7.6 + u * 2.4, 0.10 + Math.sin(u * Math.PI) * 0.45, -1.8);
+          r.position.set(-7.6 + u * 2.4, 0.08 + Math.sin(u * Math.PI) * 0.45, 2.2);
           r.rotation.set(0, 0, 0);
           bp.rotation.set(0, 0, -u * Math.PI * 2);
           W.nouziChar.leftArm.rotation.z = 2.6; W.nouziChar.rightArm.rotation.z = -2.6;
@@ -1645,14 +1676,14 @@ window.LailaSalma = window.LailaSalma || {};
         } else if (cycle < 6.0) {
           const u = (cycle - 3.0) / 3.0;
           const inv = Math.sin(u * Math.PI);
-          r.position.set(-5.2, 0.10 + inv * 0.92, -1.8);
+          r.position.set(-5.2, 0.08 + inv * 0.92, 2.2);
           bp.rotation.set(0, 0, inv * Math.PI);
           W.nouziChar.leftArm.rotation.z = 2.9; W.nouziChar.rightArm.rotation.z = -2.9;
           W.nouziChar.leftLeg.rotation.z = -0.25 * Math.sin(elapsed * 4);
           W.nouziChar.rightLeg.rotation.z = 0.25 * Math.sin(elapsed * 4);
         } else {
           const u = (cycle - 6.0) / 3.0;
-          r.position.set(-5.2 - u * 2.4, 0.10 + Math.abs(Math.sin(u * Math.PI * 3)) * 0.42, -1.8);
+          r.position.set(-5.2 - u * 2.4, 0.08 + Math.abs(Math.sin(u * Math.PI * 3)) * 0.42, 2.2);
           bp.rotation.set(0, u * Math.PI * 2, 0);
           W.nouziChar.leftArm.rotation.z = 1.9; W.nouziChar.rightArm.rotation.z = -1.9;
           W.nouziChar.leftLeg.rotation.z = 0; W.nouziChar.rightLeg.rotation.z = 0;
@@ -1667,21 +1698,23 @@ window.LailaSalma = window.LailaSalma || {};
       W.biboToyCars.forEach(tc => {
         const u = tc.userData;
         const a = elapsed * 1.85 + u.phase;
-        tc.position.set(u.cx + Math.cos(a) * u.radius, 0.06, u.cz + Math.sin(a) * u.radius);
+        tc.position.set(u.cx + Math.cos(a) * u.radius, 0.04, u.cz + Math.sin(a) * u.radius);
         tc.rotation.y = -a;
       });
-      W.riverDucks.forEach((d, i) => {
-        const u = d.userData;
-        d.position.set(u.cx + Math.sin(elapsed * 0.45 + u.phase) * 3.2, 0.05 + Math.sin(elapsed * 4 + i) * 0.02, u.cz);
-        d.rotation.y = Math.cos(elapsed * 0.45 + u.phase) > 0 ? Math.PI / 2 : -Math.PI / 2;
+      // Animate tiny sailboats gliding along the river 18 floors below!
+      W.riverBoats.forEach(boat => {
+        const u = boat.userData;
+        const span = 120;
+        const bx = ((u.baseX + elapsed * u.speed + span / 2) % span + span) % span - span / 2;
+        boat.position.set(bx, riverY + 0.05 + Math.sin(elapsed * 2 + u.phase) * 0.06, u.z);
+        boat.rotation.y = u.speed >= 0 ? 0 : Math.PI;
       });
-      W.butterflies.forEach(b => {
-        const u = b.userData;
-        const t = elapsed * 1.4 + u.phase;
-        b.position.set(u.cx + Math.sin(t) * 1.2, 1.0 + Math.sin(t * 2.2) * 0.28, u.cz + Math.cos(t * 0.85) * 1.1);
-        b.rotation.y = Math.atan2(Math.cos(t), -Math.sin(t * 0.85));
-        const flap = Math.sin(elapsed * 18 + u.phase) * 0.65;
-        u.wL.rotation.z = flap; u.wR.rotation.z = -flap;
+      // Animate clouds drifting slowly past 18th-floor windows!
+      W.skyClouds.forEach(cl => {
+        const u = cl.userData;
+        const span = 140;
+        const cx = ((u.baseX + elapsed * u.speed + span / 2) % span + span) % span - span / 2;
+        cl.position.set(cx, u.y + Math.sin(elapsed * 0.4 + u.baseX) * 0.25, u.z);
       });
       W.lasagnaSteams.forEach(st => {
         const t = (elapsed * 0.55 + st.userData.phase) % 1.0;
@@ -1692,26 +1725,24 @@ window.LailaSalma = window.LailaSalma || {};
     };
 
     W.getZoneLabel = (x, z) => {
-      if (z > 12.2) return 'South Riverbank (Gray Qashqai 🚙)';
-      if (z > 5.6) return 'River Bridge 🌉';
-      if (x < -2 && z < -4.5) return "Mai's Lasagna Kitchen & Dining 🍝";
-      if (x > 2 && z < -4.5) return "Mostafa's TV Lounge 🩺📺";
-      if (x < -2) return "Nouzi's Gymnastics Mat 🤸‍♀️";
-      if (x > 2) return "Bibo's Toy Car Track 🚗";
-      return "Kids' Board Game Table 🎲";
+      if (z < -1.8 && x < -2) return "Mai's River-View Lasagna Kitchen 🍝";
+      if (z < -1.8 && x > 2) return "Dr. Mostafa's River-View Lounge 🩺🦴";
+      if (x < -2.5) return "Nouzi's Gymnastics Mat 🤸‍♀️";
+      if (x > 2.5) return "Bibo's Toy Car Track 🚗";
+      if (z > 4.2) return '18th-Floor Entryway (Elevator & Qashqai 🛗🚙)';
+      return "18F River-View Board Game Table 🎲🌊";
     };
 
     W.drawMiniMap = (ctx, Wpx, Hpx, toX, toY) => {
-      ctx.fillStyle = '#8cc972'; ctx.fillRect(0, 0, Wpx, Hpx);
-      ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, toY(6), Wpx, toY(12.2) - toY(6));
-      ctx.fillStyle = '#8c5a3c'; ctx.fillRect(toX(-3), toY(5.6), toX(3) - toX(-3), toY(12.4) - toY(5.6));
-      ctx.fillStyle = '#f5e4cc'; ctx.fillRect(toX(-11), toY(-13.8), toX(11) - toX(-11), toY(1.8) - toY(-13.8));
-      ctx.fillStyle = '#4b5563'; ctx.fillRect(toX(-7), toY(15.5), toX(-2.5) - toX(-7), toY(19) - toY(15.5));
+      ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, Wpx, toY(-7.2));
+      ctx.fillStyle = '#f5e4cc'; ctx.fillRect(toX(-11), toY(-7.2), toX(11) - toX(-11), toY(7.4) - toY(-7.2));
+      ctx.fillStyle = '#3d5a80'; ctx.fillRect(toX(3.8), toY(-5.4), toX(5.2) - toX(3.8), toY(-2.2) - toY(-5.4));
       ctx.fillStyle = '#3d2c1e'; ctx.font = 'bold 7.5px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText("MAI & MOSTAFA'S", toX(0), toY(-10));
-      ctx.fillText('BOARD GAME 🎲', toX(0), toY(-3.5));
-      ctx.fillText('BRIDGE', toX(0), toY(9.5));
-      ctx.fillText('QASHQAI 🚙', toX(-4.8), toY(20.5));
+      ctx.fillText('RIVER VIEW (18F) 🌊', toX(0), toY(-7.4) - 2);
+      ctx.fillText('MAI 🍝', toX(-5.6), toY(-4.0));
+      ctx.fillText('MOSTAFA 🩺', toX(5.6), toY(-3.8));
+      ctx.fillText('BOARD GAME 🎲', toX(0), toY(-0.6));
+      ctx.fillText('18F ELEVATOR 🛗', toX(0), toY(6.4));
     };
 
     return W;

@@ -255,23 +255,23 @@ window.LailaSalma = window.LailaSalma || {};
     },
     dest_mai_mostafa: {
       id: 'dest_mai_mostafa',
-      title: "Mai & Mostafa's House",
-      subtitle: 'Across the River • Lasagna, Nouzi & Bibo!',
-      emoji: '🌉',
+      title: "Mai & Mostafa's 18th-Floor Home",
+      subtitle: '18th Floor Overlooking the River • Lasagna, Nouzi & Bibo!',
+      emoji: '🏙️',
       badgeColor: '#e07a5f',
       unlocked: true,
-      isInterior: false,
+      isInterior: true,
       parentWorld: 'home_neighborhood',
       exitPos: { x: -2.0, y: 0, z: 31.2, rotY: Math.PI },
       collectibleLabel: 'Puppies',
       collectibleEmoji: '🐶',
       collectibleTotal: 5,
-      bounds: { minX: -22, maxX: 22, minZ: -16, maxZ: 24 },
-      mapBounds: { minX: -24, maxX: 24, minZ: -18, maxZ: 26 },
-      spawn: { x: 0, y: 0, z: 16.5, rotY: Math.PI },
-      arrivalSpawn: { x: 0, y: 0, z: 16.5, rotY: Math.PI },
-      fogNear: 68,
-      fogFar: 210
+      bounds: { minX: -10.3, maxX: 10.3, minZ: -6.8, maxZ: 6.4 },
+      mapBounds: { minX: -11.4, maxX: 11.4, minZ: -7.8, maxZ: 7.4 },
+      spawn: { x: 0, y: 0, z: 4.8, rotY: Math.PI },
+      arrivalSpawn: { x: 0, y: 0, z: 4.8, rotY: Math.PI },
+      fogNear: 95,
+      fogFar: 260
     }
   };
 
