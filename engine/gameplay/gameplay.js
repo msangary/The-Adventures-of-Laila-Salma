@@ -1393,16 +1393,21 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   let tvGameTimer = null;
+  let cosmoGameTimer = null;
+  let cosmoClawRAF = null;
   LS.closeAllModals = function () {
     LS.runtime.modalOpen = false;
     clearInterval(timerInterval);
     if (tvGameTimer) { clearInterval(tvGameTimer); tvGameTimer = null; }
+    if (cosmoGameTimer) { clearInterval(cosmoGameTimer); cosmoGameTimer = null; }
+    if (cosmoClawRAF) { cancelAnimationFrame(cosmoClawRAF); cosmoClawRAF = null; }
     [
       'passport-modal', 'airport-modal', 'local-shop-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
       'sushi-modal', 'tea-modal', 'shop-modal', 'gachapon-modal',
       'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal',
       'safari-guide-modal', 'safari-campfire-modal', 'safari-tent-modal',
-      'kitchen-modal', 'piano-modal', 'tv-game-modal', 'home-restaurant-modal', 'globe-modal', 'quest-modal'
+      'kitchen-modal', 'piano-modal', 'tv-game-modal', 'home-restaurant-modal', 'globe-modal', 'quest-modal',
+      'qashqai-modal', 'eatery-modal', 'yiwan-modal', 'cosmo-arcade-modal', 'mai-lasagna-modal', 'board-game-modal'
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -1460,20 +1465,23 @@ window.LailaSalma = window.LailaSalma || {};
     };
 
     const laila = LS.chars.laila;
-    laila.root.position.copy(diningConfig.lailaSeatPos);
-    laila.root.rotation.y = diningConfig.seatRotY;
+    const lSeat = diningConfig.lailaSeatPos || diningConfig.lailaSeat;
+    const sSeat = diningConfig.salmaSeatPos || diningConfig.salmaSeat;
+    const sYaw = (typeof diningConfig.seatRotY === 'number') ? diningConfig.seatRotY : (diningConfig.seatYaw || 0);
+    if (lSeat) laila.root.position.copy(lSeat);
+    laila.root.rotation.y = sYaw;
     laila.leftLeg.rotation.x = -1.25;
     laila.rightLeg.rotation.x = -1.25;
 
     const salma = LS.chars.salma;
     if (salma) {
-      salma.root.position.copy(diningConfig.salmaSeatPos);
-      salma.root.rotation.y = diningConfig.seatRotY;
+      if (sSeat) salma.root.position.copy(sSeat);
+      salma.root.rotation.y = sYaw;
       salma.leftLeg.rotation.x = -1.25;
       salma.rightLeg.rotation.x = -1.25;
     }
 
-    document.getElementById('eating-status').textContent = '🍽️ Laila & Salma are enjoying ' + mealName + '... Oishii! 😋';
+    document.getElementById('eating-status').textContent = '🍽️ Laila & Salma are enjoying ' + mealName + '... Yum! 😋';
     document.getElementById('eating-banner').classList.remove('hidden');
     LS.playSFX('coin');
   };
@@ -1483,8 +1491,14 @@ window.LailaSalma = window.LailaSalma || {};
     const dc = LS.runtime.eating.diningConfig;
     scene.remove(LS.runtime.eating.bowlObj.group);
 
+    const lSeat = dc.lailaSeatPos || dc.lailaSeat;
+    const sSeat = dc.salmaSeatPos || dc.salmaSeat;
     const laila = LS.chars.laila;
-    laila.root.position.copy(dc.lailaSeatPos).add(dc.exitOffset);
+    if (dc.exitPos) {
+      laila.root.position.copy(dc.exitPos);
+    } else if (lSeat && dc.exitOffset) {
+      laila.root.position.copy(lSeat).add(dc.exitOffset);
+    }
     laila.root.position.y = 0;
     laila.leftLeg.rotation.x = 0;
     laila.rightLeg.rotation.x = 0;
@@ -1493,7 +1507,11 @@ window.LailaSalma = window.LailaSalma || {};
 
     const salma = LS.chars.salma;
     if (salma) {
-      salma.root.position.copy(dc.salmaSeatPos).add(dc.exitOffset);
+      if (dc.exitPos) {
+        salma.root.position.copy(dc.exitPos).add(new THREE.Vector3(0.85, 0, 0.35));
+      } else if (sSeat && dc.exitOffset) {
+        salma.root.position.copy(sSeat).add(dc.exitOffset);
+      }
       salma.root.position.y = 0;
       salma.leftLeg.rotation.x = 0;
       salma.rightLeg.rotation.x = 0;
@@ -1503,7 +1521,7 @@ window.LailaSalma = window.LailaSalma || {};
 
     LS.runtime.eating = null;
     document.getElementById('eating-banner').classList.add('hidden');
-    LS.showToast('😋 Gochisousama! Laila & Salma’s yummy boost is active!');
+    LS.showToast('😋 Delicious! Laila & Salma’s yummy boost is active!');
     LS.updateHUD();
   };
 
@@ -2132,6 +2150,409 @@ window.LailaSalma = window.LailaSalma || {};
       });
     }
     const m = document.getElementById('quest-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  // =========================================================================
+  // GRAY NISSAN QASHQAI & 5 REAL-LIFE DESTINATIONS CONTROLLERS!
+  // =========================================================================
+  LS.openQashqaiModal = function () {
+    LS.runtime.modalOpen = true;
+    const list = document.getElementById('qashqai-dest-list');
+    if (list) {
+      list.innerHTML = '';
+      const destIds = ['dest_eatery', 'dest_yiwan', 'dest_cosmo_city', 'dest_grandparents', 'dest_mai_mostafa'];
+      if (LS.state.currentWorld !== 'home_neighborhood') {
+        destIds.unshift('home_neighborhood');
+      }
+      destIds.forEach(wid => {
+        const w = LS.WORLDS[wid];
+        if (!w) return;
+        const isHere = LS.state.currentWorld === wid;
+        const row = document.createElement('div');
+        row.className = 'ramen-item' + (wid === 'dest_mai_mostafa' ? ' featured' : '');
+        row.innerHTML = '<div><strong>' + w.emoji + ' ' + w.title + '</strong><div class="ramen-desc">' + w.subtitle + '</div></div>';
+        const btn = document.createElement('button');
+        btn.className = isHere ? 'btn-secondary' : 'btn-primary';
+        btn.textContent = isHere ? 'Parked Here ✓' : (wid === 'home_neighborhood' ? 'Drive Home 🏡' : 'Drive 🚙');
+        btn.disabled = isHere;
+        btn.onclick = () => { if (LS.driveQashqaiTo) LS.driveQashqaiTo(wid); };
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    }
+    const m = document.getElementById('qashqai-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openEateryModal = function () {
+    LS.runtime.modalOpen = true;
+    const msg = document.getElementById('eatery-msg');
+    if (msg) msg.textContent = '';
+    const m = document.getElementById('eatery-modal');
+    if (m) m.classList.remove('hidden');
+    document.querySelectorAll('.btn-eatery-order').forEach(btn => {
+      btn.onclick = () => {
+        const key = btn.getAttribute('data-dish');
+        const catalog = {
+          molokhia_chicken: { name: 'Rice, Molokhia & Roasted Chicken 🍲🍗', cost: 25, xp: 24, short: 'Molokhia⚡' },
+          eatery_pasta: { name: 'Creamy Eatery Pasta 🍝', cost: 20, xp: 18, short: 'Pasta⚡' }
+        };
+        const item = catalog[key];
+        if (!item) return;
+        if (LS.state.coins < item.cost) {
+          if (msg) msg.textContent = 'Not enough coins (' + item.cost + 'c)! Play Cosmo City games or take a quiz.';
+          LS.playSFX('wrong'); return;
+        }
+        LS.addCoins(-item.cost);
+        LS.addXP(item.xp);
+        LS.runtime.stamina = 100;
+        LS.runtime.buff = { name: item.name, short: item.short, speedMult: 1.28, infiniteStamina: true, expiresAt: Date.now() + 120000 };
+        LS.unlockStamp('dest_eatery');
+        if (LS.completeCozyMission) LS.completeCozyMission('meal');
+        LS.closeAllModals();
+        const cfg = LS.activeWorld && LS.activeWorld.diningConfigs && LS.activeWorld.diningConfigs.eatery_dining;
+        if (cfg && LS.getScene) {
+          LS.startEatingAnimation(LS.getScene(), key, item.name, cfg);
+        } else {
+          LS.showToast('🍲 Enjoyed ' + item.name + ' (+' + item.xp + ' XP)!');
+        }
+      };
+    });
+  };
+
+  LS.openYiwanModal = function () {
+    LS.runtime.modalOpen = true;
+    const msg = document.getElementById('yiwan-msg');
+    if (msg) msg.textContent = '';
+    const m = document.getElementById('yiwan-modal');
+    if (m) m.classList.remove('hidden');
+
+    function orderYiwan(dishKey, dishName, cost, xp) {
+      if (LS.state.coins < cost) {
+        if (msg) msg.textContent = 'Not enough coins (' + cost + 'c)! Play at Cosmo City or take a quiz.';
+        LS.playSFX('wrong'); return;
+      }
+      LS.addCoins(-cost);
+      LS.addXP(xp);
+      LS.runtime.stamina = 100;
+      LS.runtime.buff = { name: dishName, short: 'Yiwan🥟', speedMult: 1.30, infiniteStamina: true, expiresAt: Date.now() + 120000 };
+      LS.unlockStamp('dest_yiwan');
+      if (LS.completeCozyMission) LS.completeCozyMission('meal');
+      LS.closeAllModals();
+      const cfg = LS.activeWorld && LS.activeWorld.diningConfigs && LS.activeWorld.diningConfigs.yiwan_dining;
+      if (cfg && LS.getScene) {
+        LS.startEatingAnimation(LS.getScene(), dishKey, dishName, cfg);
+      } else {
+        LS.showToast('🥟 Enjoyed ' + dishName + ' (+' + xp + ' XP)!');
+      }
+    }
+
+    document.querySelectorAll('.btn-yiwan-single').forEach(btn => {
+      btn.onclick = () => {
+        const k = btn.getAttribute('data-dish');
+        const map = {
+          yiwan_dumplings: ['Steamed & Crispy Dumplings 🥟', 20, 18],
+          yiwan_sweet_sour: ['Sweet & Sour Chicken 🍗🍍', 24, 22],
+          yiwan_rice: ['Fluffy Steamed Jasmine Rice 🍚', 15, 14]
+        };
+        if (map[k]) orderYiwan(k, map[k][0], map[k][1], map[k][2]);
+      };
+    });
+
+    const comboBtn = document.getElementById('btn-yiwan-combo');
+    if (comboBtn) {
+      comboBtn.onclick = () => {
+        const hasD = document.getElementById('chk-yiwan-dumplings') && document.getElementById('chk-yiwan-dumplings').checked;
+        const hasS = document.getElementById('chk-yiwan-sweet') && document.getElementById('chk-yiwan-sweet').checked;
+        const hasR = document.getElementById('chk-yiwan-rice') && document.getElementById('chk-yiwan-rice').checked;
+        const parts = [];
+        if (hasD) parts.push('Dumplings 🥟');
+        if (hasS) parts.push('Sweet & Sour Chicken 🍗');
+        if (hasR) parts.push('Jasmine Rice 🍚');
+        if (parts.length === 0) {
+          if (msg) msg.textContent = 'Pick at least one yummy item for your Yiwan combination!';
+          LS.playSFX('wrong'); return;
+        }
+        const key = parts.length > 1 ? 'yiwan_combo' : (hasD ? 'yiwan_dumplings' : (hasS ? 'yiwan_sweet_sour' : 'yiwan_rice'));
+        orderYiwan(key, 'Yiwan Combo: ' + parts.join(' + '), 12 + parts.length * 8, 12 + parts.length * 9);
+      };
+    }
+  };
+
+  LS.openCosmoGameModal = function (gameType) {
+    LS.runtime.modalOpen = true;
+    if (cosmoGameTimer) { clearInterval(cosmoGameTimer); cosmoGameTimer = null; }
+    if (cosmoClawRAF) { cancelAnimationFrame(cosmoClawRAF); cosmoClawRAF = null; }
+
+    const titleEl = document.getElementById('cosmo-arcade-title');
+    const subEl = document.getElementById('cosmo-arcade-sub');
+    const stage = document.getElementById('cosmo-arcade-stage');
+    const msgEl = document.getElementById('cosmo-arcade-msg');
+    if (msgEl) msgEl.textContent = '';
+
+    if (gameType === 'meteors') {
+      if (titleEl) titleEl.textContent = '🛸 Cosmo City — Space Meteor Catcher';
+      if (subEl) subEl.textContent = 'Tap as many glowing space stars & comets as you can in 15 seconds!';
+      let score = 0, timeLeft = 15;
+      stage.innerHTML =
+        '<div class="tv-hud"><span id="cm-score">⭐ Stars: 0</span><span id="cm-time">⏱️ 15s</span></div>' +
+        '<div id="cm-field" class="tv-playfield"></div>';
+      const field = document.getElementById('cm-field');
+      function spawnMeteor() {
+        if (!field) return;
+        field.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tv-star-btn';
+        btn.textContent = ['⭐', '☄️', '🌟', '🪐'][Math.floor(Math.random() * 4)];
+        btn.style.left = (8 + Math.random() * 76) + '%';
+        btn.style.top = (8 + Math.random() * 68) + '%';
+        btn.onclick = () => {
+          score += 1;
+          LS.playTone(580 + score * 45, 0.12, 'triangle', 0.16);
+          const sc = document.getElementById('cm-score');
+          if (sc) sc.textContent = '⭐ Stars: ' + score;
+          spawnMeteor();
+        };
+        field.appendChild(btn);
+      }
+      spawnMeteor();
+      cosmoGameTimer = setInterval(() => {
+        timeLeft -= 1;
+        const tm = document.getElementById('cm-time');
+        if (tm) tm.textContent = '⏱️ ' + timeLeft + 's';
+        if (timeLeft <= 0) {
+          clearInterval(cosmoGameTimer); cosmoGameTimer = null;
+          const rewardC = 15 + score * 4;
+          const rewardX = 15 + score * 3;
+          LS.addCoins(rewardC); LS.addXP(rewardX);
+          LS.unlockStamp('dest_cosmo');
+          if (LS.completeCozyMission) LS.completeCozyMission('play');
+          LS.playSFX('correct');
+          stage.innerHTML = '<div class="tv-done">🚀 Cosmo High Score! Caught <strong>' + score + '</strong> Space Stars!<br />Won <strong>+' + rewardC + 'c</strong> &amp; <strong>+' + rewardX + ' XP</strong>!</div>';
+        }
+      }, 1000);
+    } else if (gameType === 'memory') {
+      if (titleEl) titleEl.textContent = '🎨 Cosmo City — Cosmic Color Memory';
+      if (subEl) subEl.textContent = 'Watch the glowing alien pads flash, then tap the exact same colors!';
+      const pads = [
+        { id: 0, label: '🌸 Pink', color: '#ec4899', freq: 523.25 },
+        { id: 1, label: '💎 Cyan', color: '#06b6d4', freq: 659.25 },
+        { id: 2, label: '⭐ Gold', color: '#eab308', freq: 783.99 },
+        { id: 3, label: '🍀 Mint', color: '#22c55e', freq: 880.00 }
+      ];
+      let seq = [], userIdx = 0, round = 1, locked = true;
+      stage.innerHTML =
+        '<div class="tv-hud"><span id="mem-round">Round 1 / 3</span><span id="mem-status">Watch carefully...</span></div>' +
+        '<div class="cosmo-mem-grid">' +
+        pads.map(p => '<button type="button" class="cosmo-mem-pad" data-pad="' + p.id + '" style="background:' + p.color + '">' + p.label + '</button>').join('') +
+        '</div>';
+
+      function flashPad(id, delay) {
+        setTimeout(() => {
+          const el = stage.querySelector('.cosmo-mem-pad[data-pad="' + id + '"]');
+          if (!el) return;
+          el.classList.add('lit');
+          LS.playTone(pads[id].freq, 0.22, 'sine', 0.18);
+          setTimeout(() => el.classList.remove('lit'), 320);
+        }, delay);
+      }
+
+      function startRound() {
+        locked = true;
+        userIdx = 0;
+        seq.push(Math.floor(Math.random() * 4));
+        if (round === 1) seq.push(Math.floor(Math.random() * 4));
+        const rd = document.getElementById('mem-round');
+        const st = document.getElementById('mem-status');
+        if (rd) rd.textContent = 'Round ' + round + ' / 3';
+        if (st) st.textContent = '👀 Watch the pattern...';
+        seq.forEach((pId, i) => flashPad(pId, 450 + i * 520));
+        setTimeout(() => {
+          locked = false;
+          if (st) st.textContent = '✨ Your turn! Tap it back!';
+        }, 550 + seq.length * 520);
+      }
+
+      stage.querySelectorAll('.cosmo-mem-pad').forEach(btn => {
+        btn.onclick = () => {
+          if (locked) return;
+          const id = parseInt(btn.getAttribute('data-pad'), 10);
+          btn.classList.add('lit');
+          setTimeout(() => btn.classList.remove('lit'), 200);
+          LS.playTone(pads[id].freq, 0.16, 'sine', 0.16);
+          if (id === seq[userIdx]) {
+            userIdx += 1;
+            if (userIdx >= seq.length) {
+              if (round >= 3) {
+                locked = true;
+                LS.addCoins(40); LS.addXP(32);
+                LS.unlockStamp('dest_cosmo');
+                if (LS.completeCozyMission) LS.completeCozyMission('play');
+                LS.playSFX('correct');
+                stage.innerHTML = '<div class="tv-done">🎨🌟 Cosmic Memory Master!<br />Laila &amp; Salma won <strong>+40c</strong> &amp; <strong>+32 XP</strong>!</div>';
+              } else {
+                round += 1;
+                startRound();
+              }
+            }
+          } else {
+            LS.playSFX('wrong');
+            const st = document.getElementById('mem-status');
+            if (st) st.textContent = 'Oops! Watch Round ' + round + ' again!';
+            locked = true;
+            userIdx = 0;
+            seq.forEach((pId, i) => flashPad(pId, 500 + i * 520));
+            setTimeout(() => { locked = false; if (st) st.textContent = '✨ Try again!'; }, 600 + seq.length * 520);
+          }
+        };
+      });
+      startRound();
+    } else {
+      // COSMO CLAW GRABBER!
+      if (titleEl) titleEl.textContent = '🧸 Cosmo City — Cosmo Claw Grabber';
+      if (subEl) subEl.textContent = 'Tap DROP CLAW when the crane swings right over the Golden Plushie!';
+      stage.innerHTML =
+        '<div class="claw-track">' +
+          '<div class="claw-target">🧸✨</div>' +
+          '<div id="claw-head" class="claw-head">🪝</div>' +
+        '</div>' +
+        '<button id="btn-drop-claw" class="btn-primary" style="margin-top:12px;width:100%;" type="button">🕹️ DROP CLAW NOW!</button>';
+      let pos = 10, dir = 1, active = true;
+      function stepClaw() {
+        if (!active) return;
+        pos += dir * 1.65;
+        if (pos >= 90) { pos = 90; dir = -1; }
+        if (pos <= 10) { pos = 10; dir = 1; }
+        const head = document.getElementById('claw-head');
+        if (head) head.style.left = pos + '%';
+        cosmoClawRAF = requestAnimationFrame(stepClaw);
+      }
+      cosmoClawRAF = requestAnimationFrame(stepClaw);
+      const dropBtn = document.getElementById('btn-drop-claw');
+      if (dropBtn) {
+        dropBtn.onclick = () => {
+          if (!active) return;
+          active = false;
+          if (cosmoClawRAF) { cancelAnimationFrame(cosmoClawRAF); cosmoClawRAF = null; }
+          const dist = Math.abs(pos - 50);
+          const win = dist < 14;
+          const coins = win ? 45 : 15;
+          const xp = win ? 35 : 14;
+          LS.addCoins(coins); LS.addXP(xp);
+          LS.unlockStamp('dest_cosmo');
+          if (LS.completeCozyMission) LS.completeCozyMission('play');
+          LS.playSFX(win ? 'correct' : 'jump');
+          if (msgEl) {
+            msgEl.textContent = win
+              ? '🎉 JACKPOT! Laila & Salma grabbed the Golden Cosmo Bear! (+45c, +35 XP!)'
+              : '🧸 Nice try! Grabbed a mini Star Sticker! (+15c, +14 XP — tap to try again!)';
+          }
+          dropBtn.textContent = '🔄 Play Claw Again';
+          dropBtn.onclick = () => LS.openCosmoGameModal('claw');
+        };
+      }
+    }
+
+    const m = document.getElementById('cosmo-arcade-modal');
+    if (m) m.classList.remove('hidden');
+  };
+
+  LS.openMaiLasagnaModal = function () {
+    LS.runtime.modalOpen = true;
+    const m = document.getElementById('mai-lasagna-modal');
+    if (m) m.classList.remove('hidden');
+    const yesBtn = document.getElementById('btn-yes-lasagna');
+    if (yesBtn) {
+      yesBtn.onclick = () => {
+        LS.addCoins(15);
+        LS.addXP(24);
+        LS.runtime.stamina = 100;
+        LS.runtime.buff = { name: "Mai's Homemade Lasagna", short: 'Lasagna🧀', speedMult: 1.30, infiniteStamina: true, expiresAt: Date.now() + 140000 };
+        LS.unlockStamp('dest_mai_mostafa');
+        if (LS.completeCozyMission) LS.completeCozyMission('meal');
+        LS.closeAllModals();
+        const cfg = LS.activeWorld && LS.activeWorld.diningConfigs && LS.activeWorld.diningConfigs.mai_dining;
+        if (cfg && LS.getScene) {
+          LS.startEatingAnimation(LS.getScene(), 'mai_lasagna', "Mai's Homemade Lasagna 🧀🍝", cfg);
+        } else {
+          LS.showToast("🧀🍝 Yummy! Mai's warm homemade lasagna is the best! +15c & +24 XP!");
+        }
+      };
+    }
+  };
+
+  LS.openBoardGameModal = function () {
+    LS.runtime.modalOpen = true;
+    const players = [
+      { name: 'Laila', emoji: '👧', color: '#ec4899', pos: 0 },
+      { name: 'Salma', emoji: '🧒', color: '#f59e0b', pos: 0 },
+      { name: 'Nouzi', emoji: '🤸‍♀️', color: '#a855f7', pos: 0 },
+      { name: 'Bibo', emoji: '🚗', color: '#3b82f6', pos: 0 }
+    ];
+    const GOAL = 15;
+    let turn = 0;
+    let finished = false;
+
+    const boardEl = document.getElementById('bg-grid');
+    const logEl = document.getElementById('bg-log');
+    const rollBtn = document.getElementById('btn-roll-dice');
+
+    function renderBoard() {
+      if (!boardEl) return;
+      boardEl.innerHTML = '';
+      for (let i = 0; i <= GOAL; i++) {
+        const cell = document.createElement('div');
+        const isStar = (i === 4 || i === 9 || i === 12);
+        const isGoal = i === GOAL;
+        cell.className = 'bg-tile' + (isStar ? ' star-tile' : '') + (isGoal ? ' goal-tile' : '');
+        const here = players.filter(p => p.pos === i).map(p => '<span class="bg-token" style="background:' + p.color + '">' + p.emoji + '</span>').join('');
+        cell.innerHTML = '<div class="bg-num">' + (isGoal ? '🏆' : (isStar ? '⭐' : (i === 0 ? 'START' : i))) + '</div><div class="bg-tokens">' + here + '</div>';
+        boardEl.appendChild(cell);
+      }
+      if (rollBtn && !finished) {
+        const cur = players[turn];
+        rollBtn.textContent = '🎲 Roll for ' + cur.emoji + ' ' + cur.name + '!';
+        rollBtn.disabled = false;
+      }
+    }
+
+    if (logEl) logEl.textContent = '🎲 All 4 kids — Laila, Salma, Nouzi & Bibo — are ready! Tap to roll the dice!';
+    renderBoard();
+
+    if (rollBtn) {
+      rollBtn.onclick = () => {
+        if (finished) {
+          LS.openBoardGameModal();
+          return;
+        }
+        const p = players[turn];
+        const roll = 1 + Math.floor(Math.random() * 6);
+        LS.playTone(460 + roll * 65, 0.14, 'triangle', 0.16);
+        p.pos = Math.min(GOAL, p.pos + roll);
+        let extra = '';
+        if (p.pos === 4 || p.pos === 9 || p.pos === 12) {
+          p.pos = Math.min(GOAL, p.pos + 2);
+          extra = ' ⭐ Star Boost +2!';
+        }
+        if (p.pos >= GOAL) {
+          finished = true;
+          LS.addCoins(35); LS.addXP(30);
+          LS.unlockStamp('dest_mai_mostafa');
+          if (LS.completeCozyMission) LS.completeCozyMission('play');
+          LS.playSFX('correct');
+          if (logEl) logEl.innerHTML = '🏆 <strong>' + p.emoji + ' ' + p.name + ' rolled a ' + roll + ' and reached the Trophy!</strong> High-fives all around for Laila, Salma, Nouzi &amp; Bibo! (+35c &amp; +30 XP!)';
+          rollBtn.textContent = '🔄 Play Another Round!';
+        } else {
+          if (logEl) logEl.textContent = p.emoji + ' ' + p.name + ' rolled a ' + roll + ' → Space ' + p.pos + '!' + extra;
+          turn = (turn + 1) % players.length;
+        }
+        renderBoard();
+      };
+    }
+
+    const m = document.getElementById('board-game-modal');
     if (m) m.classList.remove('hidden');
   };
 })(window.LailaSalma);

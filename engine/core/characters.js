@@ -824,16 +824,19 @@ window.LailaSalma = window.LailaSalma || {};
       });
     }
 
-    // 5. Silky Natural Layered 3D Hair
-    const hairCap = new THREE.Mesh(geos.hairCap, hairMat);
-    hairCap.position.set(0, 0.018, -0.014);
-    hairCap.rotation.x = isGirlP ? -0.36 : -0.34;
-    hairCap.castShadow = true;
-    headGroup.add(hairCap);
-
+    // 5. Silky Natural Layered 3D Hair (skipped cleanly when cfg.bald is true!)
     let signatureBand = null;
+    if (!cfg.bald) {
+      const hairCap = new THREE.Mesh(geos.hairCap, hairMat);
+      hairCap.position.set(0, 0.018, -0.014);
+      hairCap.rotation.x = isGirlP ? -0.36 : -0.34;
+      hairCap.castShadow = true;
+      headGroup.add(hairCap);
+    }
 
-    if (isLailaPortrait) {
+    if (cfg.bald) {
+      // Smooth bald head — no bangs or back hair!
+    } else if (isLailaPortrait) {
       // LAILA PORTRAIT HAIR: Open center-part sweeping cleanly behind both ears + woven side braid + cream tied-bow headband!
       [-1, 1].forEach(side => {
         const partSweep = new THREE.Mesh(new THREE.SphereGeometry(0.064, 14, 10), hairMat);
@@ -1091,6 +1094,59 @@ window.LailaSalma = window.LailaSalma || {};
       shadowDisc.userData.noOutline = true;
       shadowDisc.userData.noCamClip = true;
       root.add(shadowDisc);
+    }
+
+    // Optional White Doctor's Coat & 3D Stethoscope (for Mostafa!)
+    if (cfg.doctorCoat) {
+      const coatMat = LS.makeToonMat(0xfcfdff);
+      const pocketMat = LS.makeToonMat(0xeef2f6);
+      // Long white coat flaps draping smoothly down past the hips
+      [-1, 1].forEach(side => {
+        const panel = new THREE.Mesh(new THREE.BoxGeometry(0.145, 0.44, 0.19), coatMat);
+        panel.position.set(side * 0.088, 0.86, 0.01);
+        panel.castShadow = true;
+        bodyPivot.add(panel);
+        const lapel = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.22, 0.03), coatMat);
+        lapel.position.set(side * 0.068, 1.24, 0.112);
+        lapel.rotation.z = side * 0.22;
+        bodyPivot.add(lapel);
+        const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.09, 0.025), pocketMat);
+        pocket.position.set(side * 0.095, 0.96, 0.11);
+        bodyPivot.add(pocket);
+      });
+      const coatBack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.46, 0.06), coatMat);
+      coatBack.position.set(0, 0.86, -0.095);
+      coatBack.castShadow = true;
+      bodyPivot.add(coatBack);
+    }
+
+    if (cfg.stethoscope) {
+      const tubeMat = LS.makeToonMat(0x1f2937);
+      const chromeMat = LS.makeToonMat(0xdbe4ee);
+      // Black rubber tubing draped cleanly around the neck & shoulders
+      const neckLoop = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.011, 7, 18, Math.PI * 1.25), tubeMat);
+      neckLoop.rotation.set(Math.PI / 2 - 0.35, 0, Math.PI * 0.88);
+      neckLoop.position.set(0, 1.38, 0.015);
+      bodyPivot.add(neckLoop);
+      // Left & right hanging tubes over chest
+      [-0.082, 0.082].forEach((sx, si) => {
+        const drop = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.28, 7), tubeMat);
+        drop.position.set(sx, 1.21, 0.118);
+        drop.rotation.z = si === 0 ? -0.10 : 0.10;
+        bodyPivot.add(drop);
+      });
+      // Metallic silver chestpiece (diaphragm) + ear tip accents!
+      const chestPiece = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.030, 0.016, 12), chromeMat);
+      chestPiece.rotation.x = Math.PI / 2;
+      chestPiece.position.set(0.072, 1.07, 0.125);
+      bodyPivot.add(chestPiece);
+      const earTip = new THREE.Mesh(new THREE.SphereGeometry(0.015, 7, 6), chromeMat);
+      earTip.position.set(-0.072, 1.07, 0.125);
+      bodyPivot.add(earTip);
+    }
+
+    if (cfg.slim) {
+      bodyPivot.scale.set(0.84, 1.04, 0.86);
     }
 
     root.scale.setScalar(s);
@@ -1756,17 +1812,72 @@ window.LailaSalma = window.LailaSalma || {};
     const g = new THREE.Group();
     const bs = bowlScale || 1.0;
 
-    if (mealType === 'pasta' || mealType === 'grilled_salmon' || mealType === 'family_pizza') {
-      // Warm ceramic dinner plate for Family Dinner at Bella Bistro!
+    if (mealType === 'molokhia_chicken') {
+      // Eatery signature platter: fluffy white rice, emerald-green molokhia bowl & golden roasted chicken!
+      const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.27, 0.04, 18), LS.makeToonMat(0xfffaf2));
+      tray.position.y = 0.025; g.add(tray);
+      // Emerald green Molokhia bowl!
+      const mBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.10, 0.10, 14), LS.makeToonMat(0xd9a773));
+      mBowl.position.set(-0.10, 0.08, -0.05); g.add(mBowl);
+      const molokhia = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.125, 0.02, 14), LS.makeToonMat(0x2d7a36));
+      molokhia.position.set(-0.10, 0.125, -0.05); g.add(molokhia);
+      // Fluffy white rice mound!
+      const rice = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), LS.makeToonMat(0xfffdf8));
+      rice.scale.set(1.1, 0.65, 1.1); rice.position.set(0.11, 0.08, -0.04); g.add(rice);
+      // Golden roasted chicken piece!
+      const chick = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), LS.makeToonMat(0xc86d28));
+      chick.scale.set(1.3, 0.72, 0.85); chick.position.set(0.02, 0.08, 0.12); g.add(chick);
+    } else if (mealType === 'mai_lasagna') {
+      // Mai's warm bubbly homemade layered lasagna!
+      const dish = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.34), LS.makeToonMat(0xfffaf0));
+      dish.position.y = 0.03; g.add(dish);
+      const layer1 = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.06, 0.24), LS.makeToonMat(0xc83e2b));
+      layer1.position.y = 0.08; g.add(layer1);
+      const cheese = new THREE.Mesh(new THREE.BoxGeometry(0.33, 0.04, 0.25), LS.makeToonMat(0xf5c85c));
+      cheese.position.y = 0.125; g.add(cheese);
+      const basil = new THREE.Mesh(new THREE.SphereGeometry(0.036, 7, 6), LS.makeToonMat(0x3a9442));
+      basil.position.set(0, 0.155, 0); g.add(basil);
+    } else if (mealType === 'yiwan_dumplings' || mealType === 'yiwan_sweet_sour' || mealType === 'yiwan_rice' || mealType === 'yiwan_combo') {
+      // Yiwan Restaurant bamboo steamer dumplings, sweet & sour chicken, jasmine rice, or grand combo tray!
+      const tray = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.04, 0.38), LS.makeToonMat(0x8c2328));
+      tray.position.y = 0.02; g.add(tray);
+      if (mealType === 'yiwan_dumplings' || mealType === 'yiwan_combo') {
+        const bx = mealType === 'yiwan_combo' ? -0.13 : 0;
+        const basket = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.09, 14), LS.makeToonMat(0xd9ad6c));
+        basket.position.set(bx, 0.08, -0.04); g.add(basket);
+        [[-0.04, -0.03], [0.04, -0.03], [0, 0.04]].forEach(dp => {
+          const d = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 6), LS.makeToonMat(0xfff5e0));
+          d.scale.set(1.2, 0.72, 0.9); d.position.set(bx + dp[0], 0.13, -0.04 + dp[1]); g.add(d);
+        });
+      }
+      if (mealType === 'yiwan_sweet_sour' || mealType === 'yiwan_combo') {
+        const sx = mealType === 'yiwan_combo' ? 0.13 : 0;
+        const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.09, 0.08, 14), LS.makeToonMat(0xfffaf2));
+        bowl.position.set(sx, 0.075, -0.04); g.add(bowl);
+        [[-0.04, 0, 0xe85d26], [0.04, -0.02, 0xd93829], [0, 0.04, 0xffca3a], [-0.01, -0.04, 0x4ca84c]].forEach(b => {
+          const bite = new THREE.Mesh(new THREE.SphereGeometry(0.038, 7, 6), LS.makeToonMat(b[2]));
+          bite.position.set(sx + b[0], 0.125, -0.04 + b[1]); g.add(bite);
+        });
+      }
+      if (mealType === 'yiwan_rice' || mealType === 'yiwan_combo') {
+        const rz = mealType === 'yiwan_combo' ? 0.11 : 0;
+        const rBowl = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.07, 0.08, 12), LS.makeToonMat(0xfffdf8));
+        rBowl.position.set(0, 0.075, rz); g.add(rBowl);
+        const rTop = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 7), LS.makeToonMat(0xffffff));
+        rTop.scale.set(1.0, 0.55, 1.0); rTop.position.set(0, 0.115, rz); g.add(rTop);
+      }
+    } else if (mealType === 'pasta' || mealType === 'eatery_pasta' || mealType === 'grilled_salmon' || mealType === 'family_pizza') {
+      // Warm ceramic dinner plate for Family Dinner at Bella Bistro & Eatery Pasta!
       const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.04, 16), LS.makeToonMat(0xfffaf2));
       plate.position.y = 0.025;
       g.add(plate);
-      const foodCol = mealType === 'pasta' ? 0xf4b942 : (mealType === 'grilled_salmon' ? 0xf27d52 : 0xe8a848);
+      const isP = mealType === 'pasta' || mealType === 'eatery_pasta';
+      const foodCol = isP ? 0xf4b942 : (mealType === 'grilled_salmon' ? 0xf27d52 : 0xe8a848);
       const mound = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8), LS.makeToonMat(foodCol));
       mound.scale.set(1.1, 0.36, 1.0);
       mound.position.y = 0.07;
       g.add(mound);
-      const garnish = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), LS.makeToonMat(mealType === 'pasta' ? 0xd93838 : 0x4ca84c));
+      const garnish = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), LS.makeToonMat(isP ? 0xd93838 : 0x4ca84c));
       garnish.position.set(0.04, 0.12, 0.03);
       g.add(garnish);
     } else if (mealType === 'tamago' || mealType === 'salmon' || mealType === 'sushi_boat') {

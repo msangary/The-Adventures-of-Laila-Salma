@@ -181,6 +181,83 @@ window.LailaSalma = window.LailaSalma || {};
     return g;
   }
 
+  // Hero Family SUV: Metallic Gray Nissan Qashqai Crossover! (used at Home Gate & Destinations)
+  LS.createNissanQashqai = function () {
+    const g = new THREE.Group();
+    const grayBody = LS.makeToonMat(0x747d88);
+    const darkTrim = LS.makeToonMat(0x2b3038);
+    const silverChrome = LS.makeToonMat(0xdce2ea);
+    const glassMat = LS.makeToonMat(0x3a4f66);
+    const tireMat = LS.makeToonMat(0x1f2329);
+    const ledMat = LS.makeEmissiveMat(0xf5fbff, 0xd8f3ff, 0.85);
+    const tailMat = LS.makeEmissiveMat(0xe63946, 0xff4d5a, 0.65);
+
+    // Sculpted SUV lower cladding + sleek metallic gray body + crossover cabin
+    const lowerClad = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.28, 4.32), darkTrim);
+    lowerClad.position.set(0, 0.38, 0); g.add(lowerClad);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.66, 4.28), grayBody);
+    body.position.set(0, 0.80, 0); body.castShadow = true; g.add(body);
+    // Slightly sloped crossover hood & hatchback cabin
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.64, 2.38), grayBody);
+    cabin.position.set(0, 1.38, -0.34); cabin.castShadow = true; g.add(cabin);
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.50, 2.42), glassMat);
+    windshield.position.set(0, 1.36, -0.34); g.add(windshield);
+    const sideGlass = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.44, 2.02), glassMat);
+    sideGlass.position.set(0, 1.36, -0.34); g.add(sideGlass);
+
+    // Silver roof rails + rear hatchback spoiler!
+    [-0.66, 0.66].forEach(rx => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 1.95), silverChrome);
+      rail.position.set(rx, 1.74, -0.34); g.add(rail);
+    });
+    const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.66, 0.09, 0.28), grayBody);
+    spoiler.position.set(0, 1.66, -1.60); g.add(spoiler);
+
+    // Side mirrors
+    [-1.04, 1.04].forEach(mx => {
+      const mir = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.18), grayBody);
+      mir.position.set(mx, 1.16, 0.62); g.add(mir);
+    });
+
+    // Iconic Nissan V-Motion Black & Chrome Front Grille + Swept LED Headlights!
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.36, 0.10), darkTrim);
+    grille.position.set(0, 0.74, 2.14); g.add(grille);
+    [-0.38, 0.38].forEach(vx => {
+      const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.36, 0.12), silverChrome);
+      vBar.position.set(vx * 0.72, 0.74, 2.16);
+      vBar.rotation.z = vx > 0 ? -0.34 : 0.34;
+      g.add(vBar);
+    });
+    const badge = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.05, 12), silverChrome);
+    badge.rotation.x = Math.PI / 2; badge.position.set(0, 0.78, 2.18); g.add(badge);
+
+    [-0.68, 0.68].forEach(hx => {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.15, 0.10), ledMat);
+      hl.position.set(hx, 0.84, 2.13); hl.rotation.y = hx > 0 ? -0.18 : 0.18; g.add(hl);
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.16, 0.10), tailMat);
+      tl.position.set(hx, 0.88, -2.13); g.add(tl);
+    });
+
+    // License plates front & back
+    const plateMat = new THREE.MeshBasicMaterial({
+      map: LS.createSignTexture('QASHQAI', { bg: '#ffffff', border: '#1d4ed8', color: '#111827', font: 'bold 34px sans-serif', width: 220, height: 70 })
+    });
+    const fPlate = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.16, 0.05), plateMat);
+    fPlate.position.set(0, 0.44, 2.18); g.add(fPlate);
+    const bPlate = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.16, 0.05), plateMat);
+    bPlate.position.set(0, 0.56, -2.18); g.add(bPlate);
+
+    // 4 SUV Wheels with silver alloy hubs
+    [[-0.96, 1.34], [0.96, 1.34], [-0.96, -1.34], [0.96, -1.34]].forEach(wp => {
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.26, 14), tireMat);
+      wheel.rotation.z = Math.PI / 2; wheel.position.set(wp[0], 0.38, wp[1]); wheel.castShadow = true; g.add(wheel);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.28, 10), silverChrome);
+      rim.rotation.z = Math.PI / 2; rim.position.set(wp[0], 0.38, wp[1]); g.add(rim);
+    });
+
+    return g;
+  };
+
   // Helper: Friendly Yellow Neighborhood School Mini-Bus!
   function createSchoolMiniBus() {
     const g = new THREE.Group();
@@ -1104,6 +1181,38 @@ window.LailaSalma = window.LailaSalma || {};
       const boothRoof = new THREE.Mesh(new THREE.ConeGeometry(2.9, 1.25, 4), capMat);
       boothRoof.position.set(9.4, 3.72, 34.2); boothRoof.rotation.y = Math.PI / 4; worldGroup.add(boothRoof);
       addCollider(9.4, 34.2, 1.9, 1.8);
+
+      // ---------------------------------------------------------------------
+      // Family Gray Nissan Qashqai Crossover SUV parked right next to the Gate!
+      // ---------------------------------------------------------------------
+      const qashqai = LS.createNissanQashqai();
+      qashqai.position.set(-5.8, 0, 30.8);
+      qashqai.rotation.y = 0.22;
+      worldGroup.add(qashqai);
+      addCollider(-5.8, 30.8, 1.4, 2.4);
+
+      // Crisp signpost beside the Qashqai so kids spot it instantly!
+      const qSign = new THREE.Mesh(
+        new THREE.BoxGeometry(2.35, 0.72, 0.14),
+        new THREE.MeshBasicMaterial({
+          map: LS.createSignTexture('🚙 FAMILY QASHQAI', {
+            bg: '#eef2f6', border: '#4b5563', color: '#1f2937', font: 'bold 26px sans-serif', width: 320, height: 100
+          })
+        })
+      );
+      qSign.position.set(-8.1, 1.55, 31.8);
+      qSign.rotation.y = 0.35;
+      worldGroup.add(qSign);
+      const qPost = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.45, 7), LS.makeToonMat(0x4b5563));
+      qPost.position.set(-8.1, 0.72, 31.8);
+      worldGroup.add(qPost);
+
+      W.zones.push({
+        id: 'home_qashqai',
+        label: 'Drive the Gray Nissan Qashqai 🚙✨',
+        pos: new THREE.Vector3(-2.8, 0, 30.8),
+        radius: 3.6
+      });
     });
 
     // -----------------------------------------------------------------------
@@ -1347,7 +1456,7 @@ window.LailaSalma = window.LailaSalma || {};
       // Vintage Cast-Iron Ghibli Street Lamps lining the Avenues & Courtyard!
       [
         [-5.2, 16.0], [5.2, 16.0],
-        [-5.2, 29.0], [5.2, 29.0],
+        [-5.2, 25.2], [5.2, 29.0],
         [-17.0, -9.2], [17.0, -9.2],
         [-11.2, 3.0], [11.2, 3.0]
       ].forEach(lp => {
@@ -1609,6 +1718,8 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fillStyle = '#2e6f5e'; ctx.fillRect(toX(-36), toY(-20), toX(-26) - toX(-36), toY(-4) - toY(-20));
       ctx.fillStyle = '#b8333a'; ctx.fillRect(toX(26), toY(-17), toX(36) - toX(26), toY(-3) - toY(-17));
       ctx.fillStyle = '#f4a261'; ctx.fillRect(toX(18), toY(13), toX(31) - toX(18), toY(23) - toY(13));
+      // Qashqai car marker next to South Gate
+      ctx.fillStyle = '#4b5563'; ctx.fillRect(toX(-8.5), toY(28.5), toX(-3.0) - toX(-8.5), toY(33.5) - toY(28.5));
       // Labels
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('HOME', toX(0), toY(-18));
@@ -1616,6 +1727,7 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fillText('BISTRO', toX(31), toY(-9));
       ctx.fillText('PARK', toX(24.5), toY(19));
       ctx.fillText('POND', toX(-21.5), toY(26));
+      ctx.fillText('CAR', toX(-5.8), toY(32.5));
     };
 
     return W;

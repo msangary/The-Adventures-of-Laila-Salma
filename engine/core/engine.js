@@ -581,7 +581,17 @@ window.LailaSalma = window.LailaSalma || {};
         : 'Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
       LS.unlockStamp(worldId === 'safari_tent' ? 'safari_tent_decor' : 'room_decorator');
     } else if (worldId === 'home_neighborhood') {
-      LS.setSalmaBubbleText('Our Gated Community! Step inside our Apartment, walk to School, or dine at Bella Bistro! 🏡🍽️', 0);
+      LS.setSalmaBubbleText('Our Gated Community! Visit our Apartment, School, Bistro, or hop in the Gray Nissan Qashqai by the Gate! 🏡🚙', 0);
+    } else if (worldId === 'dest_eatery') {
+      LS.setSalmaBubbleText('Yay, Eatery! Let us eat warm Rice, Molokhia & Chicken or creamy Pasta! 🍲🍝', 4800);
+    } else if (worldId === 'dest_yiwan') {
+      LS.setSalmaBubbleText('Mmm, Yiwan! Dumplings, Sweet & Sour Chicken, Jasmine Rice — or a Combo Feast! 🥟🍗', 4800);
+    } else if (worldId === 'dest_cosmo_city') {
+      LS.setSalmaBubbleText('Woohoo, Cosmo City Arcade! Let us try Space Meteors, Color Memory & the Claw Machine! 🚀🕹️', 4800);
+    } else if (worldId === 'dest_grandparents') {
+      LS.setSalmaBubbleText("Nano & Gedo's house! Nano is watching TV and Gedo is drinking warm tea! 💛🫖", 4800);
+    } else if (worldId === 'dest_mai_mostafa') {
+      LS.setSalmaBubbleText("Cross the river bridge to Mai & Mostafa's! Lasagna with Mai & board games with Nouzi & Bibo! 🌉🎲", 5500);
     } else if (worldId === 'safari') {
       LS.setSalmaBubbleText('Whoa, African Safari!! Quiz with Dr. Kofi, ride the Balloon or Jeep, & snap wildlife [F]! 🎈🦒', 0);
       LS.unlockStamp('safari_arrival');
@@ -670,6 +680,47 @@ window.LailaSalma = window.LailaSalma || {};
       LS.runtime.traveling = false;
       LS.showToast(toMeta.emoji + ' Welcome to ' + toMeta.title + ' — ' + toMeta.subtitle + '!');
     }, 1750);
+  };
+
+  LS.driveQashqaiTo = function (targetWorldId) {
+    if (LS.runtime.traveling || !LS.WORLDS[targetWorldId]) return;
+    if (targetWorldId === LS.state.currentWorld) {
+      LS.closeAllModals();
+      LS.showToast('🚙 You are already at ' + LS.WORLDS[targetWorldId].title + '!');
+      return;
+    }
+    LS.closeAllModals();
+    LS.runtime.traveling = true;
+    const toMeta = LS.WORLDS[targetWorldId];
+    const overlay = document.getElementById('travel-overlay');
+    const animEl = overlay ? overlay.querySelector('.train-anim') : null;
+    const titleEl = document.getElementById('travel-title');
+    const subEl = document.getElementById('travel-sub');
+    if (animEl) animEl.textContent = '🚙💨';
+    if (titleEl) titleEl.textContent = 'Gray Nissan Qashqai → ' + toMeta.title;
+    if (subEl) {
+      subEl.textContent = targetWorldId === 'dest_mai_mostafa'
+        ? "Buckle up, Laila & Salma! Driving the gray Qashqai across the river to Mai & Mostafa's house!"
+        : (targetWorldId === 'home_neighborhood'
+          ? 'Driving the gray Nissan Qashqai back home to Sunnyside Gated Community...'
+          : 'Buckle up, Laila & Salma! Cruising in the gray Nissan Qashqai to ' + toMeta.title + '...');
+    }
+    if (overlay) overlay.classList.remove('hidden');
+    LS.playSFX('train');
+
+    setTimeout(() => {
+      if (targetWorldId === 'home_neighborhood') {
+        LS.loadWorld('home_neighborhood', false, { x: -2.0, y: 0, z: 30.8, rotY: Math.PI });
+      } else {
+        LS.loadWorld(targetWorldId, false);
+      }
+    }, 750);
+
+    setTimeout(() => {
+      if (overlay) overlay.classList.add('hidden');
+      LS.runtime.traveling = false;
+      LS.showToast('🚙 Arrived at ' + toMeta.emoji + ' ' + toMeta.title + '!');
+    }, 1550);
   };
 
   function getGroundH(x, z) {
@@ -877,6 +928,25 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'magic_globe') LS.openGlobeModal();
     else if (zid === 'home_school') LS.openSchoolModal('home_neighborhood');
     else if (zid === 'home_restaurant') LS.openHomeRestaurantModal();
+    else if (zid === 'home_qashqai') LS.openQashqaiModal();
+    else if (zid === 'eatery_order') LS.openEateryModal();
+    else if (zid === 'yiwan_order') LS.openYiwanModal();
+    else if (zid === 'cosmo_meteors') LS.openCosmoGameModal('meteors');
+    else if (zid === 'cosmo_memory') LS.openCosmoGameModal('memory');
+    else if (zid === 'cosmo_claw') LS.openCosmoGameModal('claw');
+    else if (zid === 'visit_nano_tv') {
+      LS.addCoins(15); LS.addXP(20);
+      LS.unlockStamp('dest_grandparents');
+      LS.playSFX('correct');
+      LS.showToast('📺💛 Laila & Salma snuggle up on the sofa and watch cozy TV with Nano! +15c & +20 XP!');
+    } else if (zid === 'visit_gedo_tea') {
+      LS.addCoins(15); LS.addXP(20);
+      LS.unlockStamp('dest_grandparents');
+      LS.runtime.buff = { name: "Gedo's Mint Tea", short: 'Tea☕', speedMult: 1.24, infiniteStamina: true, expiresAt: Date.now() + 90000 };
+      LS.playSFX('correct');
+      LS.showToast('☕🌿 Gedo pours warm sweet mint tea and shares a funny story! +15c, +20 XP & Speed Boost!');
+    } else if (zid === 'mai_lasagna') LS.openMaiLasagnaModal();
+    else if (zid === 'kids_board_game') LS.openBoardGameModal();
     else if (zid === 'tokyo_teacher_quiz' || zid === 'school') LS.openSchoolModal('tokyo');
     else if (zid === 'kyoto_teacher_quiz' || zid === 'kyoto_academy') LS.openSchoolModal('kyoto');
     else if (zid === 'ramen') LS.openRamenModal();
