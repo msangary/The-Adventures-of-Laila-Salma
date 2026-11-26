@@ -238,7 +238,7 @@ window.LailaSalma = window.LailaSalma || {};
     targetCamDist = camDist;
     camSnapNext = true;
     LS.playSFX('levelup');
-    LS.showToast('🌸 Welcome home, Laila & Salma! Explore your Apartment, School, Bistro & Magic Globe!');
+    LS.showToast("🌸 Welcome home, Laila & Salma! Explore your Apartment, School, Gedo Mahmoud's House & Gray Qashqai!");
   };
 
   function initSparklesAndStars() {
@@ -581,7 +581,7 @@ window.LailaSalma = window.LailaSalma || {};
         : 'Yay! Walk to the Decorate desk to redecorate our room in 3D! 🎨', 4200);
       LS.unlockStamp(worldId === 'safari_tent' ? 'safari_tent_decor' : 'room_decorator');
     } else if (worldId === 'home_neighborhood') {
-      LS.setSalmaBubbleText('Our Gated Community! Visit our Apartment, School, Bistro, or hop in the Gray Nissan Qashqai by the Gate! 🏡🚙', 0);
+      LS.setSalmaBubbleText("Our Gated Community! Visit our Apartment, School, Gedo Mahmoud & Nana Omaima's House, or hop in the Gray Qashqai! 🏡🚙", 0);
     } else if (worldId === 'dest_eatery') {
       LS.setSalmaBubbleText('Yay, Eatery! Let us eat warm Rice, Molokhia & Chicken or creamy Pasta! 🍲🍝', 4800);
     } else if (worldId === 'dest_yiwan') {
@@ -589,9 +589,13 @@ window.LailaSalma = window.LailaSalma || {};
     } else if (worldId === 'dest_cosmo_city') {
       LS.setSalmaBubbleText('Woohoo, Cosmo City Arcade! Let us try Space Meteors, Color Memory & the Claw Machine! 🚀🕹️', 4800);
     } else if (worldId === 'dest_grandparents') {
-      LS.setSalmaBubbleText("Nano & Gedo's house! Nano is watching TV and Gedo is drinking warm tea! 💛🫖", 4800);
+      LS.setSalmaBubbleText("Nano & Gedo's house! Nano is watching her soap opera & news, and Gedo is drinking tea by the window! 💛🫖", 4800);
     } else if (worldId === 'dest_mai_mostafa') {
-      LS.setSalmaBubbleText("Whoa, 18th floor overlooking the river!! Lasagna with Mai & board games with Nouzi & Bibo! 🏙️🌊🎲", 5500);
+      LS.setSalmaBubbleText("Whoa, Mai & Mostafa's Home overlooking the river!! Lasagna with Mai & board games with Nouzi & Bibo! 🏙️🌊🎲", 5500);
+    } else if (worldId === 'dest_ngsc') {
+      LS.setSalmaBubbleText('Woohoo, NGSC Sports Club! Laila can play squash and we can BOTH swim in the sparkling pool! 🎾🏊‍♀️💦', 5500);
+    } else if (worldId === 'dest_gedo_mahmoud') {
+      LS.setSalmaBubbleText("Yay, Gedo Mahmoud & Nana Omaima's house! Come give them big hugs and taste Nana's yummy treats! 🏡💛", 5200);
     } else if (worldId === 'safari') {
       LS.setSalmaBubbleText('Whoa, African Safari!! Quiz with Dr. Kofi, ride the Balloon or Jeep, & snap wildlife [F]! 🎈🦒', 0);
       LS.unlockStamp('safari_arrival');
@@ -637,6 +641,191 @@ window.LailaSalma = window.LailaSalma || {};
     LS.loadWorld(meta.parentWorld, false, meta.exitPos);
   };
 
+  // Animated Storybook World Map for traveling out of Home Town (Plane ✈️ or Shinkansen Train 🚄!)
+  let travelMapRaf = null;
+  function stopWorldMapAnimation() {
+    if (travelMapRaf) { cancelAnimationFrame(travelMapRaf); travelMapRaf = null; }
+  }
+
+  LS.playWorldMapAnimation = function (fromWorldId, toWorldId, vehicleMode, durationMs) {
+    stopWorldMapAnimation();
+    const canvas = document.getElementById('travel-map-canvas');
+    if (!canvas) return;
+    canvas.classList.remove('hidden');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    function normId(id) {
+      if (id === 'home_apartment' || id === 'home_neighborhood' || id.indexOf('dest_') === 0) return 'home';
+      if (id === 'tokyo' || id === 'tokyo_room') return 'tokyo';
+      if (id === 'kyoto' || id === 'kyoto_room') return 'kyoto';
+      if (id === 'safari' || id === 'safari_tent') return 'safari';
+      return 'home';
+    }
+    const pins = {
+      home: { x: 274, y: 112, label: '🏡 Home (Egypt)' },
+      safari: { x: 294, y: 168, label: '🦁 Safari (Kenya)' },
+      kyoto: { x: 422, y: 108, label: '⛩️ Kyoto' },
+      tokyo: { x: 454, y: 98, label: '🗼 Tokyo' }
+    };
+    const pFrom = pins[normId(fromWorldId)] || pins.home;
+    const pTo = pins[normId(toWorldId)] || pins.tokyo;
+
+    // Curved control point arching gracefully above the route
+    const mx = (pFrom.x + pTo.x) * 0.5;
+    const dist = Math.hypot(pTo.x - pFrom.x, pTo.y - pFrom.y);
+    const my = Math.min(pFrom.y, pTo.y) - Math.min(62, Math.max(24, dist * 0.32));
+
+    function drawContinents() {
+      // Soft storybook parchment ocean
+      const og = ctx.createLinearGradient(0, 0, 0, H);
+      og.addColorStop(0, '#bfe6f5'); og.addColorStop(1, '#9fd4eb');
+      ctx.fillStyle = og; ctx.fillRect(0, 0, W, H);
+
+      // Subtle nautical grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1;
+      for (let gx = 40; gx < W; gx += 65) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+      for (let gy = 40; gy < H; gy += 55) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+      // Hand-painted stylized Ghibli continents
+      const drawBlob = (pts, fill) => {
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = '#6f9c63'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      };
+      // Americas (left)
+      drawBlob([[32, 46], [116, 40], [134, 78], [104, 110], [82, 114], [52, 88]], '#b6d99a');
+      drawBlob([[98, 124], [138, 134], [148, 174], [122, 214], [104, 188], [94, 152]], '#a9d18e');
+      // Europe (top-center)
+      drawBlob([[220, 44], [282, 36], [300, 62], [278, 86], [234, 88], [216, 68]], '#b8db9a');
+      // Africa (center)
+      drawBlob([[230, 96], [286, 94], [312, 128], [302, 178], [274, 212], [250, 184], [236, 138], [218, 116]], '#e2cfa3');
+      // Asia + Middle East (center-right)
+      drawBlob([[294, 46], [420, 44], [442, 86], [406, 128], [362, 134], [336, 112], [302, 118], [288, 92]], '#b5d999');
+      // Japan Islands (far right)
+      drawBlob([[418, 112], [434, 102], [456, 86], [468, 96], [448, 112], [426, 118]], '#f2b5c4');
+      // Australia (bottom right)
+      drawBlob([[412, 168], [462, 164], [474, 194], [448, 212], [414, 198]], '#dfca9c');
+
+      // Vintage Compass Rose in bottom-left corner
+      ctx.save();
+      ctx.translate(42, H - 36);
+      ctx.strokeStyle = '#7c5530'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#c94c4c';
+      ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(4, 0); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7c5530';
+      ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(4, 0); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill();
+      ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('N', 0, -18);
+      ctx.restore();
+    }
+
+    const startTime = performance.now();
+    const dur = durationMs || 2100;
+
+    function frame(now) {
+      const raw = Math.min(1, (now - startTime) / dur);
+      // Smooth ease-in-out
+      const t = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+
+      drawContinents();
+
+      // Dashed planned full route arc
+      ctx.save();
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(pFrom.x, pFrom.y);
+      ctx.quadraticCurveTo(mx, my, pTo.x, pTo.y);
+      ctx.stroke();
+      ctx.restore();
+
+      // Glowing completed golden travel trail up to t!
+      ctx.save();
+      ctx.strokeStyle = vehicleMode === 'train' ? '#ef4444' : '#f59e0b';
+      ctx.lineWidth = 3.6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 28; i++) {
+        const u = (i / 28) * t;
+        const bx = (1 - u) * (1 - u) * pFrom.x + 2 * (1 - u) * u * mx + u * u * pTo.x;
+        const by = (1 - u) * (1 - u) * pFrom.y + 2 * (1 - u) * u * my + u * u * pTo.y;
+        if (i === 0) ctx.moveTo(bx, by); else ctx.lineTo(bx, by);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw Origin & Destination Pins + Labels
+      [pFrom, pTo].forEach((pt, idx) => {
+        ctx.fillStyle = idx === 0 ? '#2563eb' : '#e11d48';
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.font = 'bold 11px sans-serif';
+        const tw = ctx.measureText(pt.label).width;
+        const lx = Math.max(tw / 2 + 8, Math.min(W - tw / 2 - 8, pt.x));
+        const ly = idx === 0 ? pt.y + 20 : pt.y - 14;
+        ctx.fillStyle = 'rgba(255,250,240,0.92)';
+        ctx.fillRect(lx - tw / 2 - 5, ly - 11, tw + 10, 15);
+        ctx.fillStyle = '#3b2516'; ctx.textAlign = 'center';
+        ctx.fillText(pt.label, lx, ly);
+      });
+
+      // Current vehicle position & tangent angle along the quadratic Bezier curve!
+      const vx = (1 - t) * (1 - t) * pFrom.x + 2 * (1 - t) * t * mx + t * t * pTo.x;
+      const vy = (1 - t) * (1 - t) * pFrom.y + 2 * (1 - t) * t * my + t * t * pTo.y;
+      const dx = 2 * (1 - t) * (mx - pFrom.x) + 2 * t * (pTo.x - mx);
+      const dy = 2 * (1 - t) * (my - pFrom.y) + 2 * t * (pTo.y - my);
+      const ang = Math.atan2(dy, dx);
+
+      ctx.save();
+      ctx.translate(vx, vy);
+      ctx.rotate(ang);
+      if (vehicleMode === 'train') {
+        // Sleek White & Blue Shinkansen Bullet Train!
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#1e3a8a'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-16, -5); ctx.lineTo(10, -5); ctx.quadraticCurveTo(20, 0, 10, 5); ctx.lineTo(-16, 5); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#2563eb'; ctx.fillRect(-14, -1.5, 24, 3);
+      } else {
+        // Sleek Studio Ghibli Airplane!
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1.5;
+        // Fuselage
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 14, 4, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        // Swept Wings
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(2, -3); ctx.lineTo(-6, -15); ctx.lineTo(-10, -14); ctx.lineTo(-5, -3); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(2, 3); ctx.lineTo(-6, 15); ctx.lineTo(-10, 14); ctx.lineTo(-5, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+        // Tail Fin
+        ctx.fillStyle = '#e11d48';
+        ctx.beginPath();
+        ctx.moveTo(-10, -2); ctx.lineTo(-15, -8); ctx.lineTo(-16, -2); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+
+      // Arrival sparkle burst at the end!
+      if (raw > 0.88) {
+        const pulse = (raw - 0.88) / 0.12;
+        ctx.strokeStyle = 'rgba(250, 204, 21, ' + (1 - pulse) + ')';
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(pTo.x, pTo.y, 8 + pulse * 22, 0, Math.PI * 2); ctx.stroke();
+      }
+
+      if (raw < 1) {
+        travelMapRaf = requestAnimationFrame(frame);
+      }
+    }
+    travelMapRaf = requestAnimationFrame(frame);
+  };
+
   LS.travelToWorld = function (targetWorldId) {
     if (LS.runtime.traveling || !LS.WORLDS[targetWorldId]) return;
     if (targetWorldId === LS.state.currentWorld) {
@@ -647,39 +836,40 @@ window.LailaSalma = window.LailaSalma || {};
 
     LS.closeAllModals();
     LS.runtime.traveling = true;
-    const fromMeta = LS.WORLDS[LS.state.currentWorld];
+    const fromId = LS.state.currentWorld;
+    const fromMeta = LS.WORLDS[fromId];
     const toMeta = LS.WORLDS[targetWorldId];
-    const isGlobe = LS.state.currentWorld === 'home_apartment' || LS.state.currentWorld === 'home_neighborhood' || targetWorldId === 'home_neighborhood';
-    const isFlight = !isGlobe && (targetWorldId === 'safari' || LS.state.currentWorld === 'safari');
+    const isShinkansen = (fromId === 'tokyo' && targetWorldId === 'kyoto') || (fromId === 'kyoto' && targetWorldId === 'tokyo');
+    const vehicleMode = isShinkansen ? 'train' : 'plane';
 
     const overlay = document.getElementById('travel-overlay');
     const animEl = overlay ? overlay.querySelector('.train-anim') : null;
     const titleEl = document.getElementById('travel-title');
     const subEl = document.getElementById('travel-sub');
-    if (animEl) animEl.textContent = isGlobe ? '🌍✨' : (isFlight ? '✈️☁️' : '🚅💨');
+    if (animEl) animEl.textContent = isShinkansen ? '🚅💨' : '✈️🌍';
     if (titleEl) {
-      titleEl.textContent = (isGlobe ? '🌍 Magic World Globe: ' : (isFlight ? '✈️ Safari Charter Flight: ' : '🚅 Shinkansen Express: ')) + fromMeta.title + ' → ' + toMeta.title;
+      titleEl.textContent = (isShinkansen ? '🚅 Shinkansen Express: ' : '✈️ International Flight: ') + fromMeta.title + ' → ' + toMeta.title;
     }
     if (subEl) {
-      subEl.textContent = isGlobe
-        ? 'Whoosh! The glowing Magic World Globe carries Laila & Salma straight to ' + toMeta.title + '!'
-        : (isFlight
-          ? 'Fasten seatbelts, Laila, Salma & Mochi! Soaring above the clouds toward ' + toMeta.title + '...'
-          : 'All aboard, Laila, Salma & Mochi! Zooming past Mt. Fuji at 300 km/h...');
+      subEl.textContent = isShinkansen
+        ? 'All aboard, Laila, Salma & Mochi! Zooming across Japan on the bullet train at 300 km/h...'
+        : 'Fasten seatbelts, Laila & Salma! Flying across the world map straight to ' + toMeta.title + '!';
     }
     if (overlay) overlay.classList.remove('hidden');
+    if (LS.playWorldMapAnimation) LS.playWorldMapAnimation(fromId, targetWorldId, vehicleMode, 2150);
 
     LS.playSFX('train');
 
     setTimeout(() => {
       LS.loadWorld(targetWorldId, true);
-    }, 850);
+    }, 1150);
 
     setTimeout(() => {
+      stopWorldMapAnimation();
       if (overlay) overlay.classList.add('hidden');
       LS.runtime.traveling = false;
       LS.showToast(toMeta.emoji + ' Welcome to ' + toMeta.title + ' — ' + toMeta.subtitle + '!');
-    }, 1750);
+    }, 2300);
   };
 
   LS.driveQashqaiTo = function (targetWorldId) {
@@ -690,6 +880,9 @@ window.LailaSalma = window.LailaSalma || {};
       return;
     }
     LS.closeAllModals();
+    stopWorldMapAnimation();
+    const mapCanvas = document.getElementById('travel-map-canvas');
+    if (mapCanvas) mapCanvas.classList.add('hidden');
     LS.runtime.traveling = true;
     const toMeta = LS.WORLDS[targetWorldId];
     const overlay = document.getElementById('travel-overlay');
@@ -700,10 +893,12 @@ window.LailaSalma = window.LailaSalma || {};
     if (titleEl) titleEl.textContent = 'Gray Nissan Qashqai → ' + toMeta.title;
     if (subEl) {
       subEl.textContent = targetWorldId === 'dest_mai_mostafa'
-        ? "Buckle up, Laila & Salma! Driving the gray Qashqai & riding the elevator up to the 18th floor at Mai & Mostafa's!"
-        : (targetWorldId === 'home_neighborhood'
-          ? 'Driving the gray Nissan Qashqai back home to Sunnyside Gated Community...'
-          : 'Buckle up, Laila & Salma! Cruising in the gray Nissan Qashqai to ' + toMeta.title + '...');
+        ? "Buckle up, Laila & Salma! Driving the gray Qashqai & riding the elevator up to Mai & Mostafa's Home!"
+        : (targetWorldId === 'dest_ngsc'
+          ? 'Buckle up, Laila & Salma! Driving the gray Qashqai to NGSC Sports Club for squash & swimming!'
+          : (targetWorldId === 'home_neighborhood'
+            ? 'Driving the gray Nissan Qashqai back home to Sunnyside Gated Community...'
+            : 'Buckle up, Laila & Salma! Cruising in the gray Nissan Qashqai to ' + toMeta.title + '...'));
     }
     if (overlay) overlay.classList.remove('hidden');
     LS.playSFX('train');
@@ -922,6 +1117,7 @@ window.LailaSalma = window.LailaSalma || {};
     const zid = LS.runtime.nearZone.id;
     if (zid === 'tokyo_yellow_bike') LS.mountYellowBike();
     else if (zid === 'enter_home_apartment') LS.enterInterior('home_apartment');
+    else if (zid === 'enter_gedo_mahmoud') LS.enterInterior('dest_gedo_mahmoud');
     else if (zid === 'home_kitchen_snack') LS.openKitchenModal();
     else if (zid === 'home_piano') LS.openPianoModal();
     else if (zid === 'home_tv_room') LS.openTvGameModal();
@@ -934,7 +1130,22 @@ window.LailaSalma = window.LailaSalma || {};
     else if (zid === 'cosmo_meteors') LS.openCosmoGameModal('meteors');
     else if (zid === 'cosmo_memory') LS.openCosmoGameModal('memory');
     else if (zid === 'cosmo_claw') LS.openCosmoGameModal('claw');
-    else if (zid === 'visit_nano_tv') {
+    else if (zid === 'ngsc_squash') LS.openNGSCModal('squash');
+    else if (zid === 'ngsc_swim') LS.openNGSCModal('swim');
+    else if (zid === 'visit_gedo_mahmoud') {
+      LS.addCoins(18); LS.addXP(22);
+      LS.unlockStamp('home_dinner');
+      LS.playSFX('correct');
+      LS.showToast('☕💛 Gedo Mahmoud gives Laila & Salma huge hugs and shares a favorite family story! +18c & +22 XP!');
+    } else if (zid === 'visit_nana_omaima') {
+      LS.addCoins(20); LS.addXP(26);
+      LS.runtime.stamina = 100;
+      LS.runtime.buff = { name: "Nana Omaima's Feast", short: 'Feast🍲', speedMult: 1.28, infiniteStamina: true, expiresAt: Date.now() + 120000 };
+      LS.unlockStamp('home_dinner');
+      if (LS.completeCozyMission) LS.completeCozyMission('meal');
+      LS.playSFX('correct');
+      LS.showToast('🍲🍯 Nana Omaima serves her delicious homemade feast & warm basbousa! +20c, +26 XP & Speed Boost!');
+    } else if (zid === 'visit_nano_tv') {
       LS.addCoins(15); LS.addXP(20);
       LS.unlockStamp('dest_grandparents');
       LS.playSFX('correct');

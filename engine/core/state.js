@@ -103,7 +103,7 @@ window.LailaSalma = window.LailaSalma || {};
       steps: [
         { id: 'home_snack', zoneId: 'enter_home_apartment', interiorZoneId: 'home_kitchen_snack', title: 'Grab a healthy snack in the Apartment Kitchen 🍎', hint: 'Step inside our Apartment Building and visit the Kitchen!' },
         { id: 'home_piano', zoneId: 'enter_home_apartment', interiorZoneId: 'home_piano', title: 'Play a song on Laila\'s Piano for Mom & Dad 🎹', hint: 'Walk to the Dining Room piano where Mom & Dad are sipping coffee!' },
-        { id: 'home_dinner', zoneId: 'home_restaurant', title: 'Enjoy Family Dinner at Bella Bistro 🍽️', hint: 'Head out to the sunlit Bella Bistro restaurant in our community!' }
+        { id: 'home_dinner', zoneId: 'enter_gedo_mahmoud', interiorZoneId: 'visit_nana_omaima', title: "Visit Gedo Mahmoud & Nana Omaima's House 🏡💛", hint: "Walk across the gated community to Gedo Mahmoud & Nana Omaima's villa!" }
       ]
     },
     tokyo: {

@@ -1372,12 +1372,12 @@ window.LailaSalma = window.LailaSalma || {};
     addIndoorPlant(worldGroup, -9.2, -D_AP / 2 - 0.68, 0xc66b47, true);
     addIndoorPlant(worldGroup, 9.2, -D_AP / 2 - 0.68, 0xc66b47, true);
 
-    // Subtle Apartment Header Plaque above Panoramic Glass ("18F • MAI & MOSTAFA'S RIVER VIEW HOME")
+    // Apartment Header Plaque above Panoramic Glass ("MAI & MOSTAFA'S HOME")
     const aptSign = new THREE.Mesh(
-      new THREE.BoxGeometry(7.2, 0.58, 0.12),
+      new THREE.BoxGeometry(6.2, 0.58, 0.12),
       new THREE.MeshBasicMaterial({
-        map: LS.createSignTexture("🏙️ 18F • MAI & MOSTAFA'S RIVER VIEW HOME 🌊", {
-          bg: '#fff9ef', border: '#c66b47', color: '#4a2b14', font: 'bold 21px sans-serif', width: 660, height: 76
+        map: LS.createSignTexture("🏙️ MAI & MOSTAFA'S HOME 🌊", {
+          bg: '#fff9ef', border: '#c66b47', color: '#4a2b14', font: 'bold 24px sans-serif', width: 560, height: 76
         })
       })
     );
@@ -1661,31 +1661,43 @@ window.LailaSalma = window.LailaSalma || {};
     W.update = function (dt, elapsed) {
       if (W.tvObj) W.tvObj.update(elapsed);
 
-      // Animate Nouzi doing real gymnastics moves on her mat!
+      // Animate Nouzi doing real gymnastics moves on her mat (exact height clearance — ZERO floor clipping!)
       if (W.nouziChar) {
+        const matTop = 0.095;
+        const reachH = 1.42; // Scaled feet-to-fingertips height (0.74 scale)
         const cycle = elapsed % 9.0;
         const r = W.nouziChar.root;
         const bp = W.nouziChar.bodyPivot;
         if (cycle < 3.0) {
+          // Phase 1: Graceful Cartwheel across the pink mat!
           const u = cycle / 3.0;
-          r.position.set(-7.6 + u * 2.4, 0.08 + Math.sin(u * Math.PI) * 0.45, 2.2);
+          const ang = -u * Math.PI * 2;
+          const yClear = matTop + Math.max(0, -Math.cos(ang)) * reachH + Math.abs(Math.sin(ang)) * 0.52;
+          r.position.set(-7.6 + u * 2.4, yClear, 2.2);
           r.rotation.set(0, 0, 0);
-          bp.rotation.set(0, 0, -u * Math.PI * 2);
-          W.nouziChar.leftArm.rotation.z = 2.6; W.nouziChar.rightArm.rotation.z = -2.6;
-          W.nouziChar.leftLeg.rotation.z = -0.55; W.nouziChar.rightLeg.rotation.z = 0.55;
+          bp.rotation.set(0, 0, ang);
+          W.nouziChar.leftArm.rotation.z = 2.75; W.nouziChar.rightArm.rotation.z = -2.75;
+          W.nouziChar.leftLeg.rotation.z = -0.52; W.nouziChar.rightLeg.rotation.z = 0.52;
         } else if (cycle < 6.0) {
+          // Phase 2: Handstand hold with gymnastic scissor splits (hands planted right on top of mat!)
           const u = (cycle - 3.0) / 3.0;
           const inv = Math.sin(u * Math.PI);
-          r.position.set(-5.2, 0.08 + inv * 0.92, 2.2);
-          bp.rotation.set(0, 0, inv * Math.PI);
-          W.nouziChar.leftArm.rotation.z = 2.9; W.nouziChar.rightArm.rotation.z = -2.9;
-          W.nouziChar.leftLeg.rotation.z = -0.25 * Math.sin(elapsed * 4);
-          W.nouziChar.rightLeg.rotation.z = 0.25 * Math.sin(elapsed * 4);
+          const ang = inv * Math.PI;
+          const yClear = matTop + Math.max(0, -Math.cos(ang)) * reachH + Math.abs(Math.sin(ang)) * 0.42;
+          r.position.set(-5.2, yClear, 2.2);
+          r.rotation.set(0, 0, 0);
+          bp.rotation.set(0, 0, ang);
+          W.nouziChar.leftArm.rotation.z = 2.95; W.nouziChar.rightArm.rotation.z = -2.95;
+          const kick = inv > 0.75 ? Math.sin(elapsed * 5.0) * 0.34 : 0;
+          W.nouziChar.leftLeg.rotation.z = -0.18 - kick;
+          W.nouziChar.rightLeg.rotation.z = 0.18 - kick;
         } else {
+          // Phase 3: Joyful gymnastic leap & pirouette back across the mat!
           const u = (cycle - 6.0) / 3.0;
-          r.position.set(-5.2 - u * 2.4, 0.08 + Math.abs(Math.sin(u * Math.PI * 3)) * 0.42, 2.2);
+          r.position.set(-5.2 - u * 2.4, matTop + Math.abs(Math.sin(u * Math.PI * 3)) * 0.44, 2.2);
+          r.rotation.set(0, 0, 0);
           bp.rotation.set(0, u * Math.PI * 2, 0);
-          W.nouziChar.leftArm.rotation.z = 1.9; W.nouziChar.rightArm.rotation.z = -1.9;
+          W.nouziChar.leftArm.rotation.z = 2.1; W.nouziChar.rightArm.rotation.z = -2.1;
           W.nouziChar.leftLeg.rotation.z = 0; W.nouziChar.rightLeg.rotation.z = 0;
         }
       }
@@ -1725,12 +1737,12 @@ window.LailaSalma = window.LailaSalma || {};
     };
 
     W.getZoneLabel = (x, z) => {
-      if (z < -1.8 && x < -2) return "Mai's River-View Lasagna Kitchen 🍝";
-      if (z < -1.8 && x > 2) return "Dr. Mostafa's River-View Lounge 🩺🦴";
+      if (z < -1.8 && x < -2) return "Mai's Lasagna Kitchen 🍝";
+      if (z < -1.8 && x > 2) return "Dr. Mostafa's Lounge 🩺🦴";
       if (x < -2.5) return "Nouzi's Gymnastics Mat 🤸‍♀️";
       if (x > 2.5) return "Bibo's Toy Car Track 🚗";
-      if (z > 4.2) return '18th-Floor Entryway (Elevator & Qashqai 🛗🚙)';
-      return "18F River-View Board Game Table 🎲🌊";
+      if (z > 4.2) return "Entryway (Elevator & Qashqai 🛗🚙)";
+      return "Mai & Mostafa's Board Game Table 🎲";
     };
 
     W.drawMiniMap = (ctx, Wpx, Hpx, toX, toY) => {
@@ -1738,11 +1750,445 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fillStyle = '#f5e4cc'; ctx.fillRect(toX(-11), toY(-7.2), toX(11) - toX(-11), toY(7.4) - toY(-7.2));
       ctx.fillStyle = '#3d5a80'; ctx.fillRect(toX(3.8), toY(-5.4), toX(5.2) - toX(3.8), toY(-2.2) - toY(-5.4));
       ctx.fillStyle = '#3d2c1e'; ctx.font = 'bold 7.5px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('RIVER VIEW (18F) 🌊', toX(0), toY(-7.4) - 2);
+      ctx.fillText('RIVER VIEW 🌊', toX(0), toY(-7.4) - 2);
       ctx.fillText('MAI 🍝', toX(-5.6), toY(-4.0));
       ctx.fillText('MOSTAFA 🩺', toX(5.6), toY(-3.8));
       ctx.fillText('BOARD GAME 🎲', toX(0), toY(-0.6));
-      ctx.fillText('18F ELEVATOR 🛗', toX(0), toY(6.4));
+      ctx.fillText('ELEVATOR 🛗', toX(0), toY(6.4));
+    };
+
+    return W;
+  }
+
+  // =========================================================================
+  // DESTINATION 6: NGSC SPORTS CLUB (dest_ngsc)
+  // - Left Wing: Glass-Back Championship Squash Court for Laila!
+  // - Right Wing: Sunlit Olympic Swimming Pool where Laila & Salma BOTH swim!
+  // - Clubhouse Pergola, Palm Trees, Striped Umbrellas & Gray Qashqai!
+  // =========================================================================
+  function buildNGSC(worldGroup) {
+    const W = {
+      id: 'dest_ngsc',
+      isInterior: false,
+      colliders: [],
+      zones: [],
+      hiddenAnimals: [],
+      skyMesh: null,
+      squashBall: null,
+      poolFloatie: null
+    };
+    const addCol = (x, z, hw, hd) => W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+    W.getGroundHeight = () => 0;
+
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(205, 24, 16),
+      new THREE.MeshBasicMaterial({ map: LS.createSkyTexture(LS.state.timeMode, 'tokyo'), side: THREE.BackSide })
+    );
+    worldGroup.add(sky);
+    W.skyMesh = sky;
+
+    const lawn = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), LS.makeSurfaceMat(LS.createGrassTexture('tokyo')));
+    lawn.rotation.x = -Math.PI / 2; lawn.receiveShadow = true; worldGroup.add(lawn);
+
+    // Sunlit Stone Club Plaza & Walkways
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(31, 22), LS.makeSurfaceMat(LS.createStonePathTexture(), { color: 0xf0e4d0 }));
+    plaza.rotation.x = -Math.PI / 2; plaza.position.set(0, 0.02, 0); plaza.receiveShadow = true; worldGroup.add(plaza);
+
+    // Grand NGSC Welcome Arch & Clubhouse Pavilion along North Backdrop!
+    const trimMat = LS.makeToonMat(0x7c4e2e);
+    const clubMat = LS.makeToonMat(0xfdf5e6);
+    const navyMat = LS.makeToonMat(0x1e3a5f);
+    const clubSign = new THREE.Mesh(
+      new THREE.BoxGeometry(10.5, 1.25, 0.22),
+      new THREE.MeshBasicMaterial({
+        map: LS.createSignTexture('🎾 NGSC SPORTS CLUB • SQUASH & SWIMMING 🏊‍♀️', {
+          bg: '#0c4a6e', border: '#facc15', color: '#ffffff', font: 'bold 24px sans-serif', width: 720, height: 100
+        })
+      })
+    );
+    clubSign.position.set(0, 4.45, -10.5); worldGroup.add(clubSign);
+    [-5.4, 5.4].forEach(px => {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(0.42, 4.6, 0.42), clubMat);
+      p.position.set(px, 2.3, -10.5); p.castShadow = true; worldGroup.add(p);
+    });
+
+    // -----------------------------------------------------------------------
+    // LEFT WING (X = -7.6, Z = -2.0): GLASS-BACK CHAMPIONSHIP SQUASH COURT!
+    // -----------------------------------------------------------------------
+    const sqG = new THREE.Group();
+    sqG.position.set(-7.6, 0, -2.0);
+    // Maple Hardwood Squash Floor
+    const sqFloor = new THREE.Mesh(
+      new THREE.BoxGeometry(7.2, 0.12, 9.8),
+      LS.makeSurfaceMat(LS.createCedarPlankTexture(), { color: 0xf0c98a })
+    );
+    sqFloor.position.y = 0.06; sqFloor.receiveShadow = true; sqG.add(sqFloor);
+    // Crisp Red Squash Court Floor Lines (Short Line, Half-Court Line & Service Boxes!)
+    const redLine = LS.makeToonMat(0xdc2626);
+    const shortL = new THREE.Mesh(new THREE.BoxGeometry(7.0, 0.02, 0.09), redLine);
+    shortL.position.set(0, 0.13, 0.8); sqG.add(shortL);
+    const halfL = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.02, 4.0), redLine);
+    halfL.position.set(0, 0.13, 2.8); sqG.add(halfL);
+    [-2.5, 2.5].forEach(sx => {
+      const boxH = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.02, 0.08), redLine);
+      boxH.position.set(sx, 0.13, 2.6); sqG.add(boxH);
+      const boxV = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 1.8), redLine);
+      boxV.position.set(sx < 0 ? -1.5 : 1.5, 0.13, 1.7); sqG.add(boxV);
+    });
+    // White Front Wall + Side Walls + Red Tin, Service Line & Out Line!
+    const sqWallMat = LS.makeToonMat(0xf8fafc);
+    const fWall = new THREE.Mesh(new THREE.BoxGeometry(7.4, 4.6, 0.24), sqWallMat);
+    fWall.position.set(0, 2.3, -4.9); fWall.castShadow = true; sqG.add(fWall);
+    [-3.65, 3.65].forEach(wx => {
+      const sW = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.2, 9.8), sqWallMat);
+      sW.position.set(wx, 2.1, 0); sW.castShadow = true; sqG.add(sW);
+    });
+    // Front Wall Tin (bottom metal strip), Service Line & Top Out Line
+    const tin = new THREE.Mesh(new THREE.BoxGeometry(7.1, 0.48, 0.06), LS.makeToonMat(0xe11d48));
+    tin.position.set(0, 0.34, -4.76); sqG.add(tin);
+    const srvLine = new THREE.Mesh(new THREE.BoxGeometry(7.1, 0.07, 0.06), redLine);
+    srvLine.position.set(0, 1.85, -4.76); sqG.add(srvLine);
+    const outLine = new THREE.Mesh(new THREE.BoxGeometry(7.1, 0.08, 0.06), redLine);
+    outLine.position.set(0, 4.35, -4.76); sqG.add(outLine);
+    // Clear Glass Back Viewing Wall!
+    const gBack = new THREE.Mesh(
+      new THREE.BoxGeometry(7.2, 2.8, 0.08),
+      new THREE.MeshBasicMaterial({ color: 0xdff6ff, transparent: true, opacity: 0.26 })
+    );
+    gBack.position.set(0, 1.48, 4.9); sqG.add(gBack);
+    const sqBadge = new THREE.Mesh(
+      new THREE.BoxGeometry(4.2, 0.65, 0.12),
+      new THREE.MeshBasicMaterial({
+        map: LS.createSignTexture('🎾 NGSC SQUASH COURT', {
+          bg: '#0f172a', border: '#38bdf8', color: '#fef08a', font: 'bold 24px sans-serif', width: 380, height: 80
+        })
+      })
+    );
+    sqBadge.position.set(0, 4.88, -4.85); sqG.add(sqBadge);
+
+    // Live bouncing yellow-dot squash ball inside the court!
+    const sBall = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), LS.makeEmissiveMat(0x1e293b, 0xfacc15, 0.45));
+    sBall.position.set(0, 1.4, -1.5); sqG.add(sBall);
+    W.squashBall = sBall;
+
+    // Squash Rackets Rack beside glass back wall
+    [-2.4, -1.9].forEach(rx => {
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.65, 6), navyMat);
+      handle.position.set(rx, 0.55, 5.22); sqG.add(handle);
+      const head = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.035, 6, 14), LS.makeToonMat(0xf59e0b));
+      head.position.set(rx, 1.05, 5.22); sqG.add(head);
+    });
+    worldGroup.add(sqG);
+    addCol(-7.6, -2.0, 3.9, 5.1);
+
+    // -----------------------------------------------------------------------
+    // RIGHT WING (X = +7.4, Z = -2.0): SPARKLING OLYMPIC SWIMMING POOL!
+    // -----------------------------------------------------------------------
+    const poolG = new THREE.Group();
+    poolG.position.set(7.4, 0, -2.0);
+    // Crisp White Pool Coping Deck
+    const coping = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.16, 11.4), LS.makeToonMat(0xf8fafc));
+    coping.position.y = 0.08; coping.receiveShadow = true; poolG.add(coping);
+    // Deep Turquoise Sparkling Pool Water
+    const pWater = new THREE.Mesh(new THREE.PlaneGeometry(8.2, 10.0), LS.makeWaterMat(0.95));
+    pWater.rotation.x = -Math.PI / 2; pWater.position.y = 0.18; poolG.add(pWater);
+    // Floating Red & White Swimming Lane Ropes (3 lanes!)
+    [-1.4, 1.4].forEach(lx => {
+      for (let lz = -4.5; lz <= 4.5; lz += 0.75) {
+        const buoy = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.08, 0.34, 8),
+          LS.makeToonMat(Math.round(lz * 2) % 2 === 0 ? 0xef4444 : 0xffffff)
+        );
+        buoy.rotation.x = Math.PI / 2; buoy.position.set(lx, 0.21, lz); poolG.add(buoy);
+      }
+    });
+    // Starting Blocks at North End + Stainless Pool Ladders!
+    [-2.7, 0, 2.7].forEach(bx => {
+      const blk = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.56, 0.62), navyMat);
+      blk.position.set(bx, 0.38, -5.3); blk.castShadow = true; poolG.add(blk);
+      const bTop = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.08, 0.66), LS.makeToonMat(0x38bdf8));
+      bTop.position.set(bx, 0.68, -5.3); poolG.add(bTop);
+    });
+    // Colorful Donut Pool Floatie bobbing on the sparkling water!
+    const floatie = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.20, 10, 20), LS.makeToonMat(0xff6b9d));
+    floatie.rotation.x = Math.PI / 2; floatie.position.set(2.4, 0.28, 2.2); poolG.add(floatie);
+    W.poolFloatie = floatie;
+
+    // Striped Poolside Umbrellas & Cushioned Sun Loungers along East Deck!
+    [-3.2, 2.2].forEach((uz, ui) => {
+      const lounger = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.26, 2.05), LS.makeToonMat(0xffffff));
+      lounger.position.set(5.8, 0.20, uz); poolG.add(lounger);
+      const towel = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.06, 1.55), LS.makeToonMat(ui === 0 ? 0x38bdf8 : 0xfacc15));
+      towel.position.set(5.8, 0.36, uz); poolG.add(towel);
+      const uPole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6), trimMat);
+      uPole.position.set(6.1, 1.35, uz - 1.1); poolG.add(uPole);
+      const uTop = new THREE.Mesh(new THREE.ConeGeometry(1.55, 0.58, 8), LS.makeToonMat(ui === 0 ? 0x0284c7 : 0xf97316));
+      uTop.position.set(6.1, 2.65, uz - 1.1); uTop.castShadow = true; poolG.add(uTop);
+    });
+
+    const poolSign = new THREE.Mesh(
+      new THREE.BoxGeometry(4.4, 0.65, 0.12),
+      new THREE.MeshBasicMaterial({
+        map: LS.createSignTexture('🏊‍♀️ NGSC SWIMMING POOL', {
+          bg: '#0369a1', border: '#fef08a', color: '#ffffff', font: 'bold 24px sans-serif', width: 390, height: 80
+        })
+      })
+    );
+    poolSign.position.set(0, 2.55, -6.2); poolG.add(poolSign);
+    [-1.8, 1.8].forEach(px => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 2.5, 6), navyMat);
+      p.position.set(px, 1.25, -6.2); poolG.add(p);
+    });
+
+    worldGroup.add(poolG);
+    addCol(7.4, -2.0, 4.4, 5.2);
+
+    // Tropical Palms & Parked Gray Nissan Qashqai by the Club Gate!
+    [[-14, -9, 'green', 1.25], [14.5, -9, 'green', 1.25], [-14, 9, 'sakura', 1.15], [14.5, 9, 'olive', 1.2]].forEach(tc => {
+      if (LS.ghibli && LS.ghibli.buildGhibliTree) {
+        const t = LS.ghibli.buildGhibliTree(tc[2], tc[3]);
+        t.position.set(tc[0], 0, tc[1]); worldGroup.add(t);
+      }
+    });
+    if (LS.createNissanQashqai) {
+      const suv = LS.createNissanQashqai();
+      suv.position.set(-5.6, 0, 10.2);
+      suv.rotation.y = Math.PI * 0.35;
+      worldGroup.add(suv);
+      addCol(-5.6, 10.2, 2.2, 1.4);
+    }
+
+    // Friendly NGSC Coach & Lifeguard NPCs!
+    LS.spawnWorldNPCs(worldGroup, [
+      {
+        name: 'Coach Karim (Squash) 🎾',
+        line: "Ready to hit the court, Laila? Let's practice your winning squash rally! 🎾🏆",
+        pos: new THREE.Vector3(-4.2, 0, 4.2),
+        baseRot: 0.4,
+        waveOnNear: true,
+        char: { scale: 0.96, skinColor: 0xcf9772, hairColor: 0x1e1816, topColor: 0x0284c7, bottomColor: 0x1e293b, pants: true }
+      },
+      {
+        name: 'Coach Dina (Swim) 🏊‍♀️',
+        line: 'The pool water is sparkling warm today, Laila & Salma — jump in and swim together! 🏊‍♀️💦',
+        pos: new THREE.Vector3(3.6, 0, 4.4),
+        baseRot: -0.4,
+        waveOnNear: true,
+        char: { scale: 0.92, skinColor: 0xdca886, hairColor: 0x261a14, topColor: 0xf97316, bottomColor: 0x0f172a, longHair: true }
+      }
+    ]);
+
+    W.zones.push({ id: 'ngsc_squash', label: 'Play Squash Rally as Laila! 🎾🏆', pos: new THREE.Vector3(-7.6, 0, 4.2), radius: 3.0 });
+    W.zones.push({ id: 'ngsc_swim', label: 'Swim Together in the NGSC Pool (Laila & Salma!) 🏊‍♀️💦', pos: new THREE.Vector3(7.4, 0, 4.6), radius: 3.2 });
+    W.zones.push({ id: 'home_qashqai', label: 'Hop in Gray Nissan Qashqai (Drive Home or Elsewhere) 🚙', pos: new THREE.Vector3(-1.8, 0, 10.2), radius: 3.2 });
+
+    W.update = function (dt, elapsed) {
+      if (W.squashBall) {
+        const t = elapsed * 2.6;
+        W.squashBall.position.set(
+          Math.sin(t * 0.9) * 2.4,
+          0.35 + Math.abs(Math.sin(t * 1.9)) * 2.1,
+          -4.5 + Math.abs(Math.sin(t * 1.15)) * 6.8
+        );
+      }
+      if (W.poolFloatie) {
+        W.poolFloatie.position.y = 0.26 + Math.sin(elapsed * 2.5) * 0.05;
+        W.poolFloatie.rotation.z = Math.sin(elapsed * 1.1) * 0.12;
+      }
+    };
+
+    W.getZoneLabel = (x, z) => {
+      if (x < -2 && z < 5.5) return 'NGSC Championship Squash Court 🎾';
+      if (x > 2 && z < 5.5) return 'NGSC Olympic Swimming Pool 🏊‍♀️';
+      return 'NGSC Sports Club Plaza 🌴';
+    };
+
+    W.drawMiniMap = (ctx, Wpx, Hpx, toX, toY) => {
+      ctx.fillStyle = '#8cc972'; ctx.fillRect(0, 0, Wpx, Hpx);
+      ctx.fillStyle = '#f0e4d0'; ctx.fillRect(toX(-15), toY(-11), toX(15) - toX(-15), toY(11) - toY(-11));
+      ctx.fillStyle = '#f0c98a'; ctx.fillRect(toX(-11.2), toY(-7), toX(-4) - toX(-11.2), toY(3) - toY(-7));
+      ctx.fillStyle = '#38bdf8'; ctx.fillRect(toX(3.2), toY(-7), toX(11.6) - toX(3.2), toY(3) - toY(-7));
+      ctx.fillStyle = '#1e293b'; ctx.font = 'bold 7.5px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('SQUASH 🎾', toX(-7.6), toY(-2));
+      ctx.fillText('POOL 🏊‍♀️', toX(7.4), toY(-2));
+      ctx.fillText('QASHQAI 🚙', toX(-3.2), toY(10));
+    };
+
+    return W;
+  }
+
+  // =========================================================================
+  // PATERNAL GRANDPARENTS: GEDO MAHMOUD & NANA OMAIMA'S HOUSE (dest_gedo_mahmoud)
+  // Walkable cozy villa interior inside the Gated Community!
+  // =========================================================================
+  function buildGedoMahmoudHouse(worldGroup) {
+    const W = {
+      id: 'dest_gedo_mahmoud',
+      isInterior: true,
+      colliders: [],
+      zones: [],
+      hiddenAnimals: [],
+      coffeeSteams: []
+    };
+    const addCol = (x, z, hw, hd) => W.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+    W.getGroundHeight = () => 0;
+
+    const { trimMat } = buildRoomShell(worldGroup, 18, 14, 4.5, 0xdfb889, '#fdf4e4', 0x6f4326);
+
+    // Rich Patterned Persian Carpet in Center!
+    const rugMat = LS.createWovenRugTexture
+      ? LS.makeSurfaceMat(LS.createWovenRugTexture('#f4e2cc', '#2a6f5e', '#d4a359'))
+      : LS.makeToonMat(0xe8d5bc);
+    const rug = new THREE.Mesh(new THREE.PlaneGeometry(11.2, 8.0), rugMat);
+    rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.016, -0.6); worldGroup.add(rug);
+
+    // Sunlit Curtained Windows along North & East Walls + Golden Chandelier!
+    addDetailedWallWindow(worldGroup, -4.6, 2.45, -6.80, 0, 2.9, 1.85, 0xd8f0e8, trimMat);
+    addDetailedWallWindow(worldGroup, 4.8, 2.45, -6.80, 0, 2.9, 1.85, 0xd8f0e8, trimMat);
+
+    const brass = LS.makeToonMat(0xd4a359);
+    const chanG = new THREE.Group();
+    chanG.position.set(0, 3.68, -0.8);
+    const cStem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.82, 8), brass);
+    cStem.position.y = 0.41; chanG.add(cStem);
+    const cRing = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.045, 7, 20), brass);
+    cRing.rotation.x = Math.PI / 2; chanG.add(cRing);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), LS.makeEmissiveMat(0xfff7dc, 0xffd57a, 0.92));
+      orb.position.set(Math.cos(a) * 0.72, 0.12, Math.sin(a) * 0.72); chanG.add(orb);
+    }
+    if (LS.createGlowSprite) chanG.add(LS.createGlowSprite(0xffe094, 1.9));
+    worldGroup.add(chanG);
+
+    // Welcome Banner & Golden Family Portrait Gallery
+    const sign = new THREE.Mesh(
+      new THREE.BoxGeometry(6.8, 0.92, 0.12),
+      new THREE.MeshBasicMaterial({
+        map: LS.createSignTexture("🏡 GEDO MAHMOUD & NANA OMAIMA'S HOME 💛", {
+          bg: '#fff9ef', border: '#c66b47', color: '#3b2516', font: 'bold 22px sans-serif', width: 620, height: 100
+        })
+      })
+    );
+    sign.position.set(0, 3.65, -6.82); worldGroup.add(sign);
+
+    // LEFT SIDE: GEDO MAHMOUD'S COZY ARMCHAIR, BOOKSHELF & ARABIC COFFEE CORNER!
+    const chairPos = { x: -4.8, z: -3.2, rotY: 0.45 };
+    const chairMat = LS.makeToonMat(0x3a6b5c);
+    const cushMat = LS.makeToonMat(0x4f8a78);
+    const gChairG = new THREE.Group();
+    gChairG.position.set(chairPos.x, 0, chairPos.z);
+    gChairG.rotation.y = chairPos.rotY;
+    const gBase = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.24, 0.66), chairMat);
+    gBase.position.set(0, 0.20, -0.02); gBase.castShadow = true; gChairG.add(gBase);
+    const gCush = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.46), cushMat);
+    gCush.position.set(0, 0.33, 0.05); gChairG.add(gCush);
+    const gBack = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.78, 0.22), chairMat);
+    gBack.position.set(0, 0.66, -0.26); gBack.castShadow = true; gChairG.add(gBack);
+    [-0.47, 0.47].forEach(ax => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.48, 0.66), chairMat);
+      arm.position.set(ax, 0.36, -0.02); gChairG.add(arm);
+    });
+    [[-0.46, -0.25], [0.46, -0.25], [-0.46, 0.22], [0.46, 0.22]].forEach(lg => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.10, 6), trimMat);
+      leg.position.set(lg[0], 0.05, lg[1]); gChairG.add(leg);
+    });
+    worldGroup.add(gChairG);
+    addCol(chairPos.x, chairPos.z, 0.72, 0.72);
+
+    // Gedo Mahmoud's Coffee Side Table + Steaming Arabic Coffee + Bookshelf on West Wall!
+    const cx = -3.1, cz = -2.2;
+    const cTab = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 0.08, 16), trimMat);
+    cTab.position.set(cx, 0.62, cz); worldGroup.add(cTab);
+    const cLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.22, 0.60, 10), trimMat);
+    cLeg.position.set(cx, 0.30, cz); worldGroup.add(cLeg);
+    const kanaka = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.22, 10), brass);
+    kanaka.position.set(cx - 0.16, 0.77, cz - 0.10); worldGroup.add(kanaka);
+    const finjan = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.11, 10), LS.makeToonMat(0xfffdf8));
+    finjan.position.set(cx + 0.16, 0.72, cz + 0.10); worldGroup.add(finjan);
+    for (let i = 0; i < 2; i++) {
+      const st = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), LS.makeToonMat(0xffffff, { transparent: true, opacity: 0.48 }));
+      st.userData = { bx: cx + 0.16, by: 0.85, bz: cz + 0.10, phase: i * 0.55 };
+      worldGroup.add(st); W.coffeeSteams.push(st);
+    }
+    addCol(cx, cz, 0.70, 0.70);
+
+    // Tall Wooden Bookshelf along West Wall
+    const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.65, 2.5, 3.2), trimMat);
+    shelf.position.set(-8.45, 1.25, -2.0); worldGroup.add(shelf);
+    [0x2a9d8f, 0xe07a5f, 0x3b82f6, 0xe9c46a, 0x8b5cf6].forEach((bc, bi) => {
+      const bk = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.36, 0.42), LS.makeToonMat(bc));
+      bk.position.set(-8.30, 1.72, -3.1 + bi * 0.55); worldGroup.add(bk);
+    });
+
+    // RIGHT SIDE: NANA OMAIMA'S FAMILY DINING FEAST & SWEETS TABLE!
+    const dTabG = new THREE.Group();
+    dTabG.position.set(4.2, 0, -2.0);
+    const dtTop = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.12, 1.95), trimMat);
+    dtTop.position.y = 0.80; dtTop.castShadow = true; dTabG.add(dtTop);
+    const dtRun = new THREE.Mesh(new THREE.BoxGeometry(3.24, 0.02, 0.62), LS.makeToonMat(0xfff5e4));
+    dtRun.position.y = 0.87; dTabG.add(dtRun);
+    [[-1.35, -0.78], [1.35, -0.78], [-1.35, 0.78], [1.35, 0.78]].forEach(lp => {
+      const l = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.80, 7), trimMat);
+      l.position.set(lp[0], 0.40, lp[1]); dTabG.add(l);
+    });
+    // Home-cooked Egyptian family feast platter + Golden Basbousa dessert tray!
+    const platter = new THREE.Mesh(new THREE.CylinderGeometry(0.50, 0.44, 0.06, 14), brass);
+    platter.position.set(-0.55, 0.90, 0); dTabG.add(platter);
+    const feast = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), LS.makeToonMat(0xd97706));
+    feast.scale.set(1.2, 0.55, 1.0); feast.position.set(-0.55, 1.00, 0); dTabG.add(feast);
+    const basbousa = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.10, 0.48), LS.makeToonMat(0xf4b942));
+    basbousa.position.set(0.72, 0.92, 0.08); dTabG.add(basbousa);
+    worldGroup.add(dTabG);
+    addCol(4.2, -2.0, 1.75, 1.15);
+
+    addIndoorPlant(worldGroup, -7.8, 4.6, 0x2a9d8f, true);
+    addIndoorPlant(worldGroup, 7.8, 4.6, 0xc66b47, true);
+
+    // Exact seated coordinates for Gedo Mahmoud + Warm standing Nana Omaima!
+    const gmX = chairPos.x + (-0.02) * Math.sin(chairPos.rotY);
+    const gmZ = chairPos.z + (-0.02) * Math.cos(chairPos.rotY);
+
+    LS.spawnWorldNPCs(worldGroup, [
+      {
+        name: 'Gedo Mahmoud ☕',
+        line: 'Ahlan ya Laila & Salma! Come give Gedo Mahmoud a big hug — I saved my best stories for you! 💛☕',
+        pos: new THREE.Vector3(gmX, 0.02, gmZ),
+        baseRot: chairPos.rotY,
+        seated: true,
+        char: { scale: 0.96, skinColor: 0xd9a480, hairColor: 0xd0d4d8, topColor: 0x3b5998, bottomColor: 0x2b3a4a, pants: true, faceOpts: { glasses: true, mustache: true, elder: true } }
+      },
+      {
+        name: 'Nana Omaima 🍲💛',
+        line: 'Habibati Laila & Salma! Nana Omaima cooked a delicious homemade feast & sweet basbousa just for you! 🍲🍯💛',
+        pos: new THREE.Vector3(4.2, 0, -4.1),
+        baseRot: 0,
+        waveOnNear: true,
+        char: { scale: 0.90, skinColor: 0xe6b898, hairColor: 0xcfd4da, topColor: 0x2a9d8f, bottomColor: 0x4a5568, hairBun: true, faceOpts: { elder: true } }
+      }
+    ]);
+
+    W.zones.push({ id: 'visit_gedo_mahmoud', label: 'Hug & Chat with Gedo Mahmoud ☕💛', pos: new THREE.Vector3(-3.8, 0, 0.2), radius: 2.8 });
+    W.zones.push({ id: 'visit_nana_omaima', label: "Enjoy Nana Omaima's Homemade Feast & Sweets 🍲🍯", pos: new THREE.Vector3(4.2, 0, 0.4), radius: 2.8 });
+    W.zones.push({ id: 'exit_interior', label: 'Step Back Outside into Our Gated Community 🏡🌳', pos: new THREE.Vector3(0, 0, 5.7), radius: 2.3 });
+
+    W.update = (dt, elapsed) => {
+      W.coffeeSteams.forEach(st => {
+        const t = (elapsed * 0.55 + st.userData.phase) % 1.0;
+        st.position.set(st.userData.bx, st.userData.by + t * 0.48, st.userData.bz);
+        st.scale.setScalar(0.65 + t * 0.9);
+        st.material.opacity = (1 - t) * 0.45;
+      });
+    };
+    W.getZoneLabel = (x) => (x < 0 ? "Gedo Mahmoud's Study & Coffee Corner ☕" : "Nana Omaima's Dining Room 🍲💛");
+    W.drawMiniMap = (ctx, Wpx, Hpx, toX, toY) => {
+      ctx.fillStyle = '#f5e4cf'; ctx.fillRect(0, 0, Wpx, Hpx);
+      ctx.fillStyle = '#3a6b5c'; ctx.fillRect(toX(-5.8), toY(-4.2), toX(-3.8) - toX(-5.8), toY(-2.2) - toY(-4.2));
+      ctx.fillStyle = '#c66b47'; ctx.fillRect(toX(2.5), toY(-3.2), toX(5.9) - toX(2.5), toY(-0.8) - toY(-3.2));
+      ctx.fillStyle = '#3d2c1e'; ctx.font = 'bold 7.5px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('GEDO MAHMOUD ☕', toX(-4.6), toY(-4.8));
+      ctx.fillText('NANA OMAIMA 🍲', toX(4.2), toY(-3.8));
+      ctx.fillText('EXIT 🏡', toX(0), toY(5.6));
     };
 
     return W;
@@ -1753,4 +2199,6 @@ window.LailaSalma = window.LailaSalma || {};
   LS.registerWorld('dest_cosmo_city', { build: buildCosmoCity });
   LS.registerWorld('dest_grandparents', { build: buildGrandparents });
   LS.registerWorld('dest_mai_mostafa', { build: buildMaiMostafa });
+  LS.registerWorld('dest_ngsc', { build: buildNGSC });
+  LS.registerWorld('dest_gedo_mahmoud', { build: buildGedoMahmoudHouse });
 })(window.LailaSalma);

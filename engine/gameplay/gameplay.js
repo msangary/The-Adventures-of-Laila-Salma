@@ -1395,19 +1395,22 @@ window.LailaSalma = window.LailaSalma || {};
   let tvGameTimer = null;
   let cosmoGameTimer = null;
   let cosmoClawRAF = null;
+  let ngscTimer = null;
   LS.closeAllModals = function () {
     LS.runtime.modalOpen = false;
     clearInterval(timerInterval);
     if (tvGameTimer) { clearInterval(tvGameTimer); tvGameTimer = null; }
     if (cosmoGameTimer) { clearInterval(cosmoGameTimer); cosmoGameTimer = null; }
     if (cosmoClawRAF) { cancelAnimationFrame(cosmoClawRAF); cosmoClawRAF = null; }
+    if (ngscTimer) { clearInterval(ngscTimer); ngscTimer = null; }
     [
       'passport-modal', 'airport-modal', 'local-shop-modal', 'shinkansen-modal', 'school-modal', 'ramen-modal',
       'sushi-modal', 'tea-modal', 'shop-modal', 'gachapon-modal',
       'drink-modal', 'mochi-modal', 'clubhouse-modal', 'ryokan-modal', 'shrine-modal',
       'safari-guide-modal', 'safari-campfire-modal', 'safari-tent-modal',
       'kitchen-modal', 'piano-modal', 'tv-game-modal', 'home-restaurant-modal', 'globe-modal', 'quest-modal',
-      'qashqai-modal', 'eatery-modal', 'yiwan-modal', 'cosmo-arcade-modal', 'mai-lasagna-modal', 'board-game-modal'
+      'qashqai-modal', 'eatery-modal', 'yiwan-modal', 'cosmo-arcade-modal', 'mai-lasagna-modal', 'board-game-modal',
+      'ngsc-game-modal'
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add('hidden');
@@ -2161,7 +2164,7 @@ window.LailaSalma = window.LailaSalma || {};
     const list = document.getElementById('qashqai-dest-list');
     if (list) {
       list.innerHTML = '';
-      const destIds = ['dest_eatery', 'dest_yiwan', 'dest_cosmo_city', 'dest_grandparents', 'dest_mai_mostafa'];
+      const destIds = ['dest_eatery', 'dest_yiwan', 'dest_cosmo_city', 'dest_grandparents', 'dest_mai_mostafa', 'dest_ngsc'];
       if (LS.state.currentWorld !== 'home_neighborhood') {
         destIds.unshift('home_neighborhood');
       }
@@ -2170,7 +2173,7 @@ window.LailaSalma = window.LailaSalma || {};
         if (!w) return;
         const isHere = LS.state.currentWorld === wid;
         const row = document.createElement('div');
-        row.className = 'ramen-item' + (wid === 'dest_mai_mostafa' ? ' featured' : '');
+        row.className = 'ramen-item' + (wid === 'dest_mai_mostafa' || wid === 'dest_ngsc' ? ' featured' : '');
         row.innerHTML = '<div><strong>' + w.emoji + ' ' + w.title + '</strong><div class="ramen-desc">' + w.subtitle + '</div></div>';
         const btn = document.createElement('button');
         btn.className = isHere ? 'btn-secondary' : 'btn-primary';
@@ -2554,5 +2557,143 @@ window.LailaSalma = window.LailaSalma || {};
 
     const m = document.getElementById('board-game-modal');
     if (m) m.classList.remove('hidden');
+  };
+
+  // =========================================================================
+  // NGSC SPORTS CLUB: LAILA'S SQUASH RALLY & LAILA + SALMA SWIMMING POOL!
+  // =========================================================================
+  LS.openNGSCModal = function (mode) {
+    if (ngscTimer) { clearInterval(ngscTimer); ngscTimer = null; }
+    LS.runtime.modalOpen = true;
+    const titleEl = document.getElementById('ngsc-game-title');
+    const subEl = document.getElementById('ngsc-game-sub');
+    const stage = document.getElementById('ngsc-game-stage');
+    const msg = document.getElementById('ngsc-game-msg');
+    if (!stage) return;
+    stage.innerHTML = '';
+    if (msg) msg.textContent = '';
+
+    if (mode === 'squash') {
+      if (titleEl) titleEl.textContent = "🎾 NGSC — Laila's Squash Rally!";
+      if (subEl) subEl.textContent = 'Tap Swing Racket when the squash ball rebounds into the green strike zone! Reach 6 hits to win!';
+      let hits = 0;
+      let ballPos = 10; // 0 = front wall, 100 = back glass
+      let dir = 1;
+      let won = false;
+
+      stage.innerHTML =
+        '<div style="background:linear-gradient(180deg,#f8fafc 0%,#e2e8f0 40%,#f0c98a 40%,#dfb06c 100%);border:2px solid #dc2626;border-radius:12px;padding:12px;position:relative;min-height:155px;">' +
+        '<div style="text-align:center;font-weight:800;color:#dc2626;font-size:12px;letter-spacing:1px;border-bottom:2px solid #dc2626;padding-bottom:4px;">FRONT WALL • SERVICE LINE</div>' +
+        '<div id="sq-ball" style="position:absolute;left:50%;top:36px;transform:translateX(-50%);width:20px;height:20px;border-radius:50%;background:#1e293b;border:3px solid #facc15;box-shadow:0 3px 8px rgba(0,0,0,0.35);"></div>' +
+        '<div style="position:absolute;left:12px;right:12px;bottom:14px;height:38px;border:2px dashed #16a34a;border-radius:10px;background:rgba(34,197,94,0.16);display:flex;align-items:center;justify-content:center;font-weight:800;color:#15803d;font-size:12px;">👧 Laila Strike Zone</div>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;">' +
+        '<strong id="sq-score">Rally: 0 / 6 🎾</strong>' +
+        '<button id="btn-sq-swing" class="btn-primary" type="button">🎾 Swing Racket!</button>' +
+        '</div>';
+
+      const ballEl = document.getElementById('sq-ball');
+      const scoreEl = document.getElementById('sq-score');
+      const swingBtn = document.getElementById('btn-sq-swing');
+
+      ngscTimer = setInterval(() => {
+        if (!document.getElementById('ngsc-game-modal') || document.getElementById('ngsc-game-modal').classList.contains('hidden')) {
+          clearInterval(ngscTimer); ngscTimer = null; return;
+        }
+        ballPos += dir * 6.5;
+        if (ballPos >= 96) { ballPos = 96; dir = -1; }
+        if (ballPos <= 12) { ballPos = 12; dir = 1; LS.playTone(360, 0.05, 'sine', 0.08); }
+        if (ballEl) {
+          ballEl.style.top = (28 + ballPos * 0.95) + 'px';
+          ballEl.style.left = (50 + Math.sin(ballPos * 0.08) * 18) + '%';
+        }
+      }, 65);
+
+      if (swingBtn) {
+        swingBtn.onclick = () => {
+          if (won) { LS.openNGSCModal('squash'); return; }
+          if (ballPos >= 58) {
+            hits++;
+            dir = -1;
+            ballPos = 54;
+            LS.playSFX('coin');
+            if (scoreEl) scoreEl.textContent = 'Rally: ' + hits + ' / 6 🎾';
+            if (msg) msg.textContent = 'Great shot, Laila! 🔥';
+            if (hits >= 6) {
+              won = true;
+              clearInterval(ngscTimer); ngscTimer = null;
+              LS.addCoins(30); LS.addXP(28);
+              LS.unlockStamp('dest_ngsc');
+              if (LS.completeCozyMission) LS.completeCozyMission('play');
+              LS.playSFX('correct');
+              if (msg) msg.innerHTML = '🏆 <strong>Awesome Squash Match, Laila!</strong> Coach Karim cheers! (+30c &amp; +28 XP!)';
+              swingBtn.textContent = '🔄 Play Another Rally!';
+            }
+          } else {
+            LS.playSFX('wrong');
+            if (msg) msg.textContent = 'Wait for the ball to enter Laila\'s green strike zone!';
+          }
+        };
+      }
+    } else {
+      // SWIM MODE: Both Laila AND Salma swim side by side!
+      if (titleEl) titleEl.textContent = '🏊‍♀️ NGSC Pool — Laila & Salma Swim!';
+      if (subEl) subEl.textContent = 'Tap Swim Together to splash across the sparkling NGSC pool with Laila & Salma!';
+      let lailaProg = 6, salmaProg = 6, done = false;
+
+      stage.innerHTML =
+        '<div style="background:linear-gradient(180deg,#0ea5e9 0%,#0284c7 100%);border:3px solid #e0f2fe;border-radius:14px;padding:14px;color:#fff;">' +
+        '<div style="margin-bottom:12px;">' +
+        '<div style="font-size:12px;font-weight:800;margin-bottom:4px;">Lane 1 — 👧 Laila Swimming!</div>' +
+        '<div style="position:relative;height:28px;background:rgba(255,255,255,0.22);border-radius:14px;overflow:hidden;">' +
+        '<div id="swim-laila-bar" style="height:100%;width:6%;background:linear-gradient(90deg,#f472b6,#fb7185);border-radius:14px;transition:width 0.16s;"></div>' +
+        '<span id="swim-laila-ico" style="position:absolute;top:2px;left:6%;font-size:18px;transition:left 0.16s;">🏊‍♀️</span>' +
+        '</div></div>' +
+        '<div style="border-top:3px dashed rgba(239,68,68,0.8);margin:8px 0 10px;"></div>' +
+        '<div>' +
+        '<div style="font-size:12px;font-weight:800;margin-bottom:4px;">Lane 2 — 🧒 Salma Swimming!</div>' +
+        '<div style="position:relative;height:28px;background:rgba(255,255,255,0.22);border-radius:14px;overflow:hidden;">' +
+        '<div id="swim-salma-bar" style="height:100%;width:6%;background:linear-gradient(90deg,#facc15,#fb923c);border-radius:14px;transition:width 0.16s;"></div>' +
+        '<span id="swim-salma-ico" style="position:absolute;top:2px;left:6%;font-size:18px;transition:left 0.16s;">🏊‍♀️</span>' +
+        '</div></div>' +
+        '</div>' +
+        '<div style="text-align:center;margin-top:12px;">' +
+        '<button id="btn-ngsc-stroke" class="btn-primary" type="button">💦 Swim &amp; Splash Together! (Laila &amp; Salma)</button>' +
+        '</div>';
+
+      const btn = document.getElementById('btn-ngsc-stroke');
+      const lBar = document.getElementById('swim-laila-bar');
+      const lIco = document.getElementById('swim-laila-ico');
+      const sBar = document.getElementById('swim-salma-bar');
+      const sIco = document.getElementById('swim-salma-ico');
+
+      if (btn) {
+        btn.onclick = () => {
+          if (done) { LS.openNGSCModal('swim'); return; }
+          lailaProg = Math.min(100, lailaProg + 14 + Math.floor(Math.random() * 6));
+          salmaProg = Math.min(100, salmaProg + 14 + Math.floor(Math.random() * 6));
+          LS.playTone(520 + lailaProg * 2.5, 0.10, 'sine', 0.12);
+          if (lBar) lBar.style.width = lailaProg + '%';
+          if (lIco) lIco.style.left = Math.min(88, lailaProg - 4) + '%';
+          if (sBar) sBar.style.width = salmaProg + '%';
+          if (sIco) sIco.style.left = Math.min(88, salmaProg - 4) + '%';
+          if (msg) msg.textContent = 'Splash! Laila & Salma are swimming super fast! 💦';
+          if (lailaProg >= 100 && salmaProg >= 100) {
+            done = true;
+            LS.addCoins(30); LS.addXP(28);
+            LS.runtime.stamina = 100;
+            LS.runtime.buff = { name: 'NGSC Swim Refresh', short: 'Swim💦', speedMult: 1.25, infiniteStamina: true, expiresAt: Date.now() + 90000 };
+            LS.unlockStamp('dest_ngsc');
+            if (LS.completeCozyMission) LS.completeCozyMission('play');
+            LS.playSFX('correct');
+            if (msg) msg.innerHTML = '🏆 <strong>Woohoo! Laila &amp; Salma finished their NGSC swim lap together!</strong> (+30c, +28 XP &amp; Swim Boost!)';
+            btn.textContent = '🔄 Swim Another Lap!';
+          }
+        };
+      }
+    }
+
+    const modal = document.getElementById('ngsc-game-modal');
+    if (modal) modal.classList.remove('hidden');
   };
 })(window.LailaSalma);

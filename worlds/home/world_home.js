@@ -932,157 +932,118 @@ window.LailaSalma = window.LailaSalma || {};
     });
 
     // -----------------------------------------------------------------------
-    // Family Dinner Restaurant — Bella Bistro (East, X=+31, Z=-10)
-    // Striped awning, wood vine pergola, glowing fairy lights, pizza chimney,
-    // A-frame menu board, multiple patio tables & potted herbs!
     // -----------------------------------------------------------------------
-    safeRun('home_restaurant', () => {
+    // Gedo Mahmoud & Nana Omaima's House (Paternal Grandparents, East X=+31, Z=-10)
+    // Sunlit Ghibli family villa with terracotta roof, climbing bougainvillea pergola,
+    // glowing porch lanterns, garden seating, citrus pots & welcoming entrance!
+    // -----------------------------------------------------------------------
+    safeRun('gedo_mahmoud_house', () => {
       const g = new THREE.Group();
       g.position.set(31.0, 0, -10.0);
       g.rotation.y = -Math.PI / 2;
 
-      const wallMat = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture('#fde8cd') });
-      const stoneMat = LS.makeToonMat(0xd4bfa4);
-      const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#a63c32') });
+      const wallMat = LS.makeToonMat(0xffffff, { map: LS.createPlasterTexture('#fdf1dc') });
+      const stoneMat = LS.makeToonMat(0xd6c3aa);
+      const roofMat = LS.makeToonMat(0xffffff, { map: LS.createRoofTileTexture('#b85236') });
       const woodMat = LS.makeToonMat(0x5e3a22);
       const winMat = LS.makeEmissiveMat(0xffe7b2, 0xffc663, 0.62);
       const vineMat = LS.makeToonMat(0x3f8f47);
+      const bougMat = LS.makeToonMat(0xe65282);
 
-      // Terracotta Tile Outdoor Patio Floor!
-      const patioPad = new THREE.Mesh(new THREE.BoxGeometry(13.8, 0.08, 7.6), LS.makeToonMat(0xdcb48d));
+      // Sunlit Garden Stone Terrace & Entry Path!
+      const patioPad = new THREE.Mesh(new THREE.BoxGeometry(13.8, 0.08, 7.6), LS.makeToonMat(0xdfd0b8));
       patioPad.position.set(0, 0.04, 7.2); patioPad.receiveShadow = true; g.add(patioPad);
 
-      const body = new THREE.Mesh(new THREE.BoxGeometry(12.8, 5.6, 8.6), wallMat);
-      body.position.y = 2.8; body.castShadow = true; body.receiveShadow = true; g.add(body);
-      const base = new THREE.Mesh(new THREE.BoxGeometry(13.1, 1.15, 8.9), stoneMat);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(12.8, 5.8, 8.8), wallMat);
+      body.position.y = 2.9; body.castShadow = true; body.receiveShadow = true; g.add(body);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(13.1, 1.15, 9.1), stoneMat);
       base.position.y = 0.58; g.add(base);
 
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(9.8, 2.5, 4), roofMat);
-      roof.position.y = 6.8; roof.rotation.y = Math.PI / 4; roof.scale.set(1.06, 1.0, 0.76);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(9.9, 2.6, 4), roofMat);
+      roof.position.y = 7.05; roof.rotation.y = Math.PI / 4; roof.scale.set(1.06, 1.0, 0.76);
       roof.castShadow = true; g.add(roof);
 
-      // Wood-Fired Brick Pizza Oven Chimney puffing tiny cozy smoke puffs!
-      const ovenChim = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.6, 2.8, 10), LS.makeToonMat(0xa64438));
-      ovenChim.position.set(-4.2, 7.5, -1.6); ovenChim.castShadow = true; g.add(ovenChim);
+      // Cozy Home Chimney puffing gentle warm hearth wisps!
+      const homeChim = new THREE.Mesh(new THREE.BoxGeometry(1.05, 2.5, 1.05), LS.makeToonMat(0xb85c44));
+      homeChim.position.set(-4.0, 7.5, -1.6); homeChim.castShadow = true; g.add(homeChim);
       for (let i = 0; i < 4; i++) {
-        const puff = new THREE.Mesh(new THREE.SphereGeometry(0.28, 7, 6), LS.makeToonMat(0xfffaf0, { transparent: true, opacity: 0.5 }));
-        puff.userData = { baseX: 31.0 + 1.6, baseY: 9.0, baseZ: -10.0 - 4.2, phase: i * 0.25 };
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(0.24, 7, 6), LS.makeToonMat(0xfffaf0, { transparent: true, opacity: 0.44 }));
+        puff.userData = { baseX: 31.0 + 1.6, baseY: 9.0, baseZ: -10.0 - 4.0, phase: i * 0.25 };
         worldGroup.add(puff);
         W.ovenSmokes.push(puff);
       }
 
-      // Burgundy & cream alternating striped bistro awning!
-      for (let i = -7; i <= 7; i++) {
-        const stripe = new THREE.Mesh(
-          new THREE.BoxGeometry(0.78, 0.16, 2.35),
-          LS.makeToonMat(Math.abs(i) % 2 === 0 ? 0xb8333a : 0xfff6e5)
-        );
-        stripe.position.set(i * 0.78, 3.25, 5.15);
-        stripe.rotation.x = 0.24; stripe.castShadow = true; g.add(stripe);
-      }
-
-      // Wooden Outdoor Pergola Beams & Climbing Vines + Warm Fairy String Lights!
+      // Wooden Garden Pergola with Lush Climbing Bougainvillea & Warm Fairy Lights!
       [-5.6, 5.6].forEach(px => {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 3.3, 8), woodMat);
-        post.position.set(px, 1.65, 9.6); post.castShadow = true; g.add(post);
-        // Climbing vine on post
-        const v = new THREE.Mesh(new THREE.SphereGeometry(0.28, 7, 6), vineMat);
-        v.scale.set(0.9, 3.2, 0.9); v.position.set(px, 2.2, 9.6); g.add(v);
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 3.3, 8), woodMat);
+        post.position.set(px, 1.65, 8.8); post.castShadow = true; g.add(post);
+        const v = new THREE.Mesh(new THREE.SphereGeometry(0.30, 7, 6), vineMat);
+        v.scale.set(0.9, 3.1, 0.9); v.position.set(px, 2.15, 8.8); g.add(v);
+        const fl = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32, 0), bougMat);
+        fl.position.set(px, 3.18, 8.75); g.add(fl);
       });
       const frontBeam = new THREE.Mesh(new THREE.BoxGeometry(11.8, 0.18, 0.22), woodMat);
-      frontBeam.position.set(0, 3.28, 9.6); g.add(frontBeam);
+      frontBeam.position.set(0, 3.28, 8.8); g.add(frontBeam);
       [-4.2, -1.4, 1.4, 4.2].forEach(bx => {
-        const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 4.6), woodMat);
-        rafter.position.set(bx, 3.35, 7.4); g.add(rafter);
+        const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 4.4), woodMat);
+        rafter.position.set(bx, 3.35, 6.6); g.add(rafter);
+        const bClump = new THREE.Mesh(new THREE.SphereGeometry(0.36, 7, 6), bougMat);
+        bClump.scale.set(1.5, 0.55, 0.9); bClump.position.set(bx, 3.50, 8.65); g.add(bClump);
       });
 
-      // Warm glowing bistro fairy string bulbs across the pergola!
+      // Warm glowing porch fairy bulbs across the veranda!
       [-4.6, -2.8, -1.0, 1.0, 2.8, 4.6].forEach((lx, li) => {
-        const ySag = 3.16 - Math.sin((li / 5) * Math.PI) * 0.24;
-        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe8a8 }));
-        bulb.position.set(lx, ySag, 9.45); g.add(bulb);
+        const ySag = 3.16 - Math.sin((li / 5) * Math.PI) * 0.22;
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe8a8 }));
+        bulb.position.set(lx, ySag, 8.65); g.add(bulb);
         if (LS.createGlowSprite) {
-          const halo = LS.createGlowSprite(0xffcf70, 1.25);
+          const halo = LS.createGlowSprite(0xffcf70, 1.2);
           halo.position.copy(bulb.position); g.add(halo);
         }
       });
 
-      // Warm glowing mullioned bistro windows & wood entrance
-      [-3.6, 3.6].forEach(wx => {
-        const dw = createDetailedWindow(2.6, 1.85, winMat, woodMat, 0x7c2529);
-        dw.position.set(wx, 2.0, 4.35); g.add(dw);
+      // Warm glowing shuttered home windows & inviting mahogany front door
+      [-3.8, 3.8].forEach(wx => {
+        const dw = createDetailedWindow(2.5, 1.85, winMat, woodMat, 0x2a9d8f);
+        dw.position.set(wx, 2.15, 4.46); g.add(dw);
       });
-      const door = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.6, 0.24), woodMat);
-      door.position.set(0, 1.32, 4.36); g.add(door);
-      const doorWin = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.15, 0.28), winMat);
-      doorWin.position.set(0, 1.85, 4.38); g.add(doorWin);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(1.95, 2.65, 0.24), woodMat);
+      door.position.set(0, 1.34, 4.46); g.add(door);
+      const doorWin = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.05, 0.28), winMat);
+      doorWin.position.set(0, 1.90, 4.48); g.add(doorWin);
+      const brassKnob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 7, 6), LS.makeToonMat(0xe9c46a));
+      brassKnob.position.set(0.68, 1.25, 4.62); g.add(brassKnob);
 
-      // Potted Olive Trees & Chalkboard A-Frame Menu Sign!
-      [-1.55, 1.55].forEach(px => {
-        const pot = createPottedTree(0xb85838, 0x528f4d, null);
-        pot.position.set(px, 0.08, 4.95); g.add(pot);
+      // Potted Olive & Citrus Trees framing the porch!
+      [-1.75, 1.75, -5.2, 5.2].forEach(px => {
+        const pot = createPottedTree(0xb85838, 0x4b8f47, 0xffc857);
+        pot.position.set(px, 0.08, 5.15); g.add(pot);
       });
-      const menuStand = new THREE.Mesh(
-        new THREE.BoxGeometry(1.0, 1.35, 0.14),
-        new THREE.MeshBasicMaterial({
-          map: LS.createSignTexture('🍕 TODAY: PIZZA & PASTA!', {
-            bg: '#23312d', border: '#d9a45b', color: '#fff8e7', font: 'bold 24px sans-serif', width: 256, height: 320
-          })
-        })
-      );
-      menuStand.position.set(-5.2, 0.78, 8.9); menuStand.rotation.y = 0.35; menuStand.rotation.x = -0.14; g.add(menuStand);
+
+      // Cozy Wooden Garden Bench on the front veranda
+      const benchSeat = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.10, 0.56), woodMat);
+      benchSeat.position.set(-3.6, 0.48, 6.8); g.add(benchSeat);
+      const benchBack = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.52, 0.09), woodMat);
+      benchBack.position.set(-3.6, 0.78, 6.52); g.add(benchBack);
 
       const sign = new THREE.Mesh(
-        new THREE.BoxGeometry(6.8, 1.0, 0.18),
+        new THREE.BoxGeometry(7.8, 1.02, 0.18),
         new THREE.MeshBasicMaterial({
-          map: LS.createSignTexture('🍽️ BELLA BISTRO • FAMILY DINNER', {
-            bg: '#fff6ea', border: '#b8333a', color: '#6b1d22', font: 'bold 28px sans-serif', width: 580, height: 110
+          map: LS.createSignTexture("🏡 GEDO MAHMOUD & NANA OMAIMA'S HOUSE 💛", {
+            bg: '#fff9ef', border: '#c66b47', color: '#4a2b14', font: 'bold 23px sans-serif', width: 640, height: 104
           })
         })
       );
-      sign.position.set(0, 4.65, 4.45); g.add(sign);
-
-      // Decorative second cozy patio table with striped umbrella on South side of Bistro!
-      const extraT = new THREE.Group();
-      extraT.position.set(-3.2, 0.08, 7.6);
-      const etLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 0.72, 8), woodMat);
-      etLeg.position.y = 0.36; extraT.add(etLeg);
-      const etTop = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.08, 14), LS.makeToonMat(0xfff5e4));
-      etTop.position.y = 0.74; extraT.add(etTop);
-      const uPole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.3, 6), woodMat);
-      uPole.position.y = 1.45; extraT.add(uPole);
-      const uCanopy = new THREE.Mesh(new THREE.ConeGeometry(1.45, 0.55, 8), LS.makeToonMat(0xb8333a));
-      uCanopy.position.y = 2.55; uCanopy.castShadow = true; extraT.add(uCanopy);
-      g.add(extraT);
+      sign.position.set(0, 4.72, 4.56); g.add(sign);
 
       worldGroup.add(g);
-      addCollider(31.0, -10.0, 4.9, 7.0);
-
-      // Hero Outdoor Family Dinner Patio Table (X=24.8, Z=-8.8 — matches diningConfig!)
-      const tableG = new THREE.Group();
-      tableG.position.set(24.8, 0.04, -8.8);
-      const tLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.24, 0.72, 10), woodMat);
-      tLeg.position.y = 0.36; tableG.add(tLeg);
-      const tTop = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.1, 2.36), LS.makeToonMat(0xfff5e4));
-      tTop.position.y = 0.74; tTop.castShadow = true; tableG.add(tTop);
-      const runner = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.11, 2.38), LS.makeToonMat(0xb8333a));
-      runner.position.y = 0.745; tableG.add(runner);
-      const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.2, 8), LS.makeEmissiveMat(0xfff4d0, 0xffcc66, 0.9));
-      candle.position.set(0, 0.89, 0); tableG.add(candle);
-      [[-1.1, -0.6], [-1.1, 0.6], [1.1, -0.6], [1.1, 0.6]].forEach(ch => {
-        const seat = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.45, 0.54), woodMat);
-        seat.position.set(ch[0], 0.225, ch[1]); tableG.add(seat);
-        const back = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.52, 0.52), woodMat);
-        back.position.set(ch[0] + (ch[0] < 0 ? -0.24 : 0.24), 0.64, ch[1]); tableG.add(back);
-      });
-      worldGroup.add(tableG);
-      addCollider(24.8, -8.8, 0.95, 1.3);
+      addCollider(31.0, -10.0, 5.0, 7.0);
 
       W.zones.push({
-        id: 'home_restaurant',
-        label: 'Have Family Dinner at Bella Bistro 🍽️',
-        pos: new THREE.Vector3(21.6, 0, -8.8),
-        radius: 3.5
+        id: 'enter_gedo_mahmoud',
+        label: "Step Inside Gedo Mahmoud & Nana Omaima's House 🏡💛",
+        pos: new THREE.Vector3(23.2, 0, -10.0),
+        radius: 3.4
       });
     });
 
@@ -1529,12 +1490,12 @@ window.LailaSalma = window.LailaSalma || {};
           char: { scale: 0.94, skinColor: 0xe6b595, hairColor: 0x2c1d16, topColor: 0x2a9d8f, bottomColor: 0x264653, longHair: true }
         },
         {
-          name: 'Chef Mario',
-          line: 'Buonasera Laila & Salma! Fresh wood-fired pizza & pasta at Bella Bistro! 🍝🍽️',
-          pos: new THREE.Vector3(24.5, 0, -5.6),
+          name: 'Nana Omaima (Garden)',
+          line: "Ahlan ya Laila & Salma! Step right inside — Gedo Mahmoud and I made your favorite treats! 🏡💛",
+          pos: new THREE.Vector3(24.2, 0, -5.8),
           baseRot: -Math.PI / 2,
           waveOnNear: true,
-          char: { scale: 0.96, skinColor: 0xf4ccb2, hairColor: 0x3b2c25, topColor: 0xffffff, bottomColor: 0x2b2d42, pants: true, faceOpts: { mustache: true } }
+          char: { scale: 0.90, skinColor: 0xe6b898, hairColor: 0xcfd4da, topColor: 0x2a9d8f, bottomColor: 0x4a5568, hairBun: true, faceOpts: { elder: true } }
         },
         {
           name: 'Uncle Tariq (Gate)',
@@ -1577,7 +1538,7 @@ window.LailaSalma = window.LailaSalma || {};
         { pos: [-11.5, 0, -14.5], hint: 'sniffing flowers by our Apartment corner' },
         { pos: [11.8, 0, -14.0], hint: 'wagging its tail near the East Apartment balcony' },
         { pos: [-26.0, 0, -2.5], hint: 'waiting by Sunny Oaks School bus stop' },
-        { pos: [26.5, 0, -15.5], hint: 'smelling delicious wood-fired pizza behind Bella Bistro' },
+        { pos: [26.5, 0, -15.5], hint: "sniffing bougainvillea behind Gedo Mahmoud & Nana Omaima's house" },
         { pos: [27.0, 0, 22.4], hint: 'playing near the Community Playground carousel' },
         { pos: [-16.0, 0, 28.5], hint: 'watching the ducks at the Southwest Garden Pond' },
         { pos: [16.5, 0, 29.5], hint: 'greeting Uncle Tariq by the Gatehouse garden' }
@@ -1631,7 +1592,7 @@ window.LailaSalma = window.LailaSalma || {};
     W.getZoneLabel = function (x, z) {
       if (z < -10 && Math.abs(x) < 14) return "Sunnyside Apartments (Home)";
       if (x < -18 && z < 4) return "Sunny Oaks School Campus";
-      if (x > 18 && z < 4) return "Bella Bistro Family Restaurant";
+      if (x > 18 && z < 4) return "Gedo Mahmoud & Nana Omaima's House 🏡";
       if (x > 14 && z > 10) return "Community Playground";
       if (x < -12 && z > 17) return "Duck Pond Garden & Gazebo";
       if (z > 28) return "Gated Community Entrance";
@@ -1660,7 +1621,7 @@ window.LailaSalma = window.LailaSalma || {};
         W.gateArmPivot.rotation.z += (targetZ - W.gateArmPivot.rotation.z) * Math.min(1, dt * 4.0);
       }
 
-      // Cozy Bella Bistro pizza oven chimney smoke wisps
+      // Cozy hearth chimney wisps at Gedo Mahmoud & Nana Omaima's villa
       W.ovenSmokes.forEach(p => {
         const t = (elapsed * 0.35 + p.userData.phase) % 1.0;
         p.position.set(p.userData.baseX + Math.sin(elapsed + p.userData.phase * 6) * 0.35, p.userData.baseY + t * 2.6, p.userData.baseZ);
@@ -1716,7 +1677,7 @@ window.LailaSalma = window.LailaSalma || {};
       // Landmarks
       ctx.fillStyle = '#e07a5f'; ctx.fillRect(toX(-10), toY(-26), toX(10) - toX(-10), toY(-13) - toY(-26));
       ctx.fillStyle = '#2e6f5e'; ctx.fillRect(toX(-36), toY(-20), toX(-26) - toX(-36), toY(-4) - toY(-20));
-      ctx.fillStyle = '#b8333a'; ctx.fillRect(toX(26), toY(-17), toX(36) - toX(26), toY(-3) - toY(-17));
+      ctx.fillStyle = '#c66b47'; ctx.fillRect(toX(26), toY(-17), toX(36) - toX(26), toY(-3) - toY(-17));
       ctx.fillStyle = '#f4a261'; ctx.fillRect(toX(18), toY(13), toX(31) - toX(18), toY(23) - toY(13));
       // Qashqai car marker next to South Gate
       ctx.fillStyle = '#4b5563'; ctx.fillRect(toX(-8.5), toY(28.5), toX(-3.0) - toX(-8.5), toY(33.5) - toY(28.5));
@@ -1724,7 +1685,7 @@ window.LailaSalma = window.LailaSalma || {};
       ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('HOME', toX(0), toY(-18));
       ctx.fillText('SCHOOL', toX(-31), toY(-11));
-      ctx.fillText('BISTRO', toX(31), toY(-9));
+      ctx.fillText('GEDO M.', toX(31), toY(-9));
       ctx.fillText('PARK', toX(24.5), toY(19));
       ctx.fillText('POND', toX(-21.5), toY(26));
       ctx.fillText('CAR', toX(-5.8), toY(32.5));
