@@ -1742,11 +1742,13 @@ window.LailaSalma = window.LailaSalma || {};
       model.root.position.copy(cfg.pos);
       if (cfg.baseRot !== undefined) model.root.rotation.y = cfg.baseRot;
       if (cfg.seated) {
-        model.leftLeg.rotation.x = -1.18;
-        model.rightLeg.rotation.x = -1.18;
-        model.leftArm.rotation.x = -0.62;
-        model.rightArm.rotation.x = -0.74;
-        if (LS.applyArticulatedPose) LS.applyArticulatedPose(model, 0, 'sit', 0);
+        model.leftLeg.rotation.x = -1.55;
+        model.rightLeg.rotation.x = -1.55;
+        model.leftArm.rotation.x = -0.26;
+        model.rightArm.rotation.x = -0.26;
+        model.leftArm.rotation.z = -0.06;
+        model.rightArm.rotation.z = 0.06;
+        if (LS.applyArticulatedPose) LS.applyArticulatedPose(model, 0, 'chair_sit', 0);
       }
       const bubble = LS.createSpeechBubbleSprite(cfg.name, cfg.line);
       if (inRoom) {
@@ -2020,11 +2022,30 @@ window.LailaSalma = window.LailaSalma || {};
       charObj.rightElbow.rotation.x = -0.22 - Math.max(0, -swing * 0.65);
       charObj.bodyPivot.position.y = Math.abs(Math.sin(Math.abs(swing) * Math.PI)) * (mode === 'run' ? 0.032 : 0.016);
       charObj.bodyPivot.scale.y = 1.0;
+    } else if (mode === 'chair_sit') {
+      charObj.leftKnee.rotation.x = 1.55;
+      charObj.rightKnee.rotation.x = 1.55;
+      charObj.leftElbow.rotation.x = -0.82;
+      charObj.rightElbow.rotation.x = -0.82;
+      charObj.bodyPivot.position.y = -0.382;
+      if (elapsed !== undefined) {
+        charObj.bodyPivot.scale.y = 1.0 + Math.sin(elapsed * 1.8) * 0.005;
+      }
+    } else if (mode === 'floor_sit') {
+      charObj.leftLeg.rotation.x = -1.54;
+      charObj.rightLeg.rotation.x = -1.54;
+      charObj.leftLeg.rotation.y = 0.45;
+      charObj.rightLeg.rotation.y = -0.45;
+      charObj.leftKnee.rotation.x = 0.25;
+      charObj.rightKnee.rotation.x = 0.25;
+      charObj.leftElbow.rotation.x = -0.52;
+      charObj.rightElbow.rotation.x = -0.52;
+      charObj.bodyPivot.position.y = -0.715;
     } else if (mode === 'sit') {
-      charObj.leftKnee.rotation.x = 1.18;
-      charObj.rightKnee.rotation.x = 1.18;
-      charObj.leftElbow.rotation.x = -0.42;
-      charObj.rightElbow.rotation.x = -0.42;
+      charObj.leftKnee.rotation.x = 1.45;
+      charObj.rightKnee.rotation.x = 1.45;
+      charObj.leftElbow.rotation.x = -0.55;
+      charObj.rightElbow.rotation.x = -0.55;
       charObj.bodyPivot.position.y = 0;
     } else if (mode === 'bike_pedal') {
       charObj.leftKnee.rotation.x = Math.max(0.18, 0.72 - swing * 0.44);
@@ -2062,10 +2083,13 @@ window.LailaSalma = window.LailaSalma || {};
 
       if (npc.seated) {
         npc.bubble.visible = dist < 4.5;
-        npc.model.leftLeg.rotation.x = -1.18;
-        npc.model.rightLeg.rotation.x = -1.18;
-        npc.model.rightArm.rotation.x = -0.72 + Math.sin(elapsed * 1.4 + idx) * 0.08;
-        LS.applyArticulatedPose(npc.model, 0, 'sit', elapsed + idx);
+        npc.model.leftLeg.rotation.x = -1.55;
+        npc.model.rightLeg.rotation.x = -1.55;
+        npc.model.leftArm.rotation.x = -0.26;
+        npc.model.rightArm.rotation.x = -0.28 + Math.sin(elapsed * 1.4 + idx) * 0.06;
+        npc.model.leftArm.rotation.z = -0.06;
+        npc.model.rightArm.rotation.z = 0.06;
+        LS.applyArticulatedPose(npc.model, 0, 'chair_sit', elapsed + idx);
         return;
       }
 

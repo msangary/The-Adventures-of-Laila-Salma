@@ -2162,11 +2162,15 @@ window.LailaSalma = window.LailaSalma || {};
     pastryPlate.position.set(0, 0.91, 0.30); dinG.add(pastryPlate);
     const croissant = new THREE.Mesh(new THREE.SphereGeometry(0.11, 7, 6), LS.makeToonMat(0xe9a954));
     croissant.scale.set(1.4, 0.7, 0.8); croissant.position.set(0, 0.97, 0.30); dinG.add(croissant);
-    [[-1.45, 0], [1.45, 0]].forEach(ch => {
-      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.48, 0.58), LS.makeToonMat(0x9c6b49));
-      seat.position.set(ch[0], 0.24, ch[1]); dinG.add(seat);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.62, 0.56), LS.makeToonMat(0x8c5a3c));
-      back.position.set(ch[0] + (ch[0] < 0 ? -0.26 : 0.26), 0.72, ch[1]); dinG.add(back);
+    [[-1.54, 0], [1.54, 0]].forEach(ch => {
+      const seatTop = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.08, 0.54), LS.makeToonMat(0xb67d52));
+      seatTop.position.set(ch[0], 0.35, ch[1]); seatTop.castShadow = true; dinG.add(seatTop);
+      [[-0.21, -0.21], [0.21, -0.21], [-0.21, 0.21], [0.21, 0.21]].forEach(lg => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.34, 0.055), LS.makeToonMat(0x7c4e2e));
+        leg.position.set(ch[0] + lg[0], 0.17, ch[1] + lg[1]); dinG.add(leg);
+      });
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.62, 0.52), LS.makeToonMat(0x8c5a3c));
+      back.position.set(ch[0] + (ch[0] < 0 ? -0.24 : 0.24), 0.70, ch[1]); dinG.add(back);
     });
     worldGroup.add(dinG);
     addCol(3.6, -3.4, 1.6, 1.0);
@@ -2175,7 +2179,7 @@ window.LailaSalma = window.LailaSalma || {};
       {
         name: 'Mom ☕',
         line: 'Good morning sweeties! Play us a song on the piano, Laila! We love you! 💛🎹',
-        pos: new THREE.Vector3(2.15, 0.18, -3.4),
+        pos: new THREE.Vector3(2.04, 0.04, -3.4),
         baseRot: Math.PI / 2,
         seated: true,
         char: { scale: 0.90, skinColor: 0xe6b595, hairColor: 0x2c1e18, topColor: 0xf4a261, bottomColor: 0x3d5a80, longHair: true }
@@ -2183,7 +2187,7 @@ window.LailaSalma = window.LailaSalma || {};
       {
         name: 'Dad ☕',
         line: 'Best coffee in the world with my two favorite adventurers! Ready for school or the Magic Globe? 🌍☕',
-        pos: new THREE.Vector3(5.05, 0.18, -3.4),
+        pos: new THREE.Vector3(5.16, 0.02, -3.4),
         baseRot: -Math.PI / 2,
         seated: true,
         char: { scale: 0.94, skinColor: 0xd9a480, hairColor: 0x241a16, topColor: 0x457b9d, bottomColor: 0x2b3a4a, pants: true, faceOpts: { glasses: true } }

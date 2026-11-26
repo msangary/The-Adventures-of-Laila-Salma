@@ -202,7 +202,20 @@ window.LailaSalma = window.LailaSalma || {};
 
     return {
       canvas: c, ctx, mat: screenMat, lastFrame: -1, mode: mode || 'show',
+      currentChannel: 'soap',
+      manualChannel: null,
+      manualUntil: 0,
+      lastElapsed: 0,
+      toggleChannel: function (elapsed) {
+        const now = typeof elapsed === 'number' && elapsed > 0 ? elapsed : this.lastElapsed;
+        this.manualChannel = this.currentChannel === 'soap' ? 'news' : 'soap';
+        this.manualUntil = now + 12;
+        this.currentChannel = this.manualChannel;
+        this.lastFrame = -1;
+        return this.currentChannel;
+      },
       update: function (elapsed) {
+        this.lastElapsed = elapsed;
         const f = Math.floor(elapsed * 10);
         if (f === this.lastFrame) return;
         this.lastFrame = f;
@@ -215,6 +228,71 @@ window.LailaSalma = window.LailaSalma || {};
           const by = 98 - Math.abs(Math.sin(elapsed * 4.5)) * 28;
           ctx.beginPath(); ctx.arc(bx, by, 10, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = '#1f2937'; ctx.font = 'bold 16px sans-serif'; ctx.fillText('⚽ LIVE', 18, 28);
+        } else if (this.mode === 'nano_tv') {
+          // Mostly dramatic Soap Opera (~70%), sometimes switches to Breaking News (~30%)!
+          let ch = (elapsed % 20) < 14 ? 'soap' : 'news';
+          if (this.manualChannel && elapsed < this.manualUntil) ch = this.manualChannel;
+          else if (this.manualChannel && elapsed >= this.manualUntil) this.manualChannel = null;
+          this.currentChannel = ch;
+
+          if (ch === 'soap') {
+            // Dramatic Soap Opera Scene: Mansion evening backdrop, chandelier, two dramatic actors, hearts & subtitles!
+            gGrad.addColorStop(0, '#3b1538'); gGrad.addColorStop(0.55, '#6b234e'); gGrad.addColorStop(1, '#261029');
+            ctx.fillStyle = gGrad; ctx.fillRect(0, 0, 256, 152);
+            // Moonlit mansion window in background
+            ctx.fillStyle = '#1e2b58'; ctx.fillRect(98, 20, 60, 62);
+            ctx.strokeStyle = '#e9c46a'; ctx.lineWidth = 3; ctx.strokeRect(98, 20, 60, 62);
+            ctx.fillStyle = '#fff5cc'; ctx.beginPath(); ctx.arc(138, 38, 10, 0, Math.PI * 2); ctx.fill();
+            // Dramatic Actor 1 (left, woman in red gown)
+            const sway = Math.sin(elapsed * 3.2) * 3;
+            ctx.fillStyle = '#e63963'; ctx.beginPath(); ctx.arc(76, 128, 26, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#f1c29b'; ctx.beginPath(); ctx.arc(76, 84 + sway * 0.4, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#241715'; ctx.beginPath(); ctx.arc(74, 80 + sway * 0.4, 16, Math.PI * 0.9, Math.PI * 2.1); ctx.fill();
+            // Dramatic Actor 2 (right, man in tuxedo)
+            ctx.fillStyle = '#1f2937'; ctx.beginPath(); ctx.arc(180, 128, 27, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#e0ac84'; ctx.beginPath(); ctx.arc(180, 82 - sway * 0.4, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#1e1918'; ctx.beginPath(); ctx.arc(180, 77 - sway * 0.4, 15, Math.PI, 0); ctx.fill();
+            // Floating dramatic icon
+            ctx.font = '22px sans-serif';
+            const dramaIcon = Math.floor(elapsed / 3) % 2 === 0 ? '💔' : '🌹';
+            ctx.fillText(dramaIcon, 117, 68 + Math.sin(elapsed * 4) * 5);
+            // Channel Badge
+            ctx.fillStyle = 'rgba(233,196,106,0.92)'; ctx.fillRect(10, 10, 106, 22);
+            ctx.fillStyle = '#2c1026'; ctx.font = 'bold 12px sans-serif'; ctx.fillText('🎭 SOAP OPERA', 16, 25);
+            // Subtitle Bar
+            ctx.fillStyle = 'rgba(0,0,0,0.68)'; ctx.fillRect(0, 124, 256, 28);
+            const lines = ['"Wait! Tell me the truth!"', '"I never forgot you..."', '"Gasp! The secret letter!"'];
+            ctx.fillStyle = '#fff5d6'; ctx.font = 'italic bold 13px sans-serif';
+            ctx.fillText(lines[Math.floor(elapsed / 3.5) % lines.length], 22, 142);
+          } else {
+            // Breaking News Broadcast: Blue studio, world map, anchor at desk, red LIVE NEWS badge & scrolling ticker!
+            gGrad.addColorStop(0, '#0f2957'); gGrad.addColorStop(0.65, '#1d4d8f'); gGrad.addColorStop(1, '#0b1d3d');
+            ctx.fillStyle = gGrad; ctx.fillRect(0, 0, 256, 152);
+            // Stylized World Map glow on studio wall
+            ctx.fillStyle = 'rgba(120,190,255,0.22)';
+            ctx.beginPath(); ctx.ellipse(72, 62, 42, 22, 0.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(186, 56, 36, 18, -0.15, 0, Math.PI * 2); ctx.fill();
+            // News Anchor in suit & red tie behind curved studio desk
+            const nod = Math.sin(elapsed * 5.0) * 2;
+            ctx.fillStyle = '#1e293b'; ctx.beginPath(); ctx.arc(128, 112, 28, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(120, 92); ctx.lineTo(136, 92); ctx.lineTo(128, 112); ctx.fill();
+            ctx.fillStyle = '#dc2626'; ctx.fillRect(126, 94, 4, 16);
+            ctx.fillStyle = '#e5b894'; ctx.beginPath(); ctx.arc(128, 74 + nod, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#334155'; ctx.beginPath(); ctx.arc(128, 69 + nod, 15, Math.PI, 0); ctx.fill();
+            // Curved News Desk
+            ctx.fillStyle = '#cbd5e1'; ctx.fillRect(42, 108, 172, 18);
+            ctx.fillStyle = '#dc2626'; ctx.fillRect(42, 108, 172, 4);
+            // Flashing LIVE NEWS Badge
+            ctx.fillStyle = Math.floor(elapsed * 2) % 2 === 0 ? '#dc2626' : '#ef4444';
+            ctx.fillRect(10, 10, 96, 22);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px sans-serif'; ctx.fillText('🔴 LIVE NEWS', 16, 25);
+            // Scrolling News Ticker
+            ctx.fillStyle = '#b91c1c'; ctx.fillRect(0, 126, 256, 26);
+            ctx.fillStyle = '#fef08a'; ctx.font = 'bold 12px sans-serif';
+            const ticker = 'BREAKING NEWS: SUNNY SKIES TODAY • COZY TEA TIME • NEIGHBORHOOD BAKERY WINS GOLD •   ';
+            const tx = 256 - ((elapsed * 58) % 620);
+            ctx.fillText(ticker, tx, 143);
+          }
         } else {
           gGrad.addColorStop(0, '#ffafcc'); gGrad.addColorStop(0.6, '#fde4cf'); gGrad.addColorStop(1, '#95d5b2');
           ctx.fillStyle = gGrad; ctx.fillRect(0, 0, 256, 152);
@@ -842,9 +920,17 @@ window.LailaSalma = window.LailaSalma || {};
     const rug = new THREE.Mesh(new THREE.PlaneGeometry(11.4, 8.2), rugMat);
     rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.016, -0.6); worldGroup.add(rug);
 
-    // Sunlit Curtained Windows along North & East Walls + Golden Chandelier!
-    addDetailedWallWindow(worldGroup, -4.6, 2.45, -6.80, 0, 2.8, 1.8, 0xf7d8c4, trimMat);
-    addDetailedWallWindow(worldGroup, 8.80, 2.45, -1.6, -Math.PI / 2, 2.8, 1.8, 0xf7d8c4, trimMat);
+    // Big Sunlit Curtained Windows right next to Gedo's Tea Corner (North & East walls!)
+    addDetailedWallWindow(worldGroup, 5.2, 2.45, -6.80, 0, 3.2, 2.0, 0xf7d8c4, trimMat);
+    addDetailedWallWindow(worldGroup, 8.80, 2.45, -4.4, -Math.PI / 2, 2.6, 1.8, 0xf7d8c4, trimMat);
+    // Warm slanted golden sunbeam streaming through Gedo's window (0 extra WebGL lights!)
+    const gBeam = new THREE.Mesh(
+      new THREE.PlaneGeometry(3.2, 3.8),
+      new THREE.MeshBasicMaterial({ color: 0xffe6a3, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false })
+    );
+    gBeam.position.set(5.2, 1.25, -5.15);
+    gBeam.rotation.x = -Math.PI / 3.1;
+    worldGroup.add(gBeam);
 
     // Warm Hanging Brass Chandelier in Center!
     const chanG = new THREE.Group();
@@ -864,17 +950,17 @@ window.LailaSalma = window.LailaSalma || {};
 
     // Welcome Sign + Golden Family Portrait Gallery Wall!
     const sign = new THREE.Mesh(
-      new THREE.BoxGeometry(6.2, 0.92, 0.12),
+      new THREE.BoxGeometry(5.6, 0.88, 0.12),
       new THREE.MeshBasicMaterial({
         map: LS.createSignTexture("💛 NANO & GEDO'S COZY HOME 🫖📺", {
-          bg: '#fff9ef', border: '#2a9d8f', color: '#2b3a34', font: 'bold 24px sans-serif', width: 560, height: 100
+          bg: '#fff9ef', border: '#2a9d8f', color: '#2b3a34', font: 'bold 23px sans-serif', width: 560, height: 100
         })
       })
     );
-    sign.position.set(0.8, 3.55, -6.82); worldGroup.add(sign);
+    sign.position.set(-0.6, 3.65, -6.82); worldGroup.add(sign);
 
     // Golden Family Photo Frames on Back Wall
-    [[0.4, '#ffeef4', '👧🧒'], [1.5, '#eef7f2', '👵👴']].forEach(ph => {
+    [[-1.2, '#ffeef4', '👧🧒'], [0.0, '#eef7f2', '👵👴']].forEach(ph => {
       const fr = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.05, 0.08), brass);
       fr.position.set(ph[0], 2.25, -6.82); worldGroup.add(fr);
       const pic = new THREE.Mesh(
@@ -884,108 +970,157 @@ window.LailaSalma = window.LailaSalma || {};
       pic.position.set(ph[0], 2.25, -6.82); worldGroup.add(pic);
     });
 
-    // Large Animated 3D TV on West Wall — Nano is watching TV!
-    W.tvObj = createAnimatedTV(worldGroup, -8.25, 0, -1.6, Math.PI / 2, 'show');
-    addCol(-8.2, -1.6, 0.85, 1.5);
+    // Large Animated 3D TV on West Wall — Nano watches her Soap Opera (and sometimes the News!)
+    W.tvObj = createAnimatedTV(worldGroup, -8.15, 0, -2.6, Math.PI / 2, 'nano_tv');
+    addCol(-8.15, -2.6, 0.85, 1.5);
 
-    // Nano's Cozy Floral Sofa with Cushions & Knit Throw Blanket!
+    // Nano's Anatomically Proportioned Cozy Rose Sofa (clean side-profile facing West toward TV!)
+    const nanoSofaPos = { x: -3.0, z: -2.6, rotY: -Math.PI / 2 };
     const sofaMat = LS.makeToonMat(0xd88c9a);
-    const sBase = new THREE.Mesh(new THREE.BoxGeometry(1.20, 0.54, 3.3), sofaMat);
-    sBase.position.set(-3.2, 0.27, -1.6); sBase.castShadow = true; worldGroup.add(sBase);
-    const sBack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.04, 3.3), sofaMat);
-    sBack.position.set(-2.70, 0.64, -1.6); worldGroup.add(sBack);
-    [-3.15, -0.05].forEach(az => {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.20, 0.74, 0.26), sofaMat);
-      arm.position.set(-3.2, 0.37, az); worldGroup.add(arm);
+    const sofaCushMat = LS.makeToonMat(0xe6a1ae);
+    const nanoSofaG = new THREE.Group();
+    nanoSofaG.position.set(nanoSofaPos.x, 0, nanoSofaPos.z);
+    nanoSofaG.rotation.y = nanoSofaPos.rotY;
+    const sBase = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.24, 0.66), sofaMat);
+    sBase.position.set(0, 0.20, -0.02); sBase.castShadow = true; nanoSofaG.add(sBase);
+    const sCush = new THREE.Mesh(new THREE.BoxGeometry(2.50, 0.12, 0.48), sofaCushMat);
+    sCush.position.set(0, 0.33, 0.05); nanoSofaG.add(sCush);
+    const sBack = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.74, 0.22), sofaMat);
+    sBack.position.set(0, 0.64, -0.26); sBack.castShadow = true; nanoSofaG.add(sBack);
+    [-1.32, 1.32].forEach(ax => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.68), sofaMat);
+      arm.position.set(ax, 0.36, -0.02); nanoSofaG.add(arm);
     });
-    const knit = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.42, 0.72), LS.makeToonMat(0xfff3c4));
-    knit.position.set(-3.38, 0.48, -0.52); worldGroup.add(knit);
-    const nPill = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.36, 0.42), LS.makeToonMat(0xf4a261));
-    nPill.position.set(-2.96, 0.72, -2.55); nPill.rotation.z = 0.2; worldGroup.add(nPill);
-    addCol(-3.1, -1.6, 0.74, 1.72);
+    [[-1.25, -0.25], [1.25, -0.25], [-1.25, 0.22], [1.25, 0.22]].forEach(lg => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.10, 6), trimMat);
+      leg.position.set(lg[0], 0.05, lg[1]); nanoSofaG.add(leg);
+    });
+    const knit = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.28, 0.50), LS.makeToonMat(0xfff3c4));
+    knit.position.set(-0.92, 0.42, 0.08); nanoSofaG.add(knit);
+    const nPill = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.32, 0.18), LS.makeToonMat(0xf4a261));
+    nPill.position.set(0.88, 0.56, -0.08); nPill.rotation.x = 0.22; nanoSofaG.add(nPill);
+    worldGroup.add(nanoSofaG);
+    addCol(nanoSofaPos.x, nanoSofaPos.z, 0.65, 1.55);
 
-    // Coffee Table with Lace Runner, Remote & Flower Vase in front of Nano
-    const cTab = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.44, 1.85), trimMat);
-    cTab.position.set(-5.3, 0.22, -1.6); worldGroup.add(cTab);
-    const lace = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.02, 1.35), LS.makeToonMat(0xfffdf8));
-    lace.position.set(-5.3, 0.45, -1.6); worldGroup.add(lace);
-    const remote = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.04, 0.26), LS.makeToonMat(0x2d3748));
-    remote.position.set(-5.3, 0.48, -1.2); worldGroup.add(remote);
+    // Coffee Table with Lace Runner, TV Remote & Flower Vase in front of Nano
+    const cTabG = new THREE.Group();
+    cTabG.position.set(-5.25, 0, -2.6);
+    cTabG.rotation.y = nanoSofaPos.rotY;
+    const cTabTop = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.08, 0.84), trimMat);
+    cTabTop.position.y = 0.40; cTabG.add(cTabTop);
+    [[-0.72, -0.32], [0.72, -0.32], [-0.72, 0.32], [0.72, 0.32]].forEach(lg => {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.38, 0.06), trimMat);
+      l.position.set(lg[0], 0.19, lg[1]); cTabG.add(l);
+    });
+    const lace = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.02, 0.54), LS.makeToonMat(0xfffdf8));
+    lace.position.y = 0.45; cTabG.add(lace);
+    const remote = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.09), LS.makeToonMat(0x2d3748));
+    remote.position.set(-0.35, 0.47, 0.12); cTabG.add(remote);
     const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 0.24, 8), LS.makeToonMat(0x90e0ef));
-    vase.position.set(-5.3, 0.57, -2.0); worldGroup.add(vase);
+    vase.position.set(0.36, 0.56, -0.05); cTabG.add(vase);
     const fl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 7, 6), LS.makeToonMat(0xff8fab));
-    fl.position.set(-5.3, 0.75, -2.0); worldGroup.add(fl);
-    addCol(-5.3, -1.6, 0.6, 1.0);
+    fl.position.set(0.36, 0.74, -0.05); cTabG.add(fl);
+    worldGroup.add(cTabG);
+    addCol(-5.25, -2.6, 0.52, 0.92);
 
-    // Gedo's Warm Armchair + Footstool + Brass Reading Lamp + Steaming Mint Tea & Cookies!
+    // Gedo's Cozy Armchair RIGHT NEXT TO THE SUNLIT WINDOW + Reading Lamp + Mint Tea & Cookies!
+    const gedoChairPos = { x: 5.3, z: -5.0, rotY: -0.45 };
     const chairMat = LS.makeToonMat(0x457b9d);
-    const gSeat = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.52, 1.28), chairMat);
-    gSeat.position.set(4.4, 0.26, -1.6); gSeat.castShadow = true; worldGroup.add(gSeat);
-    const gBack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.10, 1.28), chairMat);
-    gBack.position.set(4.94, 0.65, -1.6); worldGroup.add(gBack);
+    const chairCushMat = LS.makeToonMat(0x5b94b8);
+    const gedoChairG = new THREE.Group();
+    gedoChairG.position.set(gedoChairPos.x, 0, gedoChairPos.z);
+    gedoChairG.rotation.y = gedoChairPos.rotY;
+    const gBase = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.24, 0.66), chairMat);
+    gBase.position.set(0, 0.20, -0.02); gBase.castShadow = true; gedoChairG.add(gBase);
+    const gCush = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.46), chairCushMat);
+    gCush.position.set(0, 0.33, 0.05); gedoChairG.add(gCush);
+    const gBack = new THREE.Mesh(new THREE.BoxGeometry(1.12, 0.78, 0.22), chairMat);
+    gBack.position.set(0, 0.66, -0.26); gBack.castShadow = true; gedoChairG.add(gBack);
+    [-0.46, 0.46].forEach(ax => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.48, 0.66), chairMat);
+      arm.position.set(ax, 0.36, -0.02); gedoChairG.add(arm);
+    });
+    [[-0.46, -0.25], [0.46, -0.25], [-0.46, 0.22], [0.46, 0.22]].forEach(lg => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.10, 6), trimMat);
+      leg.position.set(lg[0], 0.05, lg[1]); gedoChairG.add(leg);
+    });
+    worldGroup.add(gedoChairG);
     const gLampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 1.85, 6), brass);
-    gLampPole.position.set(5.45, 0.92, -2.55); worldGroup.add(gLampPole);
+    gLampPole.position.set(6.75, 0.92, -5.55); worldGroup.add(gLampPole);
     const gLampShade = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.34, 10), LS.makeEmissiveMat(0xfff4d6, 0xffd57a, 0.7));
-    gLampShade.position.set(5.45, 1.92, -2.55); worldGroup.add(gLampShade);
-    addCol(4.5, -1.6, 0.82, 0.82);
+    gLampShade.position.set(6.75, 1.92, -5.55); worldGroup.add(gLampShade);
+    addCol(gedoChairPos.x, gedoChairPos.z, 0.72, 0.72);
 
-    // Round Tea Table with Ornate Brass Tray, Teapot, Mint Tea Glass, Sugar Bowl & Kahk Cookies!
-    const tTab = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.74, 0.09, 18), trimMat);
-    tTab.position.set(2.90, 0.66, -1.6); worldGroup.add(tTab);
-    const tLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.24, 0.64, 10), trimMat);
-    tLeg.position.set(2.90, 0.32, -1.6); worldGroup.add(tLeg);
-    const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.44, 0.03, 16), brass);
-    tray.position.set(2.90, 0.72, -1.6); worldGroup.add(tray);
-    const tPot = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 8), brass);
-    tPot.position.set(2.74, 0.90, -1.75); worldGroup.add(tPot);
+    // Round Tea Table beside Gedo's Window Armchair (Brass Tray, Teapot, Steaming Mint Tea & Kahk Cookies!)
+    const tx = 3.85, tz = -3.65;
+    const tTab = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.08, 18), trimMat);
+    tTab.position.set(tx, 0.64, tz); worldGroup.add(tTab);
+    const tLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.22, 0.62, 10), trimMat);
+    tLeg.position.set(tx, 0.31, tz); worldGroup.add(tLeg);
+    const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.43, 0.03, 16), brass);
+    tray.position.set(tx, 0.70, tz); worldGroup.add(tray);
+    const tPot = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), brass);
+    tPot.position.set(tx - 0.16, 0.87, tz - 0.14); worldGroup.add(tPot);
     const teaGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.16, 10), LS.makeToonMat(0xd97706));
-    teaGlass.position.set(3.12, 0.82, -1.45); worldGroup.add(teaGlass);
+    teaGlass.position.set(tx + 0.18, 0.80, tz + 0.12); worldGroup.add(teaGlass);
     const cookiePlate = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.03, 10), LS.makeToonMat(0xfffdf8));
-    cookiePlate.position.set(2.72, 0.75, -1.32); worldGroup.add(cookiePlate);
+    cookiePlate.position.set(tx - 0.16, 0.73, tz + 0.22); worldGroup.add(cookiePlate);
     for (let k = 0; k < 3; k++) {
       const ck = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), LS.makeToonMat(0xf4d58d));
-      ck.scale.set(1.1, 0.6, 1.1); ck.position.set(2.68 + k * 0.05, 0.79, -1.32 + (k % 2 ? 0.04 : -0.04)); worldGroup.add(ck);
+      ck.scale.set(1.1, 0.6, 1.1); ck.position.set(tx - 0.20 + k * 0.05, 0.77, tz + 0.22 + (k % 2 ? 0.04 : -0.04)); worldGroup.add(ck);
     }
     for (let i = 0; i < 2; i++) {
       const st = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 6), LS.makeToonMat(0xffffff, { transparent: true, opacity: 0.48 }));
-      st.userData = { baseX: 3.12, baseY: 0.96, baseZ: -1.45, phase: i * 0.5 };
+      st.userData = { baseX: tx + 0.18, baseY: 0.94, baseZ: tz + 0.12, phase: i * 0.5 };
       worldGroup.add(st); W.teaSteams.push(st);
     }
-    addCol(2.90, -1.6, 0.76, 0.76);
+    addCol(tx, tz, 0.74, 0.74);
 
-    // Glass-Front China Cabinet & Bookshelf along Back Wall + Indoor Ferns!
-    const china = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.35, 0.62), trimMat);
-    china.position.set(5.4, 1.18, -6.42); china.castShadow = true; worldGroup.add(china);
-    const cGlass = new THREE.Mesh(new THREE.BoxGeometry(2.85, 1.25, 0.66), LS.makeToonMat(0xebf8ff, { transparent: true, opacity: 0.36 }));
-    cGlass.position.set(5.4, 1.65, -6.42); worldGroup.add(cGlass);
-    [4.4, 5.4, 6.4].forEach((cx, ci) => {
+    // Glass-Front China Cabinet along East Wall + Indoor Ferns!
+    const chinaG = new THREE.Group();
+    chinaG.position.set(8.42, 0, 1.4);
+    chinaG.rotation.y = -Math.PI / 2;
+    const china = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.35, 0.62), trimMat);
+    china.position.set(0, 1.18, 0); china.castShadow = true; chinaG.add(china);
+    const cGlass = new THREE.Mesh(new THREE.BoxGeometry(2.65, 1.25, 0.66), LS.makeToonMat(0xebf8ff, { transparent: true, opacity: 0.36 }));
+    cGlass.position.set(0, 1.65, 0); chinaG.add(cGlass);
+    [-0.9, 0, 0.9].forEach((cx, ci) => {
       const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.16, 0.22, 10), LS.makeToonMat(ci === 1 ? 0xd4a359 : 0xfff8ec));
-      dish.position.set(cx, 1.38, -6.40); worldGroup.add(dish);
+      dish.position.set(cx, 1.38, 0.04); chinaG.add(dish);
     });
-    addIndoorPlant(worldGroup, -7.8, -5.8, 0x2a9d8f, true);
-    addIndoorPlant(worldGroup, 7.8, 4.8, 0xe07a5f, true);
+    worldGroup.add(chinaG);
+    addCol(8.4, 1.4, 0.5, 1.55);
+    addIndoorPlant(worldGroup, -7.8, 3.8, 0x2a9d8f, true);
+    addIndoorPlant(worldGroup, 7.6, 4.8, 0xe07a5f, true);
+
+    // Exact seated world coordinates aligned with backrest & cushion front edge!
+    const seatLocalZ = -0.02;
+    const nanoWorldX = nanoSofaPos.x + seatLocalZ * Math.sin(nanoSofaPos.rotY);
+    const nanoWorldZ = nanoSofaPos.z + seatLocalZ * Math.cos(nanoSofaPos.rotY);
+    const gedoWorldX = gedoChairPos.x + seatLocalZ * Math.sin(gedoChairPos.rotY);
+    const gedoWorldZ = gedoChairPos.z + seatLocalZ * Math.cos(gedoChairPos.rotY);
 
     LS.spawnWorldNPCs(worldGroup, [
       {
         name: 'Nano (Grandma) 📺',
-        line: 'Habibati Laila & Salma! Come sit right beside Nano and watch my favorite cozy TV show! 💛📺',
-        pos: new THREE.Vector3(-3.35, 0.15, -1.6),
-        baseRot: -Math.PI / 2,
+        line: "Habibati Laila & Salma! Come sit beside Nano — I'm watching my soap opera (and checking the news too)! 📺🎭🗞️",
+        pos: new THREE.Vector3(nanoWorldX, 0.04, nanoWorldZ),
+        baseRot: nanoSofaPos.rotY,
         seated: true,
         char: { scale: 0.90, skinColor: 0xe6b898, hairColor: 0xd8dce0, topColor: 0xe07a5f, bottomColor: 0x5c4b51, hairBun: true, faceOpts: { glasses: true, elder: true } }
       },
       {
         name: 'Gedo (Grandpa) ☕',
-        line: 'Ahlan ya Laila & Salma! Gedo just brewed warm sweet mint tea — come sit and chat! ☕🌿💛',
-        pos: new THREE.Vector3(4.25, 0.15, -1.6),
-        baseRot: -Math.PI / 2,
+        line: 'Ahlan ya Laila & Salma! Gedo loves sitting right by this sunny window sipping warm mint tea — come chat! ☕🌿☀️',
+        pos: new THREE.Vector3(gedoWorldX, 0.02, gedoWorldZ),
+        baseRot: gedoChairPos.rotY,
         seated: true,
         char: { scale: 0.94, skinColor: 0xd9a480, hairColor: 0xd8dce0, topColor: 0x6b8f71, bottomColor: 0x3b4252, pants: true, faceOpts: { glasses: true, mustache: true, elder: true } }
       }
     ]);
 
-    W.zones.push({ id: 'visit_nano_tv', label: 'Watch TV & Cuddle with Nano 📺💛', pos: new THREE.Vector3(-3.8, 0, 1.1), radius: 2.6 });
-    W.zones.push({ id: 'visit_gedo_tea', label: 'Drink Warm Tea & Chat with Gedo ☕🌿', pos: new THREE.Vector3(3.0, 0, 0.8), radius: 2.6 });
+    W.zones.push({ id: 'visit_nano_tv', label: 'Watch Soap Opera / News with Nano 📺🎭🗞️', pos: new THREE.Vector3(-2.4, 0, 0.8), radius: 2.8 });
+    W.zones.push({ id: 'visit_gedo_tea', label: 'Drink Mint Tea by the Window with Gedo ☕☀️', pos: new THREE.Vector3(4.0, 0, -1.8), radius: 2.8 });
     W.zones.push({ id: 'home_qashqai', label: 'Hop in Gray Nissan Qashqai (Drive Home or Elsewhere) 🚙', pos: new THREE.Vector3(0, 0, 5.7), radius: 2.3 });
 
     W.update = (dt, elapsed) => {
@@ -997,14 +1132,14 @@ window.LailaSalma = window.LailaSalma || {};
         st.material.opacity = (1 - t) * 0.45;
       });
     };
-    W.getZoneLabel = (x) => (x < 0 ? "Nano's TV Living Room 📺💛" : "Gedo's Tea Corner ☕🌿");
+    W.getZoneLabel = (x) => (x < 0 ? "Nano's TV Living Room 📺🎭" : "Gedo's Sunny Window Tea Corner ☕☀️");
     W.drawMiniMap = (ctx, Wpx, Hpx, toX, toY) => {
       ctx.fillStyle = '#f5e4cf'; ctx.fillRect(0, 0, Wpx, Hpx);
-      ctx.fillStyle = '#d88c9a'; ctx.fillRect(toX(-4.5), toY(-3.2), toX(-2.2) - toX(-4.5), toY(0) - toY(-3.2));
-      ctx.fillStyle = '#457b9d'; ctx.fillRect(toX(3.2), toY(-2.8), toX(5.6) - toX(3.2), toY(-0.4) - toY(-2.8));
+      ctx.fillStyle = '#d88c9a'; ctx.fillRect(toX(-4.4), toY(-2.8), toX(-2.0) - toX(-4.4), toY(-0.4) - toY(-2.8));
+      ctx.fillStyle = '#457b9d'; ctx.fillRect(toX(4.4), toY(-5.8), toX(6.2) - toX(4.4), toY(-4.2) - toY(-5.8));
       ctx.fillStyle = '#3d2c1e'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText('NANO 📺', toX(-3.5), toY(-3.8));
-      ctx.fillText('GEDO ☕', toX(4.4), toY(-3.4));
+      ctx.fillText('NANO 📺', toX(-3.2), toY(-3.3));
+      ctx.fillText('GEDO ☕☀️', toX(5.3), toY(-6.1));
       ctx.fillText('QASHQAI 🚙', toX(0), toY(5.6));
     };
     return W;
@@ -1312,22 +1447,33 @@ window.LailaSalma = window.LailaSalma || {};
     addCol(9.8, -8.8, 0.85, 1.5);
 
     const mSofaMat = LS.makeToonMat(0x3d5a80);
-    const msBase = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.54, 3.3), mSofaMat);
-    msBase.position.set(4.5, 0.27, -8.8); msBase.castShadow = true; worldGroup.add(msBase);
-    const msBack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.02, 3.3), mSofaMat);
-    msBack.position.set(4.00, 0.63, -8.8); worldGroup.add(msBack);
-    [-10.35, -7.25].forEach(az => {
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.72, 0.26), mSofaMat);
-      arm.position.set(4.5, 0.36, az); worldGroup.add(arm);
+    const mCushMat = LS.makeToonMat(0x52739e);
+    const mSofaG = new THREE.Group();
+    mSofaG.position.set(4.5, 0.03, -8.8);
+    mSofaG.rotation.y = Math.PI / 2;
+    const msBase = new THREE.Mesh(new THREE.BoxGeometry(3.15, 0.24, 0.66), mSofaMat);
+    msBase.position.set(0, 0.20, -0.02); msBase.castShadow = true; mSofaG.add(msBase);
+    const msCush = new THREE.Mesh(new THREE.BoxGeometry(2.76, 0.12, 0.48), mCushMat);
+    msCush.position.set(0, 0.34, 0.05); mSofaG.add(msCush);
+    const msBack = new THREE.Mesh(new THREE.BoxGeometry(3.15, 0.74, 0.22), mSofaMat);
+    msBack.position.set(0, 0.65, -0.26); msBack.castShadow = true; mSofaG.add(msBack);
+    [-1.46, 1.46].forEach(ax => {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.68), mSofaMat);
+      arm.position.set(ax, 0.36, -0.02); mSofaG.add(arm);
     });
-    const mPill = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.36, 0.42), LS.makeToonMat(0xf4a261));
-    mPill.position.set(4.28, 0.72, -9.85); mPill.rotation.z = -0.2; worldGroup.add(mPill);
+    [[-1.38, -0.25], [1.38, -0.25], [-1.38, 0.22], [1.38, 0.22]].forEach(lg => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.10, 6), trimMat);
+      leg.position.set(lg[0], 0.05, lg[1]); mSofaG.add(leg);
+    });
+    const mPill = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.32, 0.18), LS.makeToonMat(0xf4a261));
+    mPill.position.set(1.02, 0.56, -0.08); mPill.rotation.x = 0.22; mSofaG.add(mPill);
+    worldGroup.add(mSofaG);
     // Side table with coffee cup beside Mostafa's sofa
     const mSide = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.56, 12), trimMat);
     mSide.position.set(4.5, 0.28, -11.0); worldGroup.add(mSide);
     const mCup = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.14, 9), LS.makeToonMat(0xfffdf8));
     mCup.position.set(4.5, 0.63, -11.0); worldGroup.add(mCup);
-    addCol(4.4, -8.8, 0.72, 1.75);
+    addCol(4.5, -8.8, 0.62, 1.72);
 
     addIndoorPlant(worldGroup, 9.8, -12.6, 0x2a9d8f, true);
     addIndoorPlant(worldGroup, -9.8, 0.8, 0xe07a5f, false);
@@ -1411,13 +1557,13 @@ window.LailaSalma = window.LailaSalma || {};
       shoeColor: 0xfacc15,
       pants: true
     });
-    bibo.root.position.set(6.4, 0.04, -1.8);
-    if (LS.applyArticulatedPose) LS.applyArticulatedPose(bibo, 0, 'sit', 0);
+    bibo.root.position.set(6.4, 0.05, -1.8);
+    if (LS.applyArticulatedPose) LS.applyArticulatedPose(bibo, 0, 'floor_sit', 0);
     worldGroup.add(bibo.root);
     W.biboChar = bibo;
 
     const biboBub = LS.createSpeechBubbleSprite ? LS.createSpeechBubbleSprite('Bibo 🚗', 'Vroom vroom! Come play cars & board games with me! 🏎️') : null;
-    if (biboBub) { biboBub.position.set(6.4, 1.66, -1.8); worldGroup.add(biboBub); }
+    if (biboBub) { biboBub.position.set(6.4, 1.48, -1.8); worldGroup.add(biboBub); }
 
     // -----------------------------------------------------------------------
     // AREA 5 (Center): PAINTED 4-PLAYER KIDS' BOARD GAME TABLE! (X = 0, Z = -3.8)
@@ -1460,7 +1606,7 @@ window.LailaSalma = window.LailaSalma || {};
       {
         name: 'Mostafa (Dr.) 🩺📺',
         line: 'Hey Laila & Salma! Just relaxing in my coat and watching TV after the clinic — have fun with Nouzi & Bibo! 🩺📺',
-        pos: new THREE.Vector3(4.65, 0.22, -8.8),
+        pos: new THREE.Vector3(4.48, 0.04, -8.8),
         baseRot: Math.PI / 2,
         seated: true,
         char: {

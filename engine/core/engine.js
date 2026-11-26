@@ -938,13 +938,25 @@ window.LailaSalma = window.LailaSalma || {};
       LS.addCoins(15); LS.addXP(20);
       LS.unlockStamp('dest_grandparents');
       LS.playSFX('correct');
-      LS.showToast('📺💛 Laila & Salma snuggle up on the sofa and watch cozy TV with Nano! +15c & +20 XP!');
+      const tv = LS.activeWorld && LS.activeWorld.tvObj;
+      if (tv && tv.toggleChannel) {
+        const ch = tv.currentChannel || 'soap';
+        if (ch === 'soap') {
+          LS.showToast('📺🎭 Nano gasps at her dramatic soap opera with Laila & Salma — then flips to check the News! +15c & +20 XP!');
+          tv.toggleChannel(LS.runtime.elapsed || 0);
+        } else {
+          LS.showToast('📺🗞️ Laila & Salma watch the Breaking News with Nano — then she switches back to her soap opera! +15c & +20 XP!');
+          tv.toggleChannel(LS.runtime.elapsed || 0);
+        }
+      } else {
+        LS.showToast('📺🎭 Laila & Salma snuggle up on the sofa and watch Nano’s soap opera & the news! +15c & +20 XP!');
+      }
     } else if (zid === 'visit_gedo_tea') {
       LS.addCoins(15); LS.addXP(20);
       LS.unlockStamp('dest_grandparents');
       LS.runtime.buff = { name: "Gedo's Mint Tea", short: 'Tea☕', speedMult: 1.24, infiniteStamina: true, expiresAt: Date.now() + 90000 };
       LS.playSFX('correct');
-      LS.showToast('☕🌿 Gedo pours warm sweet mint tea and shares a funny story! +15c, +20 XP & Speed Boost!');
+      LS.showToast('☕☀️ Gedo pours warm sweet mint tea by his sunny window and shares a funny story! +15c, +20 XP & Speed Boost!');
     } else if (zid === 'mai_lasagna') LS.openMaiLasagnaModal();
     else if (zid === 'kids_board_game') LS.openBoardGameModal();
     else if (zid === 'tokyo_teacher_quiz' || zid === 'school') LS.openSchoolModal('tokyo');
