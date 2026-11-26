@@ -9,6 +9,7 @@ window.LailaSalma = window.LailaSalma || {};
   LS.WORLDS = {
     home_neighborhood: {
       id: 'home_neighborhood',
+      wave: 'home',
       title: 'Home Community',
       subtitle: "Laila & Salma's Gated Community",
       emoji: '🏡',
@@ -18,8 +19,8 @@ window.LailaSalma = window.LailaSalma || {};
       collectibleLabel: 'Puppies',
       collectibleEmoji: '🐶',
       collectibleTotal: 5,
-      destinationName: 'Tokyo',
-      destinationId: 'tokyo',
+      destinationName: 'African Safari',
+      destinationId: 'safari',
       travelMode: 'globe',
       description: 'Start at Laila & Salma\'s sunlit Apartment Building inside their Gated Community! Step inside their 4-room Apartment (Kitchen snacks, Dining Room Piano with Mom & Dad, TV/Video Games, Bedroom Magic Globe), walk to their nearby School, visit Gedo Mahmoud & Nana Omaima\'s House, and find 5 hiding neighborhood puppies!',
       bounds: { minX: -56, maxX: 56, minZ: -52, maxZ: 48 },
@@ -31,6 +32,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     home_apartment: {
       id: 'home_apartment',
+      wave: 'home',
       title: "Sisters' Apartment",
       subtitle: 'Kitchen • Piano • TV • Bedroom',
       emoji: '🎹',
@@ -51,6 +53,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     tokyo: {
       id: 'tokyo',
+      wave: 'wave2A',
       title: 'Tokyo',
       subtitle: 'Expanded Sakura-cho & Haneda Airport',
       emoji: '🗼',
@@ -72,6 +75,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     kyoto: {
       id: 'kyoto',
+      wave: 'wave2A',
       title: 'Kyoto',
       subtitle: 'Gion Lanterns, Shrine & Bamboo Grove',
       emoji: '⛩️',
@@ -93,6 +97,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     tokyo_room: {
       id: 'tokyo_room',
+      wave: 'wave2A',
       title: "Tokyo Clubhouse",
       subtitle: 'Tokyo Bedroom & Toy Shelf',
       emoji: '🏡',
@@ -113,6 +118,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     kyoto_room: {
       id: 'kyoto_room',
+      wave: 'wave2A',
       title: 'Kyoto Ryokan',
       subtitle: "Laila & Salma's Tatami Suite",
       emoji: '🏮',
@@ -133,6 +139,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     safari: {
       id: 'safari',
+      wave: 'wave1',
       title: 'African Safari',
       subtitle: 'Savanna Reserve & Wildlife Zoo',
       emoji: '🦁',
@@ -155,6 +162,7 @@ window.LailaSalma = window.LailaSalma || {};
     },
     safari_tent: {
       id: 'safari_tent',
+      wave: 'wave1',
       title: 'Safari Glamping Tent',
       subtitle: "Laila & Salma's Savanna Lodge",
       emoji: '⛺',
@@ -316,30 +324,30 @@ window.LailaSalma = window.LailaSalma || {};
   };
 
   LS.UPCOMING_WORLDS = [
-    { id: 'egypt', title: 'Ancient Egypt', subtitle: 'Nile River & Golden Pyramids', emoji: '🐪', gate: 'Phase 2 • Next!',
+    { id: 'egypt', title: 'Ancient Egypt', subtitle: 'Nile River & Golden Pyramids', emoji: '🐪', gate: 'Wave 1 • Africa',
       description: 'Sail a felucca down the Nile, explore the pyramids, quiz with an Egyptian teacher, and befriend desert cats!' },
-    { id: 'saudi_arabia', title: 'Saudi Arabia', subtitle: 'AlUla Sandstone Arches, Riyadh & Red Sea', emoji: '🌴', gate: 'Planned World',
+    { id: 'marrakech', title: 'Marrakech Lantern Bazaar', subtitle: 'Glowing Mosaic Souk & Courtyard', emoji: '🏮', gate: 'Wave 1 • Africa',
+      description: 'Explore a colorful tiled courtyard souk glowing with mosaic lanterns, sip sweet mint tea, and befriend fennec foxes!' },
+    { id: 'china', title: 'China', subtitle: 'Great Wall, Panda Bamboo Grove & Lanterns', emoji: '🐼', gate: 'Wave 2B • Asia',
+      description: 'Feed Giant Pandas in a bamboo sanctuary, join a Dragon Dance rhythm parade, paint glowing red sky lanterns, and taste steamed dim sum!' },
+    { id: 'saudi_arabia', title: 'Saudi Arabia', subtitle: 'AlUla Sandstone Arches, Diriyah & Red Sea', emoji: '🌴', gate: 'Wave 2B • Asia',
       description: 'Ride Arabian horses near AlUla arches, sip Saudi coffee with sweet dates, snorkel colorful Red Sea coral reefs, and stargaze in the desert!' },
-    { id: 'spain', title: 'Spain', subtitle: 'Barcelona Mosaic Park & Alhambra Gardens', emoji: '💃', gate: 'Planned World',
-      description: 'Design colorful Gaudí mosaic tiles, play a flamenco clapping rhythm game, share paella & churros with hot chocolate, and kick a soccer ball in a sunlit plaza!' },
-    { id: 'germany', title: 'Germany', subtitle: 'Bavarian Fairytale Castle & Black Forest', emoji: '🏰', gate: 'Planned World',
-      description: 'Explore a storybook hilltop castle, wind up musical cuckoo clocks, bake warm pretzels & apple strudel, and ride a miniature mountain train!' },
-    { id: 'norway', title: 'Norway', subtitle: 'Emerald Fjords, Huskies & Northern Lights', emoji: '🌌', gate: 'Planned World',
-      description: 'Cruise emerald fjords past waterfalls, feed gentle reindeer, race cozy husky sleds, bake cinnamon kanelboller, and watch the dancing Aurora Borealis!' },
-    { id: 'vikings', title: 'Viking Era Village', subtitle: 'Fjord Harbor & Northern Lights', emoji: '⛵', gate: 'Phase 2 • Next!',
-      description: 'Explore cozy wooden longhouses under the aurora borealis, meet friendly reindeer & puffins, and craft rune charms!' },
-    { id: 'arctic_village', title: 'Arctic Snow Village & Polar Penguins', subtitle: 'Glittering Glaciers & Dancing Aurora', emoji: '❄️', gate: 'Phase 3', bonus: true,
-      description: 'Sled down sparkling snow hills under the Northern Lights, waddle with adorable penguins & polar bear cubs, and sip hot cocoa in a cozy igloo!' },
-    { id: 'space', title: 'Outer Space Station', subtitle: 'Moon Base & Starlight Observatory', emoji: '🚀', gate: 'Phase 3',
-      description: 'Bounce in low gravity on the Moon, drive a lunar rover, meet friendly alien pets, and explore planets!' },
-    { id: 'paris', title: 'Paris', subtitle: 'Eiffel Gardens & Patisserie Lane', emoji: '🥐', gate: 'Future World',
-      description: 'Paint by the Seine, bake macarons & croissants, ride a carousel beneath the Eiffel Tower, and find Parisian puppies!' },
-    { id: 'rome', title: 'Ancient Rome', subtitle: 'Colosseum Plaza & Gelato Alley', emoji: '🏛️', gate: 'Future World',
-      description: 'Stroll sunlit marble piazzas, scoop rainbow gelato, build mini mosaic tiles, and spot Roman courtyard kitties!' },
-    { id: 'greece', title: 'Ancient Greece', subtitle: 'Acropolis Hill & Aegean Harbor', emoji: '🏺', gate: 'Future World',
-      description: 'Sail turquoise island coves, meet Pegasus statues, solve myth riddles, and paint Greek pottery!' },
-    { id: 'marrakech', title: 'Marrakech Lantern Bazaar', subtitle: 'Glowing Mosaic Souk & Courtyard', emoji: '🏜️', gate: 'Future World',
-      description: 'Explore a colorful tiled courtyard souk glowing with mosaic lanterns, sip sweet mint tea, and befriend fennec foxes!' }
+    { id: 'australia', title: 'Australia Wilderness', subtitle: 'Red Outback, Koalas & Coral Coast', emoji: '🦘', gate: 'Wave 2B • Oceania',
+      description: 'Feed sleepy koalas & playful kangaroos, toss a curving boomerang, and enjoy Aussie pies & lamingtons!' },
+    { id: 'spain', title: 'Spain', subtitle: 'Pamplona Fiesta, Gaudí Mosaic & Tapas', emoji: '💃', gate: 'Wave 3A • Europe',
+      description: 'Dash in a playful cartoon Running with the Bulls fiesta, share saffron paella & tapas, and build bright Gaudí mosaic tiles!' },
+    { id: 'italy', title: 'Italy', subtitle: 'Sunlit Piazzas, Venice Canals & Gelato', emoji: '🍕', gate: 'Wave 3A • Europe',
+      description: 'Toss Margherita pizza dough, ride a singing Venice gondola, scoop rainbow gelato, and solve a Roman mosaic!' },
+    { id: 'paris', title: 'Paris', subtitle: 'Eiffel Gardens & Patisserie Lane', emoji: '🥐', gate: 'Wave 3A • Europe',
+      description: 'Paint by the Seine, stack macarons & croissants, ride a carousel beneath the Eiffel Tower, and find Parisian puppies!' },
+    { id: 'greece', title: 'Ancient Greece', subtitle: 'Acropolis Hill & Aegean Harbor', emoji: '🏺', gate: 'Wave 3A • Europe',
+      description: 'Play mini Olympic games, paint terracotta pottery, connect constellation myths, and explore the turquoise harbor!' },
+    { id: 'germany', title: 'Germany', subtitle: 'Bavarian Castle & Traditional German Foods', emoji: '🥨', gate: 'Wave 3B • Europe',
+      description: 'Taste warm pretzels, schnitzel, spätzle, potato pancakes & Black Forest cake, and wind up musical cuckoo clocks!' },
+    { id: 'norway', title: 'Norway', subtitle: 'Fjord Hiking, Boat Cruise & Northern Lights', emoji: '🌌', gate: 'Wave 3B • Europe',
+      description: 'Hike scenic fjord trails, cruise past waterfalls, enjoy heart waffles, and catch shimmering Northern Lights!' },
+    { id: 'new_york', title: 'New York City', subtitle: 'Central Park, Times Square & Yellow Cabs', emoji: '🗽', gate: 'Wave 4 • Americas',
+      description: 'Cruise in a yellow cab, tap along on a Broadway stage, skate in Central Park, and grab classic NYC pizza & bagels!' }
   ];
 
   LS.PASSPORT_STAMPS = [
@@ -375,6 +383,34 @@ window.LailaSalma = window.LailaSalma || {};
     { id: 'safari_cheetah', world: 'safari', emoji: '🐆', title: 'Cheetah Sprinter', desc: 'Completed the Savanna Cheetah Sprint Challenge' },
     { id: 'safari_tent_decor', world: 'safari', emoji: '⛺', title: 'Glamping Designer', desc: 'Stepped inside & decorated your 3D Safari Glamping Tent' }
   ];
+
+  // Release & Preview Wave Gating Helpers
+  LS.isPreviewBuild = function () {
+    return Boolean(LS.RELEASE_CONFIG && LS.RELEASE_CONFIG.isPreview);
+  };
+
+  LS.isWorldEnabled = function (worldId) {
+    const w = LS.WORLDS[worldId];
+    if (!w) return false;
+    if (LS.isPreviewBuild()) return true;
+    const cfg = LS.RELEASE_CONFIG;
+    if (!cfg || !Array.isArray(cfg.enabledWaves)) return true;
+    const wave = w.wave || 'home';
+    return cfg.enabledWaves.includes(wave);
+  };
+
+  LS.getEnabledOutdoorWorlds = function () {
+    return ['home_neighborhood', 'safari', 'tokyo', 'kyoto'].filter(wid => LS.isWorldEnabled(wid));
+  };
+
+  LS.getActivePassportStamps = function () {
+    return LS.PASSPORT_STAMPS.filter(st => LS.isWorldEnabled(st.world));
+  };
+
+  LS.getActiveToys = function () {
+    if (!Array.isArray(LS.GACHAPON_TOYS)) return [];
+    return LS.GACHAPON_TOYS.filter(t => LS.isWorldEnabled(t.world));
+  };
 
   LS.worldBuilders = {};
   LS.registerWorld = function (worldId, builderObj) {

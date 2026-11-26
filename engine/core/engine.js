@@ -116,7 +116,7 @@ window.LailaSalma = window.LailaSalma || {};
   function applyTimeOfDay() {
     const mode = LS.state.timeMode;
     const wid = LS.state.currentWorld;
-    const meta = LS.WORLDS[wid] || LS.WORLDS.tokyo;
+    const meta = LS.WORLDS[wid] || LS.WORLDS.home_neighborhood;
     const btn = document.getElementById('btn-time');
 
     if (hdCloudsGroup) hdCloudsGroup.visible = !meta.isInterior;
@@ -828,6 +828,10 @@ window.LailaSalma = window.LailaSalma || {};
 
   LS.travelToWorld = function (targetWorldId) {
     if (LS.runtime.traveling || !LS.WORLDS[targetWorldId]) return;
+    if (LS.isWorldEnabled && !LS.isWorldEnabled(targetWorldId)) {
+      LS.showToast('✨ Coming in a future wave!');
+      return;
+    }
     if (targetWorldId === LS.state.currentWorld) {
       LS.closeAllModals();
       LS.showToast('You are already in ' + LS.WORLDS[targetWorldId].title + '!');
@@ -1081,7 +1085,7 @@ window.LailaSalma = window.LailaSalma || {};
     const laila = LS.chars.laila;
     if (!laila || LS.runtime.modalOpen || LS.runtime.eating) return;
     if (LS.runtime.camMode !== 0) setCameraMode(0);
-    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.tokyo;
+    const meta = LS.WORLDS[LS.state.currentWorld] || LS.WORLDS.home_neighborhood;
     targetCamYaw = camYaw + wrapAngleDelta(camYaw, laila.root.rotation.y);
     targetCamPitch = meta.isInterior ? 0.38 : 0.30;
     manualCamCooldown = 0;
@@ -2726,11 +2730,80 @@ window.LailaSalma = window.LailaSalma || {};
     }
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
+  async function sha256Hex(str) {
+    if (window.crypto && window.crypto.subtle) {
+      const buf = new TextEncoder().encode(str);
+      const hash = await window.crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    return str;
+  }
+
+  function applyReleaseBranding() {
+    const enabled = LS.getEnabledOutdoorWorlds ? LS.getEnabledOutdoorWorlds() : ['home_neighborhood', 'safari'];
+    const taglineEl = document.querySelector('.title-tagline');
+    if (taglineEl) {
+      const parts = enabled.map(wid => {
+        const w = LS.WORLDS[wid];
+        return w ? (w.emoji + ' ' + w.title) : wid;
+      });
+      taglineEl.textContent = (LS.isPreviewBuild && LS.isPreviewBuild() ? '🔧 PREVIEW BUILD • ' : '') + parts.join(' • ');
+    }
+    const prevBadge = document.getElementById('preview-mode-badge');
+    if (prevBadge) prevBadge.classList.toggle('hidden', !(LS.isPreviewBuild && LS.isPreviewBuild()));
+    if (LS.isPreviewBuild && LS.isPreviewBuild()) {
+      document.title = '[PREVIEW] ' + document.title;
+    }
+  }
+
+  function startGameSafely() {
     try {
       init();
     } catch (err) {
       showError(err && err.message ? err.message : String(err));
     }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    applyReleaseBranding();
+    const cfg = LS.RELEASE_CONFIG;
+    if (cfg && cfg.isPreview) {
+      const storageKey = cfg.previewAuthStorageKey || 'laila_salma_preview_unlocked_v1';
+      let alreadyUnlocked = false;
+      try { alreadyUnlocked = localStorage.getItem(storageKey) === '1' || sessionStorage.getItem(storageKey) === '1'; } catch (e) {}
+      if (!alreadyUnlocked) {
+        const gate = document.getElementById('preview-gate-overlay');
+        const form = document.getElementById('preview-gate-form');
+        const input = document.getElementById('preview-gate-input');
+        const rem = document.getElementById('preview-gate-remember');
+        const errEl = document.getElementById('preview-gate-error');
+        if (gate && form && input) {
+          gate.classList.remove('hidden');
+          setTimeout(() => { try { input.focus(); } catch (e) {} }, 80);
+          form.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const val = (input.value || '').trim();
+            const digest = await sha256Hex(val);
+            if (digest === cfg.previewPasscodeSha256) {
+              try {
+                sessionStorage.setItem(storageKey, '1');
+                if (rem && rem.checked) localStorage.setItem(storageKey, '1');
+              } catch (e) {}
+              gate.classList.add('hidden');
+              startGameSafely();
+            } else {
+              if (errEl) {
+                errEl.textContent = 'Incorrect passcode — please try again.';
+                errEl.classList.remove('hidden');
+              }
+              input.value = '';
+              input.focus();
+            }
+          });
+          return;
+        }
+      }
+    }
+    startGameSafely();
   });
 })(window.LailaSalma);

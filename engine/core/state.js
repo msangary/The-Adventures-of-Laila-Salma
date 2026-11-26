@@ -1,7 +1,9 @@
 window.LailaSalma = window.LailaSalma || {};
 
 (function (LS) {
-  const SAVE_KEY = 'laila_salma_adventures_multiworld_v1';
+  const SAVE_KEY = (LS.isPreviewBuild && LS.isPreviewBuild())
+    ? 'laila_salma_preview_multiworld_v1'
+    : 'laila_salma_adventures_multiworld_v1';
   const QUIZ_WINDOW_MS = 2 * 60 * 60 * 1000;
   const ANIMAL_RESET_MS = 2 * 60 * 60 * 1000; // 2 hours after completing all 5 animals
 
@@ -223,7 +225,9 @@ window.LailaSalma = window.LailaSalma || {};
       if (!raw) return makeDefaultState();
       const parsed = JSON.parse(raw);
       const validOutdoors = ['home_neighborhood', 'tokyo', 'kyoto', 'safari'];
-      const startW = validOutdoors.includes(parsed.currentWorld) ? parsed.currentWorld : 'home_neighborhood';
+      const startW = (validOutdoors.includes(parsed.currentWorld) && (!LS.isWorldEnabled || LS.isWorldEnabled(parsed.currentWorld)))
+        ? parsed.currentWorld
+        : 'home_neighborhood';
       const def = makeDefaultState();
       const sp = Object.assign({}, def.storyProgress, parsed.storyProgress || {});
       return Object.assign(def, parsed, {
@@ -666,8 +670,18 @@ window.LailaSalma = window.LailaSalma || {};
       }
     }
 
-    if (toyEl) toyEl.textContent = (LS.state.unlockedToys ? LS.state.unlockedToys.length : 0) + '/' + LS.GACHAPON_TOYS.length;
-    if (stampEl) stampEl.textContent = (LS.state.stamps ? LS.state.stamps.length : 0) + '/' + LS.PASSPORT_STAMPS.length;
+    if (toyEl) {
+      const activeToys = LS.getActiveToys ? LS.getActiveToys() : LS.GACHAPON_TOYS;
+      const activeToyIds = new Set(activeToys.map(t => t.id));
+      const ownedActive = (LS.state.unlockedToys || []).filter(id => activeToyIds.has(id)).length;
+      toyEl.textContent = ownedActive + '/' + activeToys.length;
+    }
+    if (stampEl) {
+      const activeStamps = LS.getActivePassportStamps ? LS.getActivePassportStamps() : LS.PASSPORT_STAMPS;
+      const activeStampIds = new Set(activeStamps.map(s => s.id));
+      const earnedActive = (LS.state.stamps || []).filter(id => activeStampIds.has(id)).length;
+      stampEl.textContent = earnedActive + '/' + activeStamps.length;
+    }
 
     if (mochiHud) {
       if (LS.runtime.mochiGame) {

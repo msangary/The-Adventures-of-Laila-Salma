@@ -299,9 +299,15 @@ window.LailaSalma = window.LailaSalma || {};
     LS.runtime.modalOpen = true;
     const worldsBox = document.getElementById('passport-worlds');
     const stampsBox = document.getElementById('passport-stamps');
+    const enabledWorlds = LS.getEnabledOutdoorWorlds ? LS.getEnabledOutdoorWorlds() : ['home_neighborhood', 'safari', 'tokyo', 'kyoto'];
+    const pSub = document.querySelector('#passport-modal .ramen-sub');
+    if (pSub) {
+      const names = enabledWorlds.map(wid => (LS.WORLDS[wid] ? LS.WORLDS[wid].title : wid));
+      pSub.textContent = 'Travel between ' + names.join(', ') + ' anytime — coins, outfits, toys, and stamps travel with you!';
+    }
     if (worldsBox) {
       worldsBox.innerHTML = '';
-      ['home_neighborhood', 'tokyo', 'kyoto', 'safari'].forEach(wid => {
+      enabledWorlds.forEach(wid => {
         const w = LS.WORLDS[wid];
         if (!w) return;
         const isHere = LS.state.currentWorld === wid || (wid === 'home_neighborhood' && LS.state.currentWorld === 'home_apartment');
@@ -364,7 +370,8 @@ window.LailaSalma = window.LailaSalma || {};
 
     if (stampsBox) {
       stampsBox.innerHTML = '';
-      LS.PASSPORT_STAMPS.forEach(st => {
+      const activeStamps = LS.getActivePassportStamps ? LS.getActivePassportStamps() : LS.PASSPORT_STAMPS;
+      activeStamps.forEach(st => {
         const earned = LS.state.stamps.includes(st.id);
         const el = document.createElement('div');
         el.className = 'stamp-slot ' + (earned ? 'earned' : 'locked');
@@ -385,7 +392,7 @@ window.LailaSalma = window.LailaSalma || {};
   // Haneda-Tokyo International Airport & Safari Airstrip Departures Board
   LS.openAirportModal = function () {
     LS.runtime.modalOpen = true;
-    LS.unlockStamp('tokyo_airport');
+    if (LS.isWorldEnabled && LS.isWorldEnabled('tokyo')) LS.unlockStamp('tokyo_airport');
     const grid = document.getElementById('airport-flights-grid');
     if (grid) {
       grid.innerHTML = '';
@@ -396,14 +403,17 @@ window.LailaSalma = window.LailaSalma || {};
       liveHdr.textContent = '✈️ Now Boarding — Live International Flights!';
       grid.appendChild(liveHdr);
 
-      const liveFlights = inSafari
+      const candidateFlights = inSafari
         ? [
-          { id: 'tokyo', emoji: '🗼', title: 'Tokyo (Haneda Airport)', gate: 'Gate H1 • Live', desc: 'Fly home to Sakura-cho, Ichiban Ramen, Pocket Park, Tokyo Room & Shinkansen Station!' },
+          { id: 'home_neighborhood', emoji: '🏡', title: 'Home Community (Egypt)', gate: 'Gate H0 • Live', desc: 'Fly straight home to Laila & Salma\'s Apartment, Gedo Mahmoud & Nana Omaima\'s House, and the Family Qashqai!' },
+          { id: 'tokyo', emoji: '🗼', title: 'Tokyo (Haneda Airport)', gate: 'Gate H1 • Live', desc: 'Fly to Sakura-cho, Ichiban Ramen, Pocket Park, Tokyo Room & Shinkansen Station!' },
           { id: 'kyoto', emoji: '⛩️', title: 'Kyoto (Sakurako Shrine)', gate: 'Gate H2 • Live', desc: 'Fly directly to Kyoto’s Koi Lake, Arched Cedar Bridge, Bamboo Grove & 5 Kitsune Foxes!' }
         ]
         : [
-          { id: 'safari', emoji: '🦁', title: 'African Safari & Wildlife Zoo', gate: 'Gate A1 • NOW OPEN!', desc: 'Ride a zebra-striped Safari Jeep, feed tall giraffes & elephants, explore Pride Rock, collect wildlife stickers & find 5 playful lion cubs!' }
+          { id: 'safari', emoji: '🦁', title: 'African Safari & Wildlife Zoo', gate: 'Gate A1 • NOW OPEN!', desc: 'Ride a zebra-striped Safari Jeep, feed tall giraffes & elephants, explore Pride Rock, collect wildlife stickers & find 5 playful lion cubs!' },
+          { id: 'home_neighborhood', emoji: '🏡', title: 'Home Community (Egypt)', gate: 'Gate H0 • Live', desc: 'Fly home to Laila & Salma\'s Gated Community!' }
         ];
+      const liveFlights = candidateFlights.filter(fl => !LS.isWorldEnabled || LS.isWorldEnabled(fl.id));
 
       liveFlights.forEach(fl => {
         const row = document.createElement('div');
@@ -2088,7 +2098,8 @@ window.LailaSalma = window.LailaSalma || {};
     const list = document.getElementById('globe-worlds-list');
     if (list) {
       list.innerHTML = '';
-      ['home_neighborhood', 'tokyo', 'kyoto', 'safari'].forEach(wid => {
+      const enabledWorlds = LS.getEnabledOutdoorWorlds ? LS.getEnabledOutdoorWorlds() : ['home_neighborhood', 'safari', 'tokyo', 'kyoto'];
+      enabledWorlds.forEach(wid => {
         const w = LS.WORLDS[wid];
         if (!w) return;
         const row = document.createElement('div');
@@ -2121,6 +2132,7 @@ window.LailaSalma = window.LailaSalma || {};
     if (chapBox && LS.STORY_CHAPTERS) {
       chapBox.innerHTML = '';
       Object.keys(LS.STORY_CHAPTERS).forEach(wid => {
+        if (LS.isWorldEnabled && !LS.isWorldEnabled(wid)) return;
         const chap = LS.STORY_CHAPTERS[wid];
         const prog = (LS.state.storyProgress && LS.state.storyProgress[wid]) || 0;
         const card = document.createElement('div');

@@ -21,12 +21,30 @@
   <div id="grain-overlay" class="grain-active"></div>
   <div id="camera-flash" class="hidden"></div>
 
+  <!-- Preview Environment Passcode Gate (Shown ONLY when config.js sets isPreview: true) -->
+  <div id="preview-gate-overlay" class="modal-backdrop hidden" style="z-index:99999;background:rgba(24,18,14,0.88);backdrop-filter:blur(8px);">
+    <div class="modal-box parchment-modal" style="max-width:410px;text-align:center;">
+      <div style="font-size:38px;margin-bottom:6px;">🔒🔧</div>
+      <h2 style="margin:0 0 6px;">Developer Preview Build</h2>
+      <p class="ramen-sub" style="margin-bottom:14px;">Enter your testing passcode to preview upcoming waves of <strong>Laila &amp; Salma</strong> before releasing them publicly.</p>
+      <form id="preview-gate-form" style="display:flex;flex-direction:column;gap:10px;">
+        <input id="preview-gate-input" type="password" inputmode="numeric" autocomplete="off" placeholder="Enter passcode..." style="padding:12px 14px;border-radius:12px;border:2px solid #d4a359;font-size:18px;text-align:center;letter-spacing:4px;background:#fffdf8;color:#2c1e16;" />
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:#5a4332;cursor:pointer;">
+          <input id="preview-gate-remember" type="checkbox" checked />
+          Remember unlock on this device
+        </label>
+        <div id="preview-gate-error" class="hidden" style="color:#c83e37;font-weight:700;font-size:13px;"></div>
+        <button type="submit" class="btn-primary" style="width:100%;padding:12px;font-size:15px;">🔓 Unlock Preview Build</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Live 3D Studio Ghibli Home / Title Screen Overlay (Laila & Salma run around live behind!) -->
   <div id="title-screen">
     <div class="title-top-banner">
       <div class="title-badge">✨ Studio Ghibli Edition ✨</div>
       <h1 class="title-logo">The Adventures of<br /><span>Laila &amp; Salma</span></h1>
-      <p class="title-tagline">🏡 Home Community • 🗼 Tokyo • ⛩️ Kyoto • 🦁 African Safari</p>
+      <p class="title-tagline">🏡 Home Community • 🦁 African Safari</p>
     </div>
     <div class="title-bottom-cta">
       <button id="btn-play-adventure" class="btn-play-hero" type="button">🌸 Play Adventure</button>
@@ -61,6 +79,7 @@
         <div class="hud-title-row">
           <span class="player-name">Laila &amp; Salma</span>
           <span style="display:flex;align-items:center;gap:4px;">
+            <span id="preview-mode-badge" class="hd-badge hidden" style="background:#7c3aed;color:#fff;">PREVIEW</span>
             <span id="hd-badge" class="hd-badge">GHIBLI</span>
             <span id="hud-world-badge" class="world-badge">🏡 Home</span>
           </span>
@@ -165,7 +184,7 @@
     </div>
     <div id="compass-box" class="parchment-card">
       <div id="compass-needle">N</div>
-      <div id="compass-zone">Tokyo Main Street</div>
+      <div id="compass-zone">Sunnyside Courtyard</div>
     </div>
     <div class="action-buttons">
       <button id="btn-interact-mobile" class="action-btn interact-mob-btn hidden">E • Act</button>
@@ -884,7 +903,8 @@
     </div>
   </div>
 
-  <!-- Load Unified Studio Ghibli Engine & World Modules -->
+  <!-- Load Release/Preview Config & Unified Studio Ghibli Engine & World Modules -->
+  <script src="config.js"></script>
   <script src="worlds/registry.js"></script>
   <script src="engine/core/ghibli.js"></script>
   <script src="engine/core/state.js"></script>
